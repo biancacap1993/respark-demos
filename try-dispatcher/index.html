@@ -137,7 +137,7 @@ mark.what { --c: var(--hl-what); } mark.where { --c: var(--hl-where); } mark.whe
 .tgrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 16px; }
 .f { min-width: 0; padding-left: 8px; border-left: 3px solid transparent; transition: background-color .3s; border-radius: 0 4px 4px 0; }
 .f.what { border-left-color: rgb(var(--hl-what)); } .f.where { border-left-color: rgb(var(--hl-where)); } .f.when { border-left-color: rgb(var(--hl-when)); } .f.note { border-left-color: rgb(var(--hl-note)); }
-.f.pop { animation: fpop .5s ease-out; }
+.f.field-in { animation: fpop .5s ease-out; }
 @keyframes fpop { from { background: rgba(0, 201, 212, .18); } to { background: transparent; } }
 .f .l { font-size: 12px; color: var(--text-2); display: block; }
 .f .v { font-size: 14px; font-weight: 500; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
@@ -582,7 +582,7 @@ async function analyze(t) {
   t.analyzed = true;
   recs.innerHTML = pendingRecs(t).map(r => cardHtml(r, t)).join('');
   recs.querySelectorAll('.card').forEach(c => c.classList.add('enter'));
-  if (!REDUCED) for (const f of recs.querySelectorAll('.f')) { f.classList.add('pop'); await sleep(55); }
+  if (!REDUCED) for (const f of recs.querySelectorAll('.f')) { f.classList.add('field-in'); await sleep(55); }
 }
 
 function openThread(id, { fromSync } = {}) {
