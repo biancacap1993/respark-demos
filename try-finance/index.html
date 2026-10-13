@@ -1,0 +1,764 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Finance Agent Test Drive</title>
+<meta name="description" content="Try ReSpark's Finance Agent: a mill settlement is read, matched to your invoices and reconciled, on fictional sample data.">
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="../demo-shell/demo-shell.css?v=2">
+<style>
+/* Finance Agent test drive. A standalone recreation of Sales > Settlement Reconciliation
+   (frontend/client/.../settlement-reconciliation) on a fictional mill settlement.
+   No app code and no network calls. */
+.num { font-variant-numeric: tabular-nums; }
+.caps { font-size: 11px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--text-2); }
+.s-tabs { display: flex; gap: 4px; padding: 0 16px; border-bottom: 1px solid var(--divider); overflow-x: auto; scrollbar-width: none; flex: none; }
+.s-tabs::-webkit-scrollbar { display: none; }
+.s-tab { border: 0; background: none; height: 46px; padding: 0 14px; font-size: 14px; font-weight: 600; color: var(--text-2); border-bottom: 2px solid transparent; white-space: nowrap; }
+.s-tab:hover { color: var(--text); }
+.s-tab[aria-selected="true"] { color: var(--primary); border-bottom-color: var(--primary); }
+.view { flex: 1; min-height: 0; overflow: auto; }
+.view[hidden] { display: none; }
+
+/* buttons + chips (MUI-ish) */
+.mb { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 32px; padding: 0 12px; border-radius: 6px; font-size: 13px; font-weight: 600; border: 1px solid var(--line-12); background: transparent; color: var(--text); white-space: nowrap; }
+.mb:hover:not(:disabled) { background: var(--action-hover); }
+.mb.sm { height: 28px; padding: 0 10px; font-size: 12.5px; }
+.mb.primary { background: var(--primary); border-color: var(--primary); color: var(--on-primary); }
+.mb.primary:hover:not(:disabled) { background: var(--primary-dark); }
+.mb.success { background: #15803d; border-color: #15803d; color: #fff; }
+.mb.success:hover:not(:disabled) { background: #166534; }
+.mb.o-primary { border-color: rgba(0, 122, 135, .5); color: var(--primary); }
+.mb.t-error { border-color: transparent; color: var(--error); }
+.mb:disabled { opacity: .45; cursor: not-allowed; }
+.ibtn { width: 30px; height: 30px; border-radius: 50%; border: 0; background: none; color: var(--text-2); display: inline-flex; align-items: center; justify-content: center; }
+.ibtn:hover { background: var(--action-hover); color: var(--text); }
+.chip { display: inline-flex; align-items: center; gap: 4px; height: 22px; padding: 0 8px; border-radius: 11px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+.chip.success { background: rgba(21, 128, 61, .12); color: #166534; } .chip.warning { background: rgba(194, 65, 12, .12); color: #9A3412; }
+.chip.error { background: rgba(220, 38, 38, .12); color: #b91c1c; } .chip.info { background: rgba(2, 132, 199, .12); color: #0369a1; }
+.chip.default { background: rgba(14, 26, 47, .07); color: var(--text-2); }
+:root[data-theme="dark"] .chip.success { color: #86efac; } :root[data-theme="dark"] .chip.warning { color: #fdba74; } :root[data-theme="dark"] .chip.error { color: #fca5a5; } :root[data-theme="dark"] .chip.info { color: #7dd3fc; } :root[data-theme="dark"] .chip.default { background: rgba(255, 255, 255, .08); }
+.pill { display: inline-flex; align-items: center; height: 18px; padding: 0 6px; border-radius: 4px; font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; white-space: nowrap; }
+.pill.success { background: rgba(21, 128, 61, .12); color: #15803d; } .pill.warning { background: rgba(194, 65, 12, .12); color: #C2410C; } .pill.error { background: rgba(220, 38, 38, .12); color: #DC2626; } .pill.info { background: rgba(2, 132, 199, .12); color: #0284C7; }
+.pill.primary { background: rgba(0, 122, 135, .12); color: var(--primary); }
+:root[data-theme="dark"] .pill.success { color: #4ade80; } :root[data-theme="dark"] .pill.warning { color: #fbbf24; } :root[data-theme="dark"] .pill.error { color: #f87171; } :root[data-theme="dark"] .pill.info { color: #38bdf8; }
+.ai { display: inline-flex; align-items: center; height: 20px; padding: 0 7px; border-radius: 10px; font-size: 11px; font-weight: 700; border: 1px solid; }
+.ai.hi { color: #15803d; border-color: rgba(21, 128, 61, .4); } .ai.mid { color: #C2410C; border-color: rgba(194, 65, 12, .4); } .ai.lo { color: #DC2626; border-color: rgba(220, 38, 38, .4); }
+:root[data-theme="dark"] .ai.hi { color: #4ade80; } :root[data-theme="dark"] .ai.mid { color: #fbbf24; } :root[data-theme="dark"] .ai.lo { color: #f87171; }
+
+/* List page */
+.page { padding: 20px 24px; }
+.page-h { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+.page-h h1 { margin: 0; font-size: 22px; font-weight: 600; flex: 1; }
+.grid-tbl { width: 100%; border-collapse: collapse; font-size: 13.5px; min-width: 640px; }
+.grid-tbl th { text-align: left; font-weight: 600; color: var(--text-2); padding: 10px 12px; border-bottom: 1px solid var(--divider); background: var(--section); white-space: nowrap; }
+.grid-tbl td { padding: 11px 12px; border-bottom: 1px solid var(--divider); white-space: nowrap; }
+.grid-tbl tr.click { cursor: pointer; } .grid-tbl tr.click:hover td { background: var(--action-hover); }
+.grid-tbl tr.fresh td { background: rgba(0, 201, 212, .07); }
+.tbl-wrap { border: 1px solid var(--divider); border-radius: 8px; overflow: auto; }
+.list-hint { margin-top: 16px; }
+
+/* Detail page */
+.d-top { padding: 16px 24px 12px; border-bottom: 1px solid var(--divider); }
+.d-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.d-row .t { font-size: 15px; font-weight: 600; color: var(--text-2); }
+.d-row .sp { flex: 1; }
+.back { display: inline-flex; align-items: center; gap: 2px; border: 0; background: none; color: var(--primary); font-weight: 600; font-size: 13px; padding: 4px 6px 4px 0; }
+.cust-h { margin: 8px 0 2px; font-size: 22px; font-weight: 600; letter-spacing: -0.01em; }
+.meta { font-size: 12.5px; color: var(--text-2); }
+.metrics { display: flex; flex-wrap: wrap; gap: 6px 18px; margin-top: 10px; font-size: 13px; color: var(--text-2); }
+.metrics b { color: var(--text); font-weight: 700; }
+.metrics .warn b { color: var(--warning); } .metrics .good b { color: #15803d; }
+:root[data-theme="dark"] .metrics .good b { color: #4ade80; }
+.deds { margin-top: 6px; font-size: 12.5px; color: var(--text-2); }
+.deds b { color: var(--text); font-weight: 600; }
+.d-body { display: flex; min-height: 0; }
+.side { width: 300px; flex: none; border-right: 1px solid var(--divider); padding: 14px 12px; display: flex; flex-direction: column; gap: 8px; align-self: stretch; }
+.side .caps { padding: 0 4px 2px; }
+.inv { display: block; width: 100%; text-align: left; border: 1px solid var(--divider); border-radius: 8px; background: var(--paper); padding: 10px 12px; }
+.inv:hover { border-color: var(--primary); }
+.inv[aria-current="true"] { border-color: var(--primary); background: rgba(0, 122, 135, .06); }
+.inv.um[aria-current="true"] { box-shadow: inset 3px 0 0 var(--error); background: rgba(220, 38, 38, .04); border-color: var(--error); }
+.inv .r1 { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.inv .no { font-weight: 700; font-size: 13.5px; white-space: nowrap; }
+.inv .r2 { display: flex; align-items: baseline; gap: 8px; margin-top: 4px; font-size: 13.5px; }
+.inv .d { font-size: 12px; } .inv .d.neg { color: var(--warning); } .inv .d.zero { color: var(--text-2); }
+.inv .r3 { font-size: 12px; color: var(--text-2); margin-top: 2px; }
+.main { flex: 1; min-width: 0; padding: 16px 20px 28px; }
+.inv-h { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.inv-h .no { font-size: 17px; font-weight: 700; color: var(--primary); }
+.inv-h .tot { font-size: 15px; font-weight: 600; }
+.inv-cap { font-size: 12.5px; color: var(--text-2); margin: 4px 0 12px; }
+.banner { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 8px; background: rgba(21, 128, 61, .08); color: #166534; font-size: 13.5px; margin-bottom: 12px; flex-wrap: wrap; }
+:root[data-theme="dark"] .banner { color: #86efac; }
+.banner span { flex: 1; min-width: 200px; }
+.finding { display: flex; gap: 10px; padding: 12px 14px; border-radius: 8px; background: rgba(0, 122, 135, .06); border: 1px solid rgba(0, 122, 135, .2); margin-bottom: 12px; font-size: 13.5px; }
+.finding svg { color: var(--primary); margin-top: 2px; }
+.ticket { margin-bottom: 14px; }
+.ticket-h { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; flex-wrap: wrap; }
+.ticket-h .obt { font-weight: 700; color: var(--primary); font-size: 13.5px; }
+.scrollx { overflow-x: auto; }
+.cols, .mrow { display: grid; grid-template-columns: minmax(160px, 1.4fr) 8px repeat(4, minmax(60px, .9fr)) minmax(96px, 1.1fr) minmax(88px, 1.1fr) 182px; align-items: center; min-width: 800px; }
+.cols { padding: 4px 12px; }
+.cols span { font-size: 10.5px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--text-2); }
+.cols .n, .mrow .n { text-align: right; padding-right: 8px; }
+.mc { border: 1px solid var(--divider); border-radius: 6px; overflow: hidden; min-width: 800px; transition: background-color .3s; margin-bottom: 8px; }
+.mc.approved { background: rgba(21, 128, 61, .035); border-color: rgba(21, 128, 61, .35); }
+.mc.rejected { opacity: .6; }
+.mc.flash { animation: mcflash 1s ease-out; }
+@keyframes mcflash { from { box-shadow: 0 0 0 3px rgba(0, 201, 212, .45); } to { box-shadow: 0 0 0 0 rgba(0, 201, 212, 0); } }
+.mrow { padding: 8px 12px; font-size: 14px; }
+.mrow.ours { background: var(--paper); }
+.mrow.cust { background: var(--hover); border-top: 1px solid var(--divider); }
+.mrow .mat { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.mrow .mat .nm { font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.mrow .mat .sub { font-size: 12px; color: var(--text-2); }
+.src { font-size: 9.5px; font-weight: 700; letter-spacing: .08em; padding: 1px 5px; border-radius: 3px; }
+.src.r { background: rgba(0, 122, 135, .12); color: var(--primary); } .src.c { background: rgba(2, 132, 199, .12); color: #0284C7; }
+.mrow .diff { font-weight: 700; }
+.mrow .acts { display: flex; align-items: center; justify-content: flex-end; gap: 6px; }
+.mrow .tags { display: flex; align-items: center; justify-content: flex-end; gap: 6px; flex-wrap: wrap; }
+.mfoot { display: grid; grid-template-columns: minmax(160px, 1.4fr) 8px repeat(4, minmax(60px, .9fr)) minmax(96px, 1.1fr) minmax(88px, 1.1fr) 182px; padding: 5px 12px; border-top: 1px dashed var(--divider); font-size: 12.5px; font-weight: 700; color: var(--warning); min-width: 800px; }
+.mfoot.critical { color: var(--error); } .mfoot.ok { color: #15803d; }
+.mfoot .n { text-align: right; padding-right: 8px; }
+.um-row { border: 1px dashed rgba(220, 38, 38, .5); border-radius: 8px; padding: 12px 14px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
+.um-row .x { flex: 1; min-width: 240px; }
+.menu { position: absolute; z-index: 40; background: var(--paper); border: 1px solid var(--divider); border-radius: 8px; box-shadow: 0 8px 24px rgba(0, 0, 0, .15); padding: 4px 0; min-width: 170px; }
+.menu button { display: block; width: 100%; text-align: left; border: 0; background: none; padding: 8px 14px; font-size: 13.5px; }
+.menu button:hover, .menu button:focus-visible { background: var(--action-hover); }
+
+/* Extraction view */
+.extract { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 20px; padding: 20px 24px; align-items: start; }
+.steps { border: 2px dashed rgba(0, 122, 135, .35); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+.steps .stp { display: flex; gap: 10px; align-items: flex-start; font-size: 13.5px; color: var(--text-2); }
+.steps .stp svg { color: var(--text-disabled); margin-top: 1px; }
+.steps .stp.done { color: var(--text); } .steps .stp.done svg { color: #15803d; }
+.steps .stp small { display: block; color: var(--text-2); font-size: 12.5px; }
+.shimmer { width: fit-content; background-image: linear-gradient(90deg, rgba(68, 81, 102, .55) 35%, var(--text) 50%, rgba(68, 81, 102, .55) 65%); background-size: 200% 100%;
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: transparent; animation: wave 2.2s linear infinite; }
+@keyframes wave { from { background-position: 200% center; } to { background-position: -200% center; } }
+
+/* The settlement document (rendered like the PDF / photo) */
+.doc { position: relative; background: #fff; color: #1f2937; border: 1px solid #d1d5db; border-radius: 4px; box-shadow: 0 10px 30px rgba(14, 26, 47, .12); padding: 22px 24px; font-size: 12px; overflow: hidden; }
+.doc.photo { transform: rotate(-1.2deg); background: #fbfaf6; box-shadow: 0 14px 34px rgba(0, 0, 0, .22); filter: contrast(.97) saturate(.85); }
+.doc.photo::after { content: ""; position: absolute; inset: 0; background: linear-gradient(115deg, rgba(255, 255, 255, 0) 55%, rgba(255, 255, 255, .45) 70%, rgba(255, 255, 255, 0) 85%), radial-gradient(circle at 10% 90%, rgba(0, 0, 0, .06), transparent 40%); pointer-events: none; }
+.doc .lh { display: flex; align-items: center; gap: 10px; border-bottom: 2px solid #111827; padding-bottom: 8px; margin-bottom: 10px; }
+.doc .mk { width: 26px; height: 26px; background: #374151; border-radius: 3px; }
+.doc .mill { font-weight: 800; letter-spacing: .06em; font-size: 13px; }
+.doc .dt { font-size: 11px; color: #4b5563; }
+.doc dl { display: grid; grid-template-columns: auto 1fr auto 1fr; gap: 2px 10px; margin: 0 0 10px; }
+.doc dt { color: #6b7280; } .doc dd { margin: 0; font-weight: 600; }
+.doc table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.doc th { text-align: left; font-size: 10px; text-transform: uppercase; letter-spacing: .05em; color: #6b7280; border-bottom: 1px solid #9ca3af; padding: 4px 4px; }
+.doc td { padding: 4px; border-bottom: 1px solid #e5e7eb; }
+.doc .r { text-align: right; }
+.doc tr.read td { background: rgba(0, 201, 212, .14); }
+.doc .tot td { font-weight: 800; border-top: 2px solid #111827; border-bottom: 0; }
+.doc .ded td { color: #b91c1c; }
+.doc .scan { position: absolute; left: 0; right: 0; height: 36px; background: linear-gradient(180deg, rgba(0, 201, 212, 0), rgba(0, 201, 212, .22), rgba(0, 201, 212, 0)); top: -40px; pointer-events: none; }
+.doc .scan.go { animation: scan 2.4s ease-in-out infinite; }
+@keyframes scan { from { top: -40px; } to { top: 100%; } }
+
+/* Upload modal + drawers */
+dialog { border: 0; padding: 0; border-radius: 12px; background: var(--paper); color: var(--text); box-shadow: 0 24px 64px rgba(0, 0, 0, .3); width: min(560px, calc(100vw - 24px)); max-height: calc(100dvh - 32px); }
+dialog::backdrop { background: rgba(14, 26, 47, .45); }
+.dlg { display: flex; flex-direction: column; max-height: calc(100dvh - 32px); }
+.dlg-h { display: flex; align-items: center; gap: 8px; padding: 16px 20px; border-bottom: 1px solid var(--divider); }
+.dlg-h h2 { margin: 0; font-size: 17px; font-weight: 600; flex: 1; }
+.dlg-b { padding: 16px 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; font-size: 14px; }
+.dlg-b p { margin: 0; color: var(--text-2); }
+.dlg-f { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 20px; border-top: 1px solid var(--divider); }
+.sample { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; border: 1px solid var(--line-12); border-radius: 8px; background: none; padding: 12px; }
+.sample:hover { border-color: var(--primary); }
+.sample[aria-pressed="true"] { border-color: var(--primary); background: rgba(0, 122, 135, .06); box-shadow: inset 0 0 0 1px var(--primary); }
+.sample .fi { width: 34px; height: 40px; border-radius: 4px; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 4px; font-size: 9px; font-weight: 800; color: #fff; flex: none; }
+.sample .fi.pdf { background: #DC2626; } .sample .fi.jpg { background: #0284C7; }
+.sample b { display: block; font-size: 14px; } .sample small { color: var(--text-2); font-size: 12.5px; }
+.fld { display: flex; flex-direction: column; gap: 4px; }
+.fld label { font-size: 12.5px; font-weight: 600; color: var(--text-2); }
+.fld input, .fld select, .fld textarea { width: 100%; border: 1px solid var(--line-12); border-radius: 6px; padding: 8px 10px; background: var(--default); font-size: 14px; }
+.fld textarea { min-height: 60px; resize: vertical; }
+.fld input:focus, .fld select:focus, .fld textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 2px rgba(0, 122, 135, .15); }
+.fld input[readonly] { background: var(--section); color: var(--text-2); }
+.tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.tile { border: 1px solid var(--divider); border-radius: 8px; padding: 10px; text-align: center; }
+.tile b { display: block; font-size: 20px; } .tile span { font-size: 12px; color: var(--text-2); }
+.chk { display: flex; align-items: center; gap: 8px; font-size: 13.5px; padding: 4px 0; }
+.alert { padding: 10px 12px; border-radius: 8px; font-size: 13px; }
+.alert.warning { background: rgba(194, 65, 12, .08); color: #9A3412; } .alert.success { background: rgba(21, 128, 61, .08); color: #166534; }
+:root[data-theme="dark"] .alert.warning { color: #fdba74; } :root[data-theme="dark"] .alert.success { color: #86efac; }
+
+.drawer { position: fixed; top: 0; right: 0; bottom: 0; width: min(620px, 100vw); background: var(--paper); box-shadow: -12px 0 40px rgba(0, 0, 0, .18); z-index: 70; transform: translateX(105%); transition: transform .25s ease; display: flex; flex-direction: column; }
+.drawer.open { transform: none; }
+.drawer-h { display: flex; align-items: flex-start; gap: 10px; padding: 14px 18px; border-bottom: 1px solid var(--divider); }
+.drawer-h .x { flex: 1; min-width: 0; }
+.drawer-h h2 { margin: 2px 0 0; font-size: 18px; font-weight: 600; }
+.drawer-h .sub { font-size: 12.5px; color: var(--text-2); }
+.drawer-b { flex: 1; overflow-y: auto; padding: 14px 18px; display: flex; flex-direction: column; gap: 12px; }
+.drawer-f { display: flex; gap: 8px; padding: 12px 18px; border-top: 1px solid var(--divider); align-items: center; flex-wrap: wrap; }
+.drawer-f .sp { flex: 1; }
+.dcard { border: 1px solid var(--divider); border-radius: 8px; padding: 12px 14px; font-size: 13.5px; }
+.dcard h3 { margin: 0 0 8px; font-size: 13.5px; font-weight: 700; }
+.dcard ul { margin: 0; padding-left: 18px; } .dcard li { margin: 2px 0; }
+.dcard .rat { margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--divider); color: var(--text-2); }
+.sbs { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.sbs .pane { border-radius: 6px; padding: 10px; }
+.sbs .pane.r { background: rgba(0, 122, 135, .06); } .sbs .pane.c { background: rgba(2, 132, 199, .06); }
+.sbs dl { display: grid; grid-template-columns: auto 1fr; gap: 3px 10px; margin: 6px 0 0; font-size: 13px; }
+.sbs dt { color: var(--text-2); } .sbs dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+.sbs dd.diff { color: var(--warning); }
+.dtiles { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.dtiles div { border-radius: 6px; background: var(--section); padding: 8px; text-align: center; font-size: 12px; color: var(--text-2); }
+.dtiles b { display: block; font-size: 13.5px; color: var(--text); font-variant-numeric: tabular-nums; }
+.dtiles b.w { color: var(--warning); }
+.seg { display: inline-flex; border: 1px solid var(--line-12); border-radius: 8px; overflow: hidden; flex-wrap: wrap; }
+.seg button { border: 0; background: none; padding: 8px 12px; font-size: 13px; font-weight: 600; color: var(--text-2); border-right: 1px solid var(--line-12); }
+.seg button:last-child { border-right: 0; }
+.seg button[aria-pressed="true"] { background: rgba(0, 122, 135, .1); color: var(--primary); }
+.decide { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 10px 0; }
+.decide div { background: var(--section); border-radius: 6px; padding: 8px 10px; font-size: 12px; color: var(--text-2); }
+.decide b { display: block; font-size: 14px; color: var(--text); font-variant-numeric: tabular-nums; }
+.ai-sug { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: var(--violet); font-weight: 600; margin-left: 6px; }
+.scrim { position: fixed; inset: 0; background: rgba(14, 26, 47, .35); z-index: 65; }
+.scrim[hidden] { display: none; }
+.pdf-drawer .drawer-b { background: var(--section); }
+
+@media (max-width: 860px) {
+  .d-body { flex-direction: column; }
+  .side { width: auto; border-right: 0; border-bottom: 1px solid var(--divider); flex-direction: row; overflow-x: auto; padding: 10px 12px; scrollbar-width: thin; }
+  .side .caps { display: none; }
+  .inv { width: 236px; flex: none; }
+  .extract { grid-template-columns: 1fr; }
+  .main { padding: 14px 12px 24px; }
+  .d-top, .page { padding-left: 14px; padding-right: 14px; }
+  .dtiles { grid-template-columns: repeat(3, 1fr); }
+  .sbs { grid-template-columns: 1fr; }
+}
+@media (max-width: 520px) { .tiles { grid-template-columns: repeat(2, 1fr); } .decide { grid-template-columns: 1fr; } .doc dl { grid-template-columns: auto 1fr; } .d-row .t { display: none; } }
+</style>
+</head>
+<body>
+<div class="demo">
+  <header class="demo-bar" id="demoBar"></header>
+  <section class="app-window" aria-label="Finance Agent, running on a sample settlement">
+    <div class="s-tabs" role="tablist" aria-label="Sales">
+      <button type="button" class="s-tab" role="tab" aria-selected="false" data-tab="invoices">Invoices</button>
+      <button type="button" class="s-tab" role="tab" aria-selected="false" data-tab="orders">Sales Orders</button>
+      <button type="button" class="s-tab" role="tab" aria-selected="true" data-tab="sr">Settlement Reconciliation</button>
+    </div>
+    <div class="view" id="listView"></div>
+    <div class="view" id="detailView" hidden></div>
+  </section>
+  <p class="demo-note">Fictional sample settlement. In ReSpark, the Finance Agent reconciles your own mill settlements against your invoices.</p>
+</div>
+<dialog id="dlg" aria-labelledby="dlgTitle"></dialog>
+<div class="scrim" id="scrim" hidden></div>
+<aside class="drawer" id="drawer" aria-hidden="true" aria-labelledby="drawerTitle"></aside>
+
+<script src="../demo-shell/demo-shell.js?v=2"></script>
+<script>
+(() => {
+'use strict';
+const S = DemoShell.create({
+  agent: 'finance',
+  agentName: 'Finance Agent',
+  toastTop: true,
+  sample: '<b>Everything here is fictional.</b> The mill, invoices, tickets and amounts are made up for this test drive. Committing doesn\'t change any real invoice.',
+  onReset: () => reset(),
+  resetMessage: 'Demo reset. Upload a sample settlement to start again.',
+});
+const { icon, esc, track, toast, sleep, REDUCED } = S;
+const $ = id => document.getElementById(id);
+
+/* ---------------- formatting + dates ---------------- */
+const NOW = new Date();
+const TODAY = new Date(NOW.getFullYear(), NOW.getMonth(), NOW.getDate());
+const day = n => new Date(TODAY.getFullYear(), TODAY.getMonth(), TODAY.getDate() + n);
+const fmt = n => day(n).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+const fmtS = n => day(n).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+const usd = v => (v < 0 ? '−$' : '$') + Math.abs(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const sgnUsd = v => (v > 0 ? '+' : '') + usd(v);
+const n0 = v => Math.round(v).toLocaleString('en-US');
+const sgnLb = v => (v > 0 ? '+' : v < 0 ? '−' : '') + n0(Math.abs(v));
+const r2 = v => Math.round(v * 100) / 100;
+
+/* ---------------- sample settlements ----------------
+   Millbrook Recycling (the fictional yard from the Sparky test drive) ships to these buyers.
+   ours = the ReSpark invoice line (outbound ticket); cust = what the settlement says. */
+const L = (material, gross, tare, adj, price) => ({ material, gross, tare, adj, net: gross - tare - adj, price });
+const C = (ref, material, gross, tare, adj, price) => ({ ref, material, gross, tare, adj, net: gross - tare - adj, price });
+const SAMPLES = {
+  northfield: {
+    key: 'northfield', customer: 'Northfield Steel Mill', file: 'NSM-88214.pdf', kind: 'pdf', doc: 'NSM-88214', settled: -2, range: [-13, -7], unit: 'GT',
+    blurb: 'Weekly ferrous settlement · 6 invoices · 14 rows', mill: 'NORTHFIELD STEEL MILL',
+    deductions: [['Freight Charge', -450], ['Moisture Deduction', -120]],
+    invoices: [
+      { no: 'INV-20418', date: -12, tickets: [
+        { obt: 'OBT-31102', lines: [{ ours: L('HMS #1', 79860, 32420, 0, 345), cust: C('MT-55102', 'HMS 1&2', 79860, 32420, 0, 345), conf: 96 }] },
+        { obt: 'OBT-31105', lines: [{ ours: L('Shred (Auto Bodies)', 81240, 31980, 0, 385), cust: C('MT-55107', 'Shredded', 81240, 31980, 0, 385), conf: 98 }] } ] },
+      { no: 'INV-20422', date: -11, tickets: [
+        { obt: 'OBT-31109', lines: [{ ours: L('#1 Busheling', 76520, 30880, 0, 430), cust: C('MT-55131', '#1 Busheling', 76520, 30880, 0, 430), conf: 97 }] },
+        { obt: 'OBT-31111', lines: [{ ours: L('#1 Plate & Structural', 73900, 32180, 0, 370), cust: C('MT-55134', 'P&S', 73240, 32180, 0, 370), conf: 68,
+          rationale: 'Same ticket reference (MT-55134 ↔ OBT-31111), same grade and the same tare. The mill\'s gross is 660 lb lower, which points to a scale difference at the mill rather than a different load.',
+          suggest: { use: 'customer', reason: 'Scale variance within tolerance' } }] } ] },
+      { no: 'INV-20427', date: -10, tickets: [
+        { obt: 'OBT-31114', lines: [{ ours: L('HMS #1', 80340, 32760, 0, 345), cust: C('MT-55158', 'HMS 1&2', 80340, 32760, 0, 345), conf: 95 }] },
+        { obt: 'OBT-31116', lines: [{ ours: L('Shred (Auto Bodies)', 79120, 31740, 0, 385), cust: C('MT-55160', 'Shredded', 79120, 31740, 0, 385), conf: 99 }] } ] },
+      { no: 'INV-20431', date: -9, tickets: [
+        { obt: 'OBT-31120', lines: [{ ours: L('Shred (Auto Bodies)', 82100, 31900, 0, 385), cust: [C('MT-55171', 'Shredded', 0, 0, 0, 385), C('MT-55171', '#2 HMS', 0, 0, 0, 320)], splitNets: [44180, 6020], conf: 74,
+          rationale: 'The mill split this one load into two grades on the same ticket (MT-55171): 44,180 lb as Shredded and 6,020 lb re-graded as #2 HMS at a lower price. Together they add up to your full 50,200 lb.',
+          suggest: { use: 'customer', reason: 'Material grade renamed by customer' } }] } ] },
+      { no: 'INV-20435', date: -8, tickets: [
+        { obt: 'OBT-31124', lines: [{ ours: L('Cast Iron', 58940, 31880, 0, 380), cust: C('MT-55180', 'Cast Iron', 58940, 31880, 0, 365), conf: 81,
+          rationale: 'Weights match exactly. The mill paid $365.00/GT instead of the $380.00/GT on your sales order SO-548, so the difference is price only.',
+          suggest: { use: 'customer', reason: 'Needs AR review' } }] },
+        { obt: 'OBT-31126', lines: [{ ours: L('#1 Busheling', 77300, 31060, 0, 430), cust: C('MT-55182', '#1 Busheling', 77300, 31060, 0, 430), conf: 97 }] } ] },
+      { no: 'INV-20439', date: -7, tickets: [
+        { obt: 'OBT-31130', lines: [{ ours: L('HMS #1', 81020, 32500, 0, 345), cust: C('MT-55186', 'HMS 1&2', 81020, 32500, 0, 345), conf: 96 }] },
+        { obt: 'OBT-31131', lines: [{ ours: L('HMS #1', 79700, 32060, 0, 345), cust: C('MT-55187', 'HMS 1&2', 79700, 32060, 0, 345), conf: 94 }] },
+        { obt: 'OBT-31133', lines: [{ ours: L('Shred (Auto Bodies)', 80880, 31980, 0, 385), cust: C('MT-55189', 'Shredded', 74960, 31980, 0, 385), conf: 41,
+          rationale: 'The ticket reference matches, but the mill net is 5,920 lb (12.1%) below your outbound scale. That\'s far beyond normal scale tolerance. Check whether part of the load was rejected before accepting the mill weight.',
+          suggest: { use: 'respark', reason: 'Needs AR review' } }] } ] },
+    ],
+    unmatched: [C('MT-55190', 'HMS 1&2', 79380, 32500, 0, 345)],
+    unmatchedNote: 'No open invoice references MT-55190. It looks like a load shipped after this week\'s invoices were sent.',
+  },
+  triport: {
+    key: 'triport', customer: 'Tri-Port Metals Trading', file: 'remittance-photo.jpg', kind: 'jpg', doc: 'TPM-R-4471', settled: -1, range: [-9, -4], unit: 'lb',
+    blurb: 'Phone photo of a broker remittance · 2 invoices · 5 rows', mill: 'TRI-PORT METALS TRADING',
+    deductions: [['Freight Charge', -185]],
+    invoices: [
+      { no: 'INV-20441', date: -8, tickets: [
+        { obt: 'OBT-31140', lines: [
+          { ours: L('#2 Copper', 4120, 280, 0, 3.92), cust: C('TP-9910', 'Copper #2 (Birch/Cliff)', 4120, 280, 0, 3.92), conf: 93 },
+          { ours: L('Yellow Brass', 2890, 280, 0, 2.72), cust: C('TP-9910', 'Brass, Yellow (Honey)', 2890, 280, 0, 2.72), conf: 91 } ] } ] },
+      { no: 'INV-20444', date: -5, tickets: [
+        { obt: 'OBT-31146', lines: [
+          { ours: L('6063 Aluminum Extrusion', 5260, 280, 0, 1.22), cust: C('TP-9934', 'Al 6063 Extrusion (Tread)', 5260, 280, 0, 1.22), conf: 90 },
+          { ours: L('#1 Insulated Copper Wire', 2520, 280, 0, 2.95), cust: [C('TP-9934', 'ICW 85% (#1)', 0, 0, 0, 2.95), C('TP-9934', 'ICW 65% (#2)', 0, 0, 0, 2.10)], splitNets: [1700, 540], conf: 72,
+            rationale: 'Tri-Port graded part of the #1 insulated wire as lower-recovery 65% wire. The two grades add up to your 2,240 lb net, so this is a re-grade, not a weight loss.',
+            suggest: { use: 'customer', reason: 'Material grade renamed by customer' } } ] } ] },
+    ],
+    unmatched: [],
+  },
+};
+const PAST = [
+  { doc: 'NSM-88107', customer: 'Northfield Steel Mill', status: 'Committed', rows: 13, matched: 13, approved: 13, created: -9 },
+  { doc: 'TPM-R-4398', customer: 'Tri-Port Metals Trading', status: 'Committed', rows: 6, matched: 6, approved: 6, created: -15 },
+  { doc: 'HBF-2207', customer: 'Halverson Brass Foundry', status: 'Partially Committed', rows: 4, matched: 4, approved: 3, created: -20 },
+];
+
+/* ---------------- model ---------------- */
+const val = (net, price, unit) => r2(unit === 'GT' ? net / 2240 * price : net * price);
+function build(sample) {
+  const s = JSON.parse(JSON.stringify(sample));
+  let id = 0;
+  s.invoices.forEach(inv => inv.tickets.forEach(tk => tk.lines.forEach(l => {
+    l.id = 'l' + (++id); l.inv = inv.no; l.obt = tk.obt; l.action = 'pending';
+    l.ours.value = val(l.ours.net, l.ours.price, s.unit);
+    if (Array.isArray(l.cust)) {
+      l.cust.forEach((c, i) => { c.net = l.splitNets[i]; c.gross = c.net; c.tare = 0; c.value = val(c.net, c.price, s.unit); });
+      l.kind = 'split';
+      l.custNet = l.cust.reduce((a, c) => a + c.net, 0); l.custValue = r2(l.cust.reduce((a, c) => a + c.value, 0));
+    } else {
+      l.cust.value = val(l.cust.net, l.cust.price, s.unit);
+      l.custNet = l.cust.net; l.custValue = l.cust.value;
+      const dn = l.custNet - l.ours.net, dv = r2(l.custValue - l.ours.value);
+      l.kind = Math.abs(dn) / l.ours.net > .10 ? 'critical' : (dn === 0 && Math.abs(dv) <= .05) ? 'match' : 'variance';
+    }
+    l.dNet = l.custNet - l.ours.net; l.dVal = r2(l.custValue - l.ours.value);
+    l.orig = { dNet: l.dNet, dVal: l.dVal, custNet: l.custNet, custValue: l.custValue };
+  })));
+  s.unmatched.forEach(c => { c.value = val(c.net, c.price, s.unit); c.action = 'pending'; });
+  s.lines = s.invoices.flatMap(inv => inv.tickets.flatMap(tk => tk.lines));
+  return s;
+}
+let st;
+function freshState() { return { view: 'list', sample: null, set: null, status: null, selected: null, past: PAST.map(p => ({ ...p })), uploaded: null, gen: 0 }; }
+
+const rowsTotal = s => s.lines.reduce((a, l) => a + (Array.isArray(l.cust) ? l.cust.length : 1), 0) + s.unmatched.length;
+const reviewOf = inv => {
+  const ls = inv.tickets.flatMap(t => t.lines).filter(l => l.action === 'pending' && l.kind !== 'match');
+  if (!ls.length) return ['Ready', 'success'];
+  if (ls.some(l => l.kind === 'critical' || l.conf < 50)) return ['Low confidence', 'error'];
+  return ['Needs review', 'warning'];
+};
+const invLines = inv => inv.tickets.flatMap(t => t.lines);
+const invTotal = inv => r2(invLines(inv).reduce((a, l) => a + l.ours.value, 0));
+const invDelta = inv => r2(invLines(inv).reduce((a, l) => a + l.dVal, 0));
+const pill = l => l.action === 'approved' ? ['Approved', 'success'] : l.action === 'rejected' ? ['Rejected', 'error'] : l.kind === 'split' ? [`Split ×${l.cust.length}`, 'info'] : l.kind === 'match' ? ['Exact match', 'success'] : l.kind === 'critical' ? ['Major mismatch', 'error'] : ['Needs review', 'warning'];
+const aiCls = c => c >= 80 ? 'hi' : c >= 50 ? 'mid' : 'lo';
+const priceTxt = (p, unit) => unit === 'GT' ? `$${p.toFixed(2)}/GT` : `$${p.toFixed(2)}/lb`;
+
+/* ---------------- tabs ---------------- */
+document.querySelector('.s-tabs').addEventListener('click', e => {
+  const b = e.target.closest('.s-tab'); if (!b || b.dataset.tab === 'sr') { if (b) showList(); return; }
+  toast(b.dataset.tab === 'invoices' ? 'In ReSpark, committed settlements update these invoices with the mill\'s weights.' : 'In ReSpark, sales orders hold the contract prices the agent checks settlements against.');
+  track('tab_clicked', { tab: b.dataset.tab });
+});
+
+/* ---------------- list page ---------------- */
+function showList() {
+  st.view = 'list'; $('detailView').hidden = true; $('listView').hidden = false;
+  const statusChip = s => `<span class="chip ${s === 'Committed' ? 'success' : s === 'Partially Committed' || s === 'Ready For Review' ? 'warning' : s === 'Extracting' || s === 'Matching' ? 'info' : 'default'}">${s}</span>`;
+  const rows = [...(st.uploaded ? [st.uploaded] : []), ...st.past];
+  $('listView').innerHTML = `<div class="page"><div class="page-h"><h1>Settlement Reconciliation</h1><button type="button" class="mb primary" id="uploadBtn">${icon('download', 's16')}Upload Settlement</button></div>
+    <div class="tbl-wrap"><table class="grid-tbl"><thead><tr><th>Doc #</th><th>Customer</th><th>Status</th><th>Rows</th><th>Matched</th><th>Approved</th><th>Created</th></tr></thead>
+    <tbody>${rows.map(r => `<tr class="${r === st.uploaded ? 'click fresh' : ''}" ${r === st.uploaded ? 'data-open="1" tabindex="0"' : ''}><td><b>${esc(r.doc)}</b></td><td>${esc(r.customer)}</td><td>${statusChip(r.status)}</td><td class="num">${r.rows}</td><td class="num">${r.matched}</td><td class="num">${r.approved}</td><td>${fmt(r.created)}</td></tr>`).join('')}</tbody></table></div>
+    ${st.uploaded ? '' : `<div class="list-hint">${S.callout('Click <b>Upload Settlement</b> and pick a sample mill settlement. The agent reads it and matches every line to your invoices.')}</div>`}</div>`;
+  $('uploadBtn').querySelector('svg').style.transform = 'rotate(180deg)';
+  $('uploadBtn').addEventListener('click', uploadDialog);
+  const fr = $('listView').querySelector('[data-open]');
+  if (fr) { fr.addEventListener('click', () => showDetail()); fr.addEventListener('keydown', e => { if (e.key === 'Enter') showDetail(); }); }
+}
+
+/* ---------------- upload ---------------- */
+const dlg = $('dlg');
+let dlgReturn = null;
+function openDialog(html, onReady) {
+  dlgReturn = document.activeElement;
+  dlg.innerHTML = `<div class="dlg">${html}</div>`; dlg.showModal();
+  dlg.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => dlg.close()));
+  onReady && onReady(dlg);
+}
+dlg.addEventListener('close', () => dlgReturn?.focus?.());
+dlg.addEventListener('click', e => { if (e.target === dlg) dlg.close(); });
+const head = h => `<div class="dlg-h"><h2 id="dlgTitle">${h}</h2><button type="button" class="ibtn" data-close aria-label="Close">${icon('x')}</button></div>`;
+function uploadDialog() {
+  track('upload_opened');
+  let pick = null;
+  openDialog(`${head('Upload Settlement Document')}
+    <div class="dlg-b"><p>Upload a settlement from a consumer (mill, shredder, broker) as a PDF or a photo (JPG or PNG). We'll extract the material rows and match them against your invoices.</p>
+      <div class="caps">Choose a sample settlement</div>
+      ${Object.values(SAMPLES).map(s => `<button type="button" class="sample" data-s="${s.key}" aria-pressed="false"><span class="fi ${s.kind}">${s.kind.toUpperCase()}</span><span><b>${esc(s.customer)} · ${esc(s.file)}</b><small>${esc(s.blurb)}</small></span></button>`).join('')}
+      <div class="fld"><label for="dirs">Additional Directions (Optional)</label><input id="dirs" readonly placeholder="Not needed for the sample settlements"></div>
+    </div>
+    <div class="dlg-f"><button type="button" class="mb" data-close>Cancel</button><button type="button" class="mb primary" id="doUpload" disabled>Upload</button></div>`, d => {
+    d.querySelectorAll('.sample').forEach(b => b.addEventListener('click', () => {
+      d.querySelectorAll('.sample').forEach(x => x.setAttribute('aria-pressed', x === b)); pick = b.dataset.s; d.querySelector('#doUpload').disabled = false;
+    }));
+    d.querySelector('.sample').focus();
+    d.querySelector('#doUpload').addEventListener('click', () => { dlg.close(); startUpload(pick); });
+  });
+}
+async function startUpload(key) {
+  const gen = ++st.gen;
+  st.sample = key; st.set = build(SAMPLES[key]); st.selected = st.set.invoices[0].no;
+  st.uploaded = { doc: st.set.doc, customer: st.set.customer, status: 'Extracting', rows: 0, matched: 0, approved: 0, created: 0 };
+  S.setContext({ settlement: key });
+  track('settlement_uploaded', { sample: key });
+  toast('Settlement uploaded');
+  st.status = 'Extracting';
+  showDetail();
+  const set = st.set, rows = [...$('detailView').querySelectorAll('.doc tbody tr.row')];
+  const step = i => $('detailView').querySelector(`[data-step="${i}"]`)?.classList.add('done');
+  await sleep(600);
+  for (const r of rows) { if (gen !== st.gen) return; r.classList.add('read'); await sleep(170); }
+  step(0); st.status = 'Matching'; setStatusChip(); st.uploaded.status = 'Matching'; st.uploaded.rows = rowsTotal(set);
+  await sleep(1100); if (gen !== st.gen) return; step(1);
+  await sleep(900); if (gen !== st.gen) return; step(2);
+  await sleep(500); if (gen !== st.gen) return;
+  st.status = 'Ready For Review';
+  st.uploaded.status = 'Ready For Review'; st.uploaded.matched = rowsTotal(set) - set.unmatched.length;
+  // land on the most interesting invoice first: the one that needs review
+  st.selected = (set.invoices.find(i => reviewOf(i)[0] === 'Needs review') || set.invoices[0]).no;
+  showDetail();
+  track('matching_finished', { rows: rowsTotal(set) });
+}
+
+/* ---------------- settlement document (preview) ---------------- */
+function docHtml(set, { scanning } = {}) {
+  const rows = [];
+  set.lines.forEach(l => (Array.isArray(l.cust) ? l.cust : [l.cust]).forEach(c => rows.push(c)));
+  set.unmatched.forEach(c => rows.push(c));
+  rows.sort((a, b) => a.ref.localeCompare(b.ref));
+  const total = r2(rows.reduce((a, c) => a + c.value, 0) + set.deductions.reduce((a, d) => a + d[1], 0));
+  return `<div class="doc ${set.kind === 'jpg' ? 'photo' : ''}" aria-label="Settlement document ${esc(set.doc)}">${scanning ? '<span class="scan go" aria-hidden="true"></span>' : ''}
+    <div class="lh"><span class="mk" aria-hidden="true"></span><div><div class="mill">${esc(set.mill)}</div><div class="dt">${set.kind === 'jpg' ? 'Remittance advice' : 'Settlement statement'}</div></div></div>
+    <dl><dt>Supplier</dt><dd>Millbrook Recycling</dd><dt>${set.kind === 'jpg' ? 'Remit #' : 'Settlement'}</dt><dd>${esc(set.doc)}</dd><dt>Period</dt><dd>${fmtS(set.range[0])} – ${fmtS(set.range[1])}</dd><dt>Date</dt><dd>${fmtS(set.settled)}</dd></dl>
+    <table><thead><tr><th>Ticket</th><th>Grade</th><th class="r">Net lb</th><th class="r">${set.unit === 'GT' ? '$/GT' : '$/lb'}</th><th class="r">Amount</th></tr></thead>
+    <tbody>${rows.map(c => `<tr class="row"><td>${esc(c.ref)}</td><td>${esc(c.material)}</td><td class="r">${n0(c.net)}</td><td class="r">${c.price.toFixed(2)}</td><td class="r">${c.value.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td></tr>`).join('')}
+      ${set.deductions.map(d => `<tr class="ded"><td colspan="4">${esc(d[0])}</td><td class="r">(${Math.abs(d[1]).toFixed(2)})</td></tr>`).join('')}
+      <tr class="tot"><td colspan="4">Total paid</td><td class="r">${total.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td></tr></tbody></table></div>`;
+}
+
+/* ---------------- detail ---------------- */
+function metrics(set) {
+  const matchedLines = set.lines.filter(l => l.action !== 'rejected');
+  const settleVal = r2(set.lines.reduce((a, l) => a + l.orig.custValue, 0) + set.unmatched.reduce((a, c) => a + c.value, 0) + set.deductions.reduce((a, d) => a + d[1], 0));
+  const matchedVal = r2(matchedLines.reduce((a, l) => a + l.orig.custValue, 0));
+  const variance = r2(matchedLines.reduce((a, l) => a + l.dVal, 0));
+  const settleLb = set.lines.reduce((a, l) => a + l.orig.custNet, 0) + set.unmatched.reduce((a, c) => a + c.net, 0);
+  const matchedLb = matchedLines.reduce((a, l) => a + l.ours.net, 0);
+  const total = rowsTotal(set), withMatch = total - set.unmatched.length;
+  const approved = set.lines.filter(l => l.action === 'approved').length;
+  return { settleVal, matchedVal, variance, settleLb, matchedLb, total, withMatch, approved, lines: set.lines.length };
+}
+function setStatusChip() { const c = $('detailView').querySelector('#stChip'); if (c) c.outerHTML = statusChip(); }
+const statusChip = () => `<span class="chip ${st.status === 'Committed' ? 'success' : st.status === 'Ready For Review' || st.status === 'Partially Committed' ? 'warning' : 'info'}" id="stChip">${st.status}</span>`;
+function showDetail() {
+  st.view = 'detail'; $('listView').hidden = true; $('detailView').hidden = false;
+  const set = st.set, m = metrics(set), busy = st.status === 'Extracting' || st.status === 'Matching';
+  const committed = st.status === 'Committed' || st.status === 'Partially Committed';
+  $('detailView').innerHTML = `<div class="d-top">
+      <div class="d-row"><button type="button" class="back" data-act="list">${icon('chevL', 's16')}All settlements</button><span class="t">Settlement Reconciliation</span>${statusChip()}<span class="sp"></span>
+        <button type="button" class="mb" data-act="pdf">${icon('receipt', 's16')}View PDF</button>
+        ${busy ? '' : `<button type="button" class="mb primary" data-act="commit" ${m.approved && !committed ? '' : 'disabled'}>Commit (${committed ? 0 : m.approved})</button>`}</div>
+      <h1 class="cust-h">${esc(set.customer)}</h1>
+      <div class="meta">Extracted ${fmtS(0)} · Doc ${esc(set.doc)} · Settled ${fmtS(set.settled)} · Range ${fmtS(set.range[0])} → ${fmtS(set.range[1])}</div>
+      ${busy ? '' : `<div class="metrics num"><span><b>${usd(m.settleVal)}</b> settlement</span><span><b>${usd(m.matchedVal)}</b> matched · ${set.invoices.length} invoices · ${m.withMatch} of ${m.total} rows</span>
+        <span class="${m.variance ? 'warn' : ''}"><b>${sgnUsd(m.variance)}</b> variance</span><span><b>${n0(m.settleLb)}</b> lbs settlement</span>
+        <span class="${Math.abs(m.matchedLb - (m.settleLb - set.unmatched.reduce((a, c) => a + c.net, 0))) / m.matchedLb > .02 ? 'warn' : ''}"><b>${n0(m.matchedLb)}</b> lbs matched</span><span class="${m.approved ? 'good' : ''}"><b>${m.approved} / ${m.lines}</b> approved</span></div>
+        <div class="deds">Mill deductions ${set.deductions.map(d => `${esc(d[0])} <b>${usd(d[1])}</b>`).join(' · ')} · total <b>${usd(set.deductions.reduce((a, d) => a + d[1], 0))}</b></div>`}
+    </div>
+    ${busy ? extractHtml(set) : committed ? committedHtml(set) : `<div class="d-body"><nav class="side" aria-label="Invoices">${sideHtml(set)}</nav><div class="main" id="mainPane">${st.selected === 'unmatched' ? unmatchedHtml(set) : invoiceHtml(set, set.invoices.find(i => i.no === st.selected))}</div></div>`}`;
+}
+function extractHtml(set) {
+  const issues = set.lines.filter(l => l.kind !== 'match').length;
+  return `<div class="extract"><div>${docHtml(set, { scanning: true })}</div>
+    <div class="steps" role="status"><div class="stp"><span class="shimmer">Finance Agent is reading the settlement…</span></div>
+      <div class="stp" data-step="0">${icon('checkCircle', 's16')}<span>Reading every row<small>${rowsTotal(set)} material rows and ${set.deductions.length} mill deduction${set.deductions.length > 1 ? 's' : ''}${set.kind === 'jpg' ? ', from a phone photo' : ''}</small></span></div>
+      <div class="stp" data-step="1">${icon('checkCircle', 's16')}<span>Matching rows to open invoices<small>${set.invoices.length} invoices for ${esc(set.customer)}, matched on ticket reference, material, weight and value</small></span></div>
+      <div class="stp" data-step="2">${icon('checkCircle', 's16')}<span>Checking weights and prices<small>${issues} difference${issues === 1 ? '' : 's'} to review${set.unmatched.length ? `, ${set.unmatched.length} row with no invoice` : ''}</small></span></div>
+    </div></div>`;
+}
+function sideHtml(set) {
+  return `<div class="caps">Invoices · ${set.invoices.length}</div>` + set.invoices.map(inv => {
+    const [rv, col] = reviewOf(inv), d = invDelta(inv), ls = invLines(inv);
+    return `<button type="button" class="inv" data-inv="${inv.no}" aria-current="${st.selected === inv.no}"><span class="r1"><span class="no">${inv.no}</span><span class="chip ${col}">${rv}</span></span>
+      <span class="r2 num"><span>${usd(invTotal(inv))}</span><span class="d ${d ? 'neg' : 'zero'}">Δ ${sgnUsd(d)}</span></span><span class="r3">${ls.length} of ${ls.length} matched · ${ls.filter(l => l.action === 'approved').length} approved</span></button>`;
+  }).join('') + `<button type="button" class="inv um" data-inv="unmatched" aria-current="${st.selected === 'unmatched'}"><span class="r1"><span class="no">Unmatched</span><span class="chip ${set.unmatched.length ? 'error' : 'default'}">${set.unmatched.length ? set.unmatched.length + ' row' + (set.unmatched.length > 1 ? 's' : '') : 'none'}</span></span>
+      <span class="r3">${set.unmatched.length ? "Doc rows that didn't resolve to an invoice line" : 'All settlement rows matched to invoices'}</span></button>`;
+}
+const cell = (v, diff) => `<span class="n num${diff ? ' diff' : ''}">${v}</span>`;
+function rowHtml(l, unit) {
+  const [pl, pc] = pill(l), o = l.ours, crit = l.kind === 'critical', done = l.action !== 'pending';
+  const custRows = Array.isArray(l.cust) ? l.cust : [l.cust];
+  const dif = (a, b) => !Array.isArray(l.cust) && a !== b;
+  const acts = done
+    ? `<button type="button" class="mb sm" data-act="undo">Undo</button>`
+    : `<button type="button" class="mb sm ${l.kind === 'match' ? '' : 'o-primary'}" data-act="review">Review</button>${crit ? '' : `<button type="button" class="mb sm success" data-act="accept">${icon('check', 's14')}Accept</button>`}<button type="button" class="ibtn" data-act="more" aria-label="More actions" aria-haspopup="menu" title="More actions">⋮</button>`;
+  return `<div class="mc ${l.action === 'approved' ? 'approved' : l.action === 'rejected' ? 'rejected' : ''}" data-line="${l.id}">
+    <div class="mrow ours"><span class="mat"><span class="nm"><span class="src r">RESPARK</span>${esc(o.material)}</span><span class="sub">${l.obt}</span></span><span></span>
+      ${cell(n0(o.gross))}${cell(n0(o.tare))}${cell(n0(o.adj))}${cell(n0(o.net))}${cell(priceTxt(o.price, unit))}${cell(usd(o.value))}<span class="acts">${acts}</span></div>
+    ${custRows.map((c, i) => `<div class="mrow cust"><span class="mat"><span class="nm"><span class="src c">CUSTOMER</span>${esc(c.material)}</span><span class="sub">Ref ${esc(c.ref)}</span></span><span></span>
+      ${cell(Array.isArray(l.cust) ? '—' : n0(c.gross), dif(c.gross, o.gross))}${cell(Array.isArray(l.cust) ? '—' : n0(c.tare), dif(c.tare, o.tare))}${cell(n0(c.adj), dif(c.adj, o.adj))}${cell(n0(c.net), dif(c.net, o.net))}${cell(priceTxt(c.price, unit), dif(c.price, o.price))}${cell(usd(c.value), dif(c.value, o.value))}
+      <span class="tags">${i === 0 ? `<span class="pill ${pc}">${pl}</span><span class="ai ${aiCls(l.conf)}" title="AI confidence ${l.conf}%">${l.conf}% AI</span>` : ''}</span></div>`).join('')}
+    ${l.kind === 'match' ? '' : `<div class="mfoot ${l.action === 'approved' ? 'ok' : crit ? 'critical' : ''}"><span>${l.action === 'approved' ? 'Variance approved' : 'VARIANCE'}</span><span></span><span class="n"></span><span class="n"></span><span class="n"></span><span class="n num">${l.dNet ? sgnLb(l.dNet) + ' lb' : ''}</span><span class="n"></span><span class="n num">${sgnUsd(l.dVal)}</span><span></span></div>`}
+  </div>`;
+}
+function invoiceHtml(set, inv) {
+  const ls = invLines(inv), [rv, col] = reviewOf(inv);
+  const unresolved = ls.filter(l => l.action === 'pending' && l.kind !== 'match').length;
+  const exactPending = ls.filter(l => l.action === 'pending' && l.kind === 'match');
+  const lbInv = ls.reduce((a, l) => a + l.ours.net, 0), lbSet = ls.reduce((a, l) => a + l.custNet, 0);
+  return `<div class="inv-h"><span class="no">${inv.no}</span><span class="tot num">${usd(invTotal(inv))}</span><span class="chip ${col}">${rv}</span>${unresolved ? `<span class="chip default">${unresolved} unresolved</span>` : ''}</div>
+    <div class="inv-cap num">SENT · ${fmtS(inv.date)} · ${inv.tickets.length} outbound ticket${inv.tickets.length > 1 ? 's' : ''} · Δ ${sgnUsd(invDelta(inv))} · ${n0(lbInv)} lbs inv · ${n0(lbSet)} lbs sett</div>
+    ${exactPending.length ? `<div class="banner">${icon('checkCircle', 's18')}<span><b>${exactPending.length}</b> ${exactPending.length > 1 ? 'lines match' : 'line matches'} exactly between ReSpark and the customer document.</span><button type="button" class="mb sm success" data-act="approveAll">Approve all ${exactPending.length}</button></div>` : ''}
+    ${inv.tickets.map(tk => {
+      const rev = tk.lines.filter(l => l.kind !== 'match' && l.action === 'pending').length, d = r2(tk.lines.reduce((a, l) => a + l.dVal, 0));
+      return `<section class="ticket"><div class="ticket-h"><span class="obt">${tk.obt}</span><span class="caps">Outbound Ticket</span>${rev ? `<span class="chip warning">${rev} line review${rev > 1 ? 's' : ''}</span>` : ''}${d ? `<span class="chip default num">Δ ${sgnUsd(d)}</span>` : ''}</div>
+        <div class="scrollx"><div class="cols" aria-hidden="true"><span>Material</span><span></span><span class="n">Gross (lbs)</span><span class="n">Tare (lbs)</span><span class="n">Adj (lbs)</span><span class="n">Net (lbs)</span><span class="n">Price</span><span class="n">Value</span><span></span></div>
+        ${tk.lines.map(l => rowHtml(l, set.unit)).join('')}</div></section>`;
+    }).join('')}
+    ${ls.every(l => l.action !== 'pending') ? S.callout(`Every line on ${inv.no} is decided. ${nextInvoiceHint(set)}`) : ''}`;
+}
+function nextInvoiceHint(set) {
+  const next = set.invoices.find(i => invLines(i).some(l => l.action === 'pending'));
+  return next ? `Next up: <button type="button" class="linkbtn" data-goto="${next.no}" style="border:0;background:none;color:var(--primary);font-weight:600;padding:0">${next.no}</button>.` : 'When you\'re ready, click <b>Commit</b> at the top to apply the approved weights.';
+}
+function unmatchedHtml(set) {
+  if (!set.unmatched.length) return `<div class="alert success">All settlement lines are matched.</div>`;
+  return `<div class="inv-h"><span class="no" style="color:var(--error)">Unmatched</span></div><div class="inv-cap">Settlement rows that didn't resolve to an invoice line</div>
+    ${set.unmatched.map((c, i) => `<div class="um-row"><span class="src c">CUSTOMER</span><div class="x"><b>${esc(c.material)}</b> · Ref ${esc(c.ref)} · <span class="num">${n0(c.net)} lb · ${usd(c.value)}</span><div class="meta" style="margin-top:4px">${esc(set.unmatchedNote)}</div></div>
+      ${c.action === 'pending' ? `<button type="button" class="mb sm" data-um="${i}" data-act="umpick">Pick invoice line</button><button type="button" class="mb sm" data-um="${i}" data-act="umskip">Leave unmatched</button>` : '<span class="chip default">Left unmatched</span>'}</div>`).join('')}
+    ${S.callout('The agent doesn\'t force a match it can\'t back up. In ReSpark, you can assign this row to an invoice line, or leave it for next week\'s invoice.')}`;
+}
+function committedHtml(set) {
+  const res = st.commitResult;
+  return `<div class="page">${res.partial ? `<div class="alert warning" style="margin-bottom:12px">${res.pending} row${res.pending > 1 ? 's' : ''} still pending were left for later.</div>` : ''}
+    <div class="dcard"><h3>Updated ${res.updated} invoice${res.updated > 1 ? 's' : ''}</h3><p class="meta" style="margin:0 0 8px">Settlement weights were applied as consumer weights and totals recalculated.${res.reconciled.length ? ` Marked ${res.reconciled.length} invoice${res.reconciled.length > 1 ? 's' : ''} as Reconciled.` : ''}</p>
+      <ul>${res.invoices.map(i => `<li><b>${i}</b>${res.reconciled.includes(i) ? ' · <span class="chip success">Marked Reconciled</span>' : ''}</li>`).join('')}</ul></div>
+    <div style="margin-top:12px">${S.callout(`In ReSpark, committing updates these invoices with the mill's weights, attaches ${esc(set.doc)} to each one, and teaches the agent ${esc(set.customer)}'s grade names for next time. This is a test drive, so nothing changed.`)}</div>
+    <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="mb" data-act="list">Back to all settlements</button><button type="button" class="mb primary" data-act="another">Try the other sample</button></div></div>`;
+}
+
+/* ---------------- interactions ---------------- */
+let menuEl = null;
+function closeMenu() { menuEl?.remove(); menuEl = null; }
+document.addEventListener('click', e => { if (menuEl && !e.target.closest('.menu') && !e.target.closest('[data-act="more"]')) closeMenu(); });
+$('detailView').addEventListener('click', e => {
+  const g = e.target.closest('[data-goto]'); if (g) { selectInv(g.dataset.goto); return; }
+  const inv = e.target.closest('.inv'); if (inv) { selectInv(inv.dataset.inv); return; }
+  const b = e.target.closest('[data-act]'); if (!b) return;
+  const act = b.dataset.act, set = st.set;
+  const mc = b.closest('.mc'), l = mc && set.lines.find(x => x.id === mc.dataset.line);
+  if (act === 'list') { showList(); return; }
+  if (act === 'another') { const other = st.sample === 'northfield' ? 'triport' : 'northfield'; startUpload(other); return; }
+  if (act === 'pdf') { pdfDrawer(); return; }
+  if (act === 'commit') { commitDialog(); return; }
+  if (act === 'approveAll') {
+    const cur = set.invoices.find(i => i.no === st.selected);
+    const ls = invLines(cur).filter(x => x.action === 'pending' && x.kind === 'match');
+    ls.forEach(x => x.action = 'approved');
+    track('draft_approved', { kind: 'settlement_line', via: 'approve_all', count: ls.length, invoice: cur.no });
+    toast(`Approved ${ls.length} exact match${ls.length > 1 ? 'es' : ''}`);
+    rerender(); return;
+  }
+  if (act === 'umskip') { set.unmatched[+b.dataset.um].action = 'skipped'; track('unmatched_left', {}); rerender(); return; }
+  if (act === 'umpick') { toast('In ReSpark, this opens the invoice picker so you can assign the row yourself. Here, there\'s no open invoice to match.'); track('unmatched_pick_clicked'); return; }
+  if (!l) return;
+  if (act === 'accept') decide(l, 'approved', { via: 'accept' });
+  if (act === 'undo') { l.action = 'pending'; l.decision = null; Object.assign(l, l.orig); track('undo', { line: l.id }); rerender(); }
+  if (act === 'review') reviewDrawer(l);
+  if (act === 'more') {
+    closeMenu();
+    const r = b.getBoundingClientRect(), host = $('detailView').getBoundingClientRect();
+    menuEl = document.createElement('div'); menuEl.className = 'menu'; menuEl.setAttribute('role', 'menu');
+    menuEl.innerHTML = `<button type="button" role="menuitem" data-m="approve">Approve</button><button type="button" role="menuitem" data-m="reject">Reject</button><button type="button" role="menuitem" data-m="change">Change invoice</button>`;
+    menuEl.style.top = (r.bottom - host.top + $('detailView').scrollTop + 4) + 'px';
+    menuEl.style.left = Math.max(8, r.right - host.left - 170) + 'px';
+    $('detailView').style.position = 'relative'; $('detailView').appendChild(menuEl);
+    menuEl.querySelector('button').focus();
+    menuEl.addEventListener('keydown', ev => { if (ev.key === 'Escape') { closeMenu(); b.focus(); } });
+    menuEl.addEventListener('click', ev => {
+      const m = ev.target.closest('[data-m]')?.dataset.m; closeMenu();
+      if (m === 'approve') decide(l, 'approved', { via: 'menu' });
+      if (m === 'reject') decide(l, 'rejected', { via: 'menu' });
+      if (m === 'change') { toast('In ReSpark, this opens "Pick Invoice Line Item" with suggested matches.'); track('change_invoice_clicked', { line: l.id }); }
+    });
+  }
+});
+function selectInv(no) {
+  st.selected = no; closeMenu();
+  track('invoice_opened', { invoice: no });
+  showDetail();
+  $('detailView').querySelector(`.inv[data-inv="${no}"]`)?.focus();
+  $('mainPane')?.scrollIntoView({ block: 'nearest' });
+}
+function rerender() { const y = $('detailView').scrollTop; showDetail(); $('detailView').scrollTop = y; }
+function decide(l, action, extra = {}) {
+  l.action = action;
+  track(action === 'approved' ? 'draft_approved' : 'draft_rejected', { kind: 'settlement_line', line: l.id, invoice: l.inv, line_kind: l.kind, ...extra });
+  rerender();
+  const el = $('detailView').querySelector(`.mc[data-line="${l.id}"]`); el?.classList.add('flash');
+  if (action === 'approved' && st.set.lines.every(x => x.action !== 'pending')) toast('Every line is decided. Click Commit to apply the approved weights.');
+}
+
+/* ---------------- review drawer (SettlementReviewDrawer) ---------------- */
+const drawer = $('drawer');
+function openDrawer(html, cls = '') {
+  drawer.className = 'drawer open ' + cls; drawer.innerHTML = html; drawer.setAttribute('aria-hidden', 'false'); $('scrim').hidden = false;
+  drawer.querySelectorAll('[data-dclose]').forEach(b => b.addEventListener('click', closeDrawer));
+  drawer.querySelector('[data-dclose]')?.focus();
+}
+function closeDrawer() { drawer.classList.remove('open'); drawer.setAttribute('aria-hidden', 'true'); $('scrim').hidden = true; }
+$('scrim').addEventListener('click', closeDrawer);
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && drawer.classList.contains('open')) closeDrawer(); });
+function reviewDrawer(l) {
+  const set = st.set, o = l.ours, split = Array.isArray(l.cust), c = split ? null : l.cust;
+  const why = [];
+  if (l.dNet) why.push(`Net weight differs by ${n0(Math.abs(l.dNet))} lbs (${(Math.abs(l.dNet) / o.net * 100).toFixed(2)}%).`);
+  if (l.dVal) why.push(`Settlement value differs by ${usd(Math.abs(l.dVal))}.`);
+  if (!split && c.price !== o.price) why.push(`Price per unit differs by ${priceTxt(Math.abs(c.price - o.price), set.unit)}.`);
+  if (split) why.push(`The customer split this material into ${l.cust.length} grades.`);
+  if (!why.length) why.push('No differences. This line matches exactly.');
+  const sug = l.suggest || { use: 'customer', reason: 'Customer dock weight accepted' };
+  let use = sug.use;
+  const reasons = ['Customer dock weight accepted', 'Scale variance within tolerance', 'Material grade renamed by customer', 'Customer deduction accepted', 'Needs AR review', 'Other'];
+  const row = (k, a, b) => `<dt>${k}</dt><dd class="${a !== b ? 'diff' : ''}">${b}</dd>`;
+  const custPane = split
+    ? l.cust.map(x => `<dt>${esc(x.material)}</dt><dd>${n0(x.net)} lb · ${usd(x.value)}</dd>`).join('') + `<dt>Total</dt><dd class="diff">${n0(l.custNet)} lb · ${usd(l.custValue)}</dd>`
+    : row('Gross', n0(o.gross), n0(c.gross)) + row('Tare', n0(o.tare), n0(c.tare)) + row('Adj', n0(o.adj), n0(c.adj)) + row('Net', n0(o.net), n0(c.net)) + row('Price', priceTxt(o.price, set.unit), priceTxt(c.price, set.unit)) + row('Value', usd(o.value), usd(c.value));
+  const decideVals = () => use === 'respark' ? [o.net, o.value, 0] : use === 'customer' ? [l.custNet, l.custValue, l.dVal] : [Math.round((o.net + l.custNet) / 2), r2((o.value + l.custValue) / 2), r2(l.dVal / 2)];
+  const render = () => {
+    const [w, v, d] = decideVals();
+    drawer.querySelector('#decVals').innerHTML = `<div>Settlement weight<b>${n0(w)} lb</b></div><div>Settlement value<b>${usd(v)}</b></div><div>Variance<b>${sgnUsd(d)}</b></div>`;
+    drawer.querySelectorAll('.seg button').forEach(b => b.setAttribute('aria-pressed', b.dataset.use === use));
+  };
+  openDrawer(`<div class="drawer-h"><div class="x"><div class="caps">Review material match</div><h2 id="drawerTitle">${esc(o.material)}</h2><div class="sub">${l.inv} · ${l.obt} · ${l.conf}% AI confidence</div></div><button type="button" class="ibtn" data-dclose aria-label="Close">${icon('x')}</button></div>
+    <div class="drawer-b">
+      <div class="dcard"><h3>Why AI flagged this line</h3><ul>${why.map(x => `<li>${esc(x)}</li>`).join('')}</ul>${l.rationale ? `<div class="rat"><b>AI rationale</b><br>${esc(l.rationale)}</div>` : ''}</div>
+      <div class="dcard"><h3>Side-by-side hierarchy</h3><div class="sbs"><div class="pane r"><span class="src r">RESPARK</span><dl>${`<dt>Gross</dt><dd>${n0(o.gross)}</dd><dt>Tare</dt><dd>${n0(o.tare)}</dd><dt>Adj</dt><dd>${n0(o.adj)}</dd><dt>Net</dt><dd>${n0(o.net)}</dd><dt>Price</dt><dd>${priceTxt(o.price, set.unit)}</dd><dt>Value</dt><dd>${usd(o.value)}</dd>`}</dl></div>
+        <div class="pane c"><span class="src c">REMITTANCE</span><dl>${custPane}</dl></div></div></div>
+      <div class="dcard"><h3>Variance</h3><div class="dtiles num">${split ? `<div>Net<b class="${l.dNet ? 'w' : ''}">${sgnLb(l.dNet)}</b></div><div>Grades<b>${l.cust.length}</b></div><div>Value<b class="w">${sgnUsd(l.dVal)}</b></div>` : `<div>Gross<b class="${c.gross !== o.gross ? 'w' : ''}">${sgnLb(c.gross - o.gross)}</b></div><div>Tare<b>${sgnLb(c.tare - o.tare)}</b></div><div>Net<b class="${l.dNet ? 'w' : ''}">${sgnLb(l.dNet)}</b></div><div>Price<b class="${c.price !== o.price ? 'w' : ''}">${c.price === o.price ? '0' : (c.price > o.price ? '+' : '−') + '$' + Math.abs(c.price - o.price).toFixed(2)}</b></div><div>Value<b class="${l.dVal ? 'w' : ''}">${sgnUsd(l.dVal)}</b></div>`}</div></div>
+      ${set.deductions.length ? `<div class="dcard"><h3>Mill deductions</h3><p class="meta" style="margin:0">${set.deductions.map(d => `${esc(d[0])} ${usd(d[1])}`).join(' · ')}. Recorded once for the whole settlement, not against this line.</p></div>` : ''}
+      <div class="dcard"><h3>Settlement decision</h3><div style="margin-bottom:8px">Which weight should we settle on? <span class="ai-sug">${icon('sparkle', 's14')}AI suggests ${sug.use === 'respark' ? 'ReSpark weight' : 'customer weight'}</span></div>
+        <div class="seg" role="group" aria-label="Settlement weight"><button type="button" data-use="customer">Use customer weight</button><button type="button" data-use="respark">Use ReSpark weight</button><button type="button" data-use="split">Split / adjust</button></div>
+        <div class="decide num" id="decVals"></div>
+        <div class="fld"><label for="vReason">Variance reason</label><select id="vReason">${reasons.map(r => `<option${r === sug.reason ? ' selected' : ''}>${r}</option>`).join('')}</select></div>
+        <div class="fld" style="margin-top:10px"><label for="vNote">Internal note</label><textarea id="vNote" placeholder="Optional context for auditing this decision"></textarea></div>
+      </div>
+    </div>
+    <div class="drawer-f"><button type="button" class="mb t-error" data-dact="unmatch">Mark unmatched</button><span class="sp"></span><button type="button" class="mb" data-dclose>Cancel</button><button type="button" class="mb" data-dact="change">Change invoice line</button><button type="button" class="mb success" data-dact="approve">${icon('check', 's16')}Approve match</button></div>`);
+  render();
+  track('review_opened', { line: l.id, line_kind: l.kind });
+  drawer.querySelectorAll('.seg button').forEach(b => b.addEventListener('click', () => { use = b.dataset.use; render(); }));
+  drawer.querySelector('[data-dact="change"]').addEventListener('click', () => toast('In ReSpark, this lets you pick a different invoice line for this row.'));
+  drawer.querySelector('[data-dact="unmatch"]').addEventListener('click', () => { closeDrawer(); decide(l, 'rejected', { via: 'review_unmatch' }); });
+  drawer.querySelector('[data-dact="approve"]').addEventListener('click', () => {
+    const reason = drawer.querySelector('#vReason').value;
+    const changed = use !== sug.use || reason !== sug.reason;
+    l.decision = { use, reason };
+    if (use === 'respark') { l.dNet = 0; l.dVal = 0; l.custNet = l.ours.net; l.custValue = l.ours.value; }
+    closeDrawer();
+    if (changed) track('draft_edited', { kind: 'settlement_line', line: l.id, use, reason });
+    decide(l, 'approved', { via: 'review', use, reason });
+    toast(`Approved ${l.inv} · ${o.material} at ${use === 'respark' ? 'your' : use === 'customer' ? "the mill's" : 'a split'} weight`);
+  });
+}
+function pdfDrawer() {
+  track('pdf_viewed');
+  openDrawer(`<div class="drawer-h"><div class="x"><h2 id="drawerTitle">Settlement Document</h2><div class="sub">${esc(st.set.file)}</div></div><button type="button" class="ibtn" data-dclose aria-label="Close">${icon('x')}</button></div>
+    <div class="drawer-b">${docHtml(st.set)}</div>`, 'pdf-drawer');
+}
+
+/* ---------------- commit (SettlementCommitDialog) ---------------- */
+function commitDialog() {
+  const set = st.set;
+  const a = set.lines.filter(l => l.action === 'approved'), rj = set.lines.filter(l => l.action === 'rejected'), p = set.lines.filter(l => l.action === 'pending');
+  const sk = set.unmatched.filter(c => c.action === 'skipped').length;
+  const invs = [...new Set(a.map(l => l.inv))];
+  const full = set.invoices.filter(i => invLines(i).every(l => l.action === 'approved')).map(i => i.no);
+  openDialog(`${head('Commit Settlement Reconciliation')}
+    <div class="dlg-b"><p>About to apply the approved settlement weights to the matched invoice lines. This switches each affected invoice to <b>consumer weights</b> and recalculates its totals.</p>
+      <div class="tiles num"><div class="tile"><b>${a.length}</b><span>Approved</span></div><div class="tile"><b>${rj.length}</b><span>Rejected</span></div><div class="tile"><b>${sk}</b><span>Skipped</span></div><div class="tile"><b>${p.length}</b><span>Pending</span></div></div>
+      <p>${a.length} approved row${a.length > 1 ? 's' : ''} will be applied across ${invs.length} invoice${invs.length > 1 ? 's' : ''}.</p>
+      ${full.length ? `<div><p style="margin-bottom:6px">These invoices are fully covered by the settlement and will be marked <b>Reconciled</b>. Uncheck any you want to leave as-is.</p>${full.map(i => `<label class="chk"><input type="checkbox" checked value="${i}"> ${i}</label>`).join('')}</div>` : ''}
+      ${p.length ? `<div class="alert warning">${p.length} row${p.length > 1 ? 's' : ''} still pending — they'll be ignored on this commit and can be actioned later.</div>` : ''}
+    </div>
+    <div class="dlg-f"><button type="button" class="mb" data-close>Cancel</button><button type="button" class="mb primary" id="doCommit">Commit</button></div>`, d => {
+    d.querySelector('#doCommit').focus();
+    d.querySelector('#doCommit').addEventListener('click', async () => {
+      const reconciled = [...d.querySelectorAll('.chk input:checked')].map(x => x.value);
+      d.querySelector('#doCommit').disabled = true; d.querySelector('#doCommit').textContent = 'Committing…';
+      await sleep(900);
+      dlg.close();
+      st.commitResult = { updated: invs.length, invoices: invs, reconciled, pending: p.length, partial: p.length > 0 };
+      st.status = p.length ? 'Partially Committed' : 'Committed';
+      st.uploaded.status = st.status; st.uploaded.approved = a.length;
+      track('committed', { approved: a.length, rejected: rj.length, pending: p.length, reconciled: reconciled.length });
+      toast(`Committed ${invs.length} invoice${invs.length > 1 ? 's' : ''}`);
+      showDetail();
+    });
+  });
+}
+
+/* ---------------- reset + boot ---------------- */
+function reset() {
+  if (dlg.open) dlg.close();
+  closeDrawer(); closeMenu();
+  st = freshState();
+  S.setContext({});
+  showList();
+}
+reset();
+if (S.DEBUG) window.__demo = { upload: startUpload, state: () => st };
+})();
+</script>
+</body>
+</html>
