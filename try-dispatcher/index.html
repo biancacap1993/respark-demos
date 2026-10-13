@@ -1,0 +1,861 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Dispatch Agent Test Drive</title>
+<meta name="description" content="Try ReSpark's Dispatch Agent: customer emails become dispatch tickets you approve, on fictional sample data.">
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="../demo-shell/demo-shell.css?v=2">
+<style>
+/* Dispatch Agent test drive. A standalone recreation of Load Board > Dispatch Agent
+   (frontend/client/.../load-board/DispatchAgent, inbox view) on fictional sample emails.
+   No app code and no network calls. */
+:root { --hl-what: 0, 201, 212; --hl-where: 22, 163, 74; --hl-when: 217, 119, 6; --hl-note: 124, 58, 237; }
+
+/* Load Board tabs + page header */
+.lb-tabs { display: flex; gap: 4px; padding: 0 16px; border-bottom: 1px solid var(--divider); overflow-x: auto; scrollbar-width: none; flex: none; }
+.lb-tabs::-webkit-scrollbar { display: none; }
+.lb-tab { border: 0; background: none; height: 46px; padding: 0 14px; font-size: 14px; font-weight: 600; color: var(--text-2); border-bottom: 2px solid transparent; white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; }
+.lb-tab:hover { color: var(--text); }
+.lb-tab[aria-selected="true"] { color: var(--primary); border-bottom-color: var(--primary); }
+.lb-tab .n[hidden] { display: none; }
+.lb-tab .n { min-width: 20px; height: 20px; border-radius: 10px; background: var(--primary); color: var(--on-primary); font-size: 11px; display: inline-flex; align-items: center; justify-content: center; padding: 0 6px; }
+.da-head { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-bottom: 1px solid var(--divider); flex: none; flex-wrap: wrap; }
+.da-head h1 { margin: 0; font-size: 20px; font-weight: 600; letter-spacing: -0.01em; }
+.conn { display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 10px; border-radius: 12px; font-size: 12px; font-weight: 600; background: rgba(22, 163, 74, .1); color: #15803d; }
+:root[data-theme="dark"] .conn { color: #4ade80; }
+.conn i { width: 7px; height: 7px; border-radius: 50%; background: #16a34a; }
+.da-head .sp { flex: 1; }
+.ibtn { width: 34px; height: 34px; border-radius: 50%; border: 0; background: none; color: var(--text-2); display: inline-flex; align-items: center; justify-content: center; }
+.ibtn:hover { background: var(--action-hover); color: var(--text); }
+.ibtn[disabled] { opacity: .45; cursor: default; }
+.sync { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; border-radius: 6px; border: 1px solid var(--line-12); background: var(--paper); font-size: 13px; font-weight: 600; color: var(--text-2); }
+.sync:hover { border-color: var(--primary); color: var(--primary); }
+.sync.spin svg { animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.sync .hint { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--error); box-shadow: 0 0 0 3px rgba(220, 38, 38, .2); }
+
+/* Inbox split view */
+.views { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.inbox { flex: 1; min-height: 0; display: flex; }
+.list { width: 40%; min-width: 300px; max-width: 420px; border-right: 1px solid var(--divider); overflow-y: auto; display: flex; flex-direction: column; }
+.list ul { list-style: none; margin: 0; padding: 0; }
+.item { display: flex; flex-direction: column; align-items: stretch; width: 100%; text-align: left; padding: 12px 16px; border: 0; border-bottom: 1px solid var(--divider); border-left: 3px solid var(--info); background: transparent; }
+.item:hover { background: var(--action-hover); }
+.item[aria-current="true"] { background: var(--selected); }
+.item.urgent { border-left-color: var(--error); } .item.high { border-left-color: var(--warning); }
+.item.done { opacity: .62; }
+.item .subj { font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.item .row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 2px; }
+.item .from { color: var(--text-2); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.item .time { color: var(--text-2); font-size: 12px; flex: none; }
+.item .prev { color: var(--text-2); font-size: 12px; font-style: italic; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 4px; }
+.item .meta { display: flex; align-items: center; gap: 6px; margin-top: 6px; flex-wrap: wrap; }
+.item .meta .conf { margin-left: auto; font-size: 12px; font-weight: 600; }
+.mchip { display: inline-flex; align-items: center; gap: 4px; height: 22px; padding: 0 8px; border-radius: 11px; font-size: 11.5px; font-weight: 600; white-space: nowrap; border: 1px solid transparent; }
+.mchip.new { height: 20px; background: var(--error); color: #fff; font-size: 10.5px; letter-spacing: .02em; }
+.mchip.outline { border-color: var(--primary); color: var(--primary); }
+.mchip.soft { background: var(--action-hover); color: var(--text-2); }
+.mchip.ok { background: #dcfce7; color: #166534; } .mchip.no { background: #fee2e2; color: #b91c1c; } .mchip.mod { background: #fef3c7; color: #92400e; } .mchip.auto { background: #f1f5f9; color: #475569; }
+.mchip.exact { background: rgba(2, 132, 199, .12); color: #0369a1; } .mchip.similar { background: rgba(217, 119, 6, .14); color: #92400e; } .mchip.learned { background: rgba(22, 163, 74, .12); color: #166534; }
+.mchip.ai { height: 18px; padding: 0 6px; font-size: 10px; background: rgba(124, 58, 237, .12); color: #6d28d9; }
+:root[data-theme="dark"] .mchip.ok, :root[data-theme="dark"] .mchip.learned { background: rgba(74, 222, 128, .15); color: #86efac; }
+:root[data-theme="dark"] .mchip.no { background: rgba(248, 113, 113, .15); color: #fca5a5; }
+:root[data-theme="dark"] .mchip.mod, :root[data-theme="dark"] .mchip.similar { background: rgba(251, 191, 36, .15); color: #fcd34d; }
+:root[data-theme="dark"] .mchip.exact { background: rgba(56, 189, 248, .15); color: #7dd3fc; }
+:root[data-theme="dark"] .mchip.auto { background: rgba(255, 255, 255, .08); color: var(--text-2); }
+:root[data-theme="dark"] .mchip.ai { background: rgba(196, 181, 253, .15); color: #c4b5fd; }
+.c-hi { color: #15803d; } .c-mid { color: #b45309; } .c-lo { color: #dc2626; }
+:root[data-theme="dark"] .c-hi { color: #4ade80; } :root[data-theme="dark"] .c-mid { color: #fbbf24; } :root[data-theme="dark"] .c-lo { color: #f87171; }
+.aside-toggle { margin-top: auto; border: 0; border-top: 1px solid var(--divider); background: var(--section); padding: 10px 16px; text-align: left; font-size: 12.5px; color: var(--text-2); display: flex; align-items: center; gap: 8px; }
+.aside-toggle:hover { color: var(--text); }
+.aside-list { background: var(--section); padding: 0 16px 12px; font-size: 12.5px; }
+.aside-list[hidden] { display: none; }
+.aside-list div { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-top: 1px solid var(--divider); }
+.aside-list span { flex: 1; min-width: 0; }
+.aside-list b { display: block; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.linkbtn { border: 0; background: none; color: var(--primary); font-weight: 600; font-size: 12.5px; padding: 4px 6px; border-radius: 6px; white-space: nowrap; }
+.linkbtn:hover { background: var(--action-hover); }
+
+.detail { flex: 1; min-width: 0; overflow-y: auto; position: relative; }
+.empty-pane { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 32px; color: var(--text-2); }
+.empty-pane svg { width: 44px; height: 44px; color: var(--text-disabled); stroke-width: 1.5; margin-bottom: 8px; }
+.empty-pane h2 { margin: 0 0 4px; font-size: 16px; color: var(--text); }
+.empty-pane p { margin: 0 0 18px; max-width: 340px; }
+.empty-pane .callout { max-width: 400px; text-align: left; }
+.d-head { position: sticky; top: 0; z-index: 3; background: var(--default); border-bottom: 1px solid var(--divider); padding: 14px 20px; display: flex; gap: 12px; align-items: flex-start; }
+.d-head .bar { width: 4px; align-self: stretch; border-radius: 2px; background: var(--info); flex: none; }
+.d-head .bar.urgent { background: var(--error); } .d-head .bar.high { background: var(--warning); }
+.d-head h2 { margin: 0; font-size: 17px; font-weight: 600; line-height: 1.3; }
+.d-head .by { color: var(--text-2); font-size: 13px; margin-top: 2px; }
+.d-head .back { display: none; }
+.d-body { padding: 16px 20px 28px; display: flex; flex-direction: column; gap: 16px; }
+.panel { border: 1px solid var(--divider); border-radius: 8px; background: var(--paper); padding: 14px 16px; }
+.panel-h { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.panel-h h3 { margin: 0; font-size: 14px; font-weight: 600; }
+.panel-h .sp { flex: 1; }
+.tbtn { border: 1px solid var(--line-12); background: none; border-radius: 6px; height: 28px; padding: 0 10px; font-size: 12.5px; font-weight: 600; color: var(--text-2); }
+.tbtn:hover { border-color: var(--primary); color: var(--primary); }
+.email { font-size: 14px; line-height: 1.6; }
+.email + .email { border-top: 1px dashed var(--divider); margin-top: 12px; padding-top: 12px; }
+.email .eh { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.email .av { width: 30px; height: 30px; border-radius: 50%; background: var(--section); color: var(--text-2); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; flex: none; }
+.email .av.me { background: var(--primary); color: var(--on-primary); }
+.email .eh b { display: block; font-size: 13px; } .email .eh span { color: var(--text-2); font-size: 12px; }
+.email .eh .t { margin-left: auto; color: var(--text-2); font-size: 12px; white-space: nowrap; }
+.email .body { white-space: pre-wrap; }
+mark.hl { background: transparent; color: inherit; border-radius: 3px; padding: 0 1px; transition: background-color .35s, box-shadow .35s; }
+mark.hl.on { box-shadow: inset 0 -2px 0 rgba(var(--c), .9); background: rgba(var(--c), .16); }
+mark.hl.flash { background: rgba(var(--c), .38); }
+mark.what { --c: var(--hl-what); } mark.where { --c: var(--hl-where); } mark.when { --c: var(--hl-when); } mark.note { --c: var(--hl-note); }
+
+.recs-h { display: flex; align-items: center; gap: 8px; }
+.recs-h h3 { margin: 0; font-size: 15px; font-weight: 600; }
+.reading { border: 2px dashed rgba(0, 122, 135, .35); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 8px; }
+.reading .stp { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-2); }
+.reading .stp svg { color: var(--text-disabled); }
+.reading .stp.done svg { color: var(--success); }
+.shimmer { width: fit-content; background-image: linear-gradient(90deg, rgba(68, 81, 102, .55) 35%, var(--text) 50%, rgba(68, 81, 102, .55) 65%); background-size: 200% 100%;
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: transparent; animation: wave 2.2s linear infinite; }
+@keyframes wave { from { background-position: 200% center; } to { background-position: -200% center; } }
+
+/* ActionCardItem */
+.card { border: 2px solid var(--primary); border-radius: 12px; background: rgba(0, 122, 135, .03); padding: 16px; transition: opacity .4s, transform .4s; }
+.card.leaving { opacity: 0; transform: translateX(24px); }
+.card.enter { animation: cardIn .35s ease-out; }
+@keyframes cardIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.card-top { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; color: var(--primary); }
+.card-top h4 { margin: 0; flex: 1; font-size: 14px; font-weight: 700; color: var(--primary); line-height: 1.35; }
+.card .desc { color: var(--text-2); font-size: 14px; margin: 0; }
+.card hr { border: 0; border-top: 1px solid var(--divider); margin: 14px 0; }
+.will { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 14px; color: var(--primary); margin-bottom: 10px; }
+.tgrid-h { font-size: 13px; font-weight: 600; margin-bottom: 8px; }
+.tgrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 16px; }
+.f { min-width: 0; padding-left: 8px; border-left: 3px solid transparent; transition: background-color .3s; border-radius: 0 4px 4px 0; }
+.f.what { border-left-color: rgb(var(--hl-what)); } .f.where { border-left-color: rgb(var(--hl-where)); } .f.when { border-left-color: rgb(var(--hl-when)); } .f.note { border-left-color: rgb(var(--hl-note)); }
+.f.pop { animation: fpop .5s ease-out; }
+@keyframes fpop { from { background: rgba(0, 201, 212, .18); } to { background: transparent; } }
+.f .l { font-size: 12px; color: var(--text-2); display: block; }
+.f .v { font-size: 14px; font-weight: 500; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.f .v.it { font-style: italic; font-weight: 400; }
+.f .v .q { font-size: 12px; color: var(--text-2); font-weight: 400; }
+.f .miss { color: var(--error); display: inline-flex; align-items: center; gap: 4px; font-weight: 600; }
+.f .auto { color: var(--info); }
+.f .sub { display: block; font-size: 12px; color: var(--text-2); }
+.f.wide { grid-column: 1 / -1; }
+.chg { display: grid; grid-template-columns: auto 1fr; gap: 6px 16px; font-size: 14px; }
+.chg dt { color: var(--text-2); font-size: 13px; } .chg dd { margin: 0; font-weight: 500; }
+.chg .old { text-decoration: line-through; color: var(--text-2); font-weight: 400; margin-right: 6px; }
+.chg .new { background: rgba(var(--hl-when), .16); box-shadow: inset 0 -2px 0 rgba(var(--hl-when), .9); padding: 0 2px; border-radius: 3px; }
+.acts { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.acts .sp { flex: 1; }
+.mb { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; border-radius: 6px; font-size: 13px; font-weight: 600; border: 1px solid var(--line-12); background: transparent; color: var(--text); white-space: nowrap; }
+.mb:hover:not(:disabled) { background: var(--action-hover); }
+.mb.success { background: var(--success); border-color: var(--success); color: #fff; }
+.mb.success:hover:not(:disabled) { background: var(--success-strong); }
+.mb.primary { background: var(--primary); border-color: var(--primary); color: var(--on-primary); }
+.mb.primary:hover:not(:disabled) { background: var(--primary-dark); }
+.mb.o-primary { border-color: var(--primary); color: var(--primary); }
+.mb.o-error { border-color: rgba(220, 38, 38, .5); color: var(--error); }
+.mb.o-error:hover:not(:disabled) { background: rgba(220, 38, 38, .06); }
+.mb:disabled { opacity: .45; cursor: not-allowed; }
+:root[data-theme="dark"] .mb.success { color: #0E1A2F; }
+.why { font-size: 12.5px; color: var(--text-2); margin-top: 8px; display: flex; gap: 6px; align-items: flex-start; }
+.why svg { color: var(--warning); margin-top: 1px; }
+.factors { margin-top: 12px; padding: 12px; border-radius: 8px; background: var(--section); }
+.factors[hidden] { display: none; }
+.factors h5 { margin: 0 0 8px; font-size: 13px; font-weight: 600; }
+.fac { margin-bottom: 8px; } .fac:last-child { margin-bottom: 0; }
+.fac .r { display: flex; justify-content: space-between; font-size: 13px; }
+.fac .trk { height: 4px; border-radius: 2px; background: rgba(14, 26, 47, .08); margin-top: 3px; overflow: hidden; }
+.fac .trk i { display: block; height: 100%; border-radius: 2px; background: var(--success); }
+.fac.neg .trk i { background: var(--error); } .fac.neu .trk i { background: var(--text-disabled); }
+.ring { position: relative; width: 40px; height: 40px; flex: none; }
+.ring svg { width: 40px; height: 40px; transform: rotate(-90deg); }
+.ring span { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: var(--text); }
+.done-pane { display: flex; flex-direction: column; gap: 12px; }
+.done-msg { display: flex; align-items: center; gap: 10px; padding: 14px 16px; border-radius: 10px; background: rgba(22, 163, 74, .08); color: #166534; font-weight: 600; }
+:root[data-theme="dark"] .done-msg { color: #86efac; }
+.waiting { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 10px; background: var(--section); color: var(--text-2); font-size: 13px; }
+
+/* Dispatch Tickets tab */
+.tickets { flex: 1; min-height: 0; overflow: auto; padding: 16px 20px; }
+.tickets[hidden], .inbox[hidden] { display: none; }
+.tickets table { border-collapse: collapse; width: 100%; min-width: 760px; font-size: 13px; }
+.tickets th { text-align: left; font-weight: 600; color: var(--text-2); padding: 10px 12px; border-bottom: 1px solid var(--divider); white-space: nowrap; background: var(--section); position: sticky; top: 0; }
+.tickets td { padding: 10px 12px; border-bottom: 1px solid var(--divider); white-space: nowrap; }
+.tickets tr.fresh td { background: rgba(0, 201, 212, .07); }
+.tickets tr.fresh td:first-child { box-shadow: inset 3px 0 0 var(--primary-light); }
+.tickets .lead { color: var(--text-2); margin: 0 0 12px; font-size: 13px; }
+
+/* Dialogs (Modify, Reject, reply) */
+dialog { border: 0; padding: 0; border-radius: 12px; background: var(--paper); color: var(--text); box-shadow: 0 24px 64px rgba(0, 0, 0, .3); width: min(560px, calc(100vw - 24px)); max-height: calc(100dvh - 32px); }
+dialog::backdrop { background: rgba(14, 26, 47, .45); }
+.dlg { display: flex; flex-direction: column; max-height: calc(100dvh - 32px); }
+.dlg-h { display: flex; align-items: center; gap: 8px; padding: 16px 20px; border-bottom: 1px solid var(--divider); }
+.dlg-h h2 { margin: 0; font-size: 17px; font-weight: 600; flex: 1; }
+.dlg-b { padding: 16px 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; }
+.dlg-f { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 20px; border-top: 1px solid var(--divider); }
+.sec-h { font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--text-2); margin: 4px 0 -4px; }
+.fld { display: flex; flex-direction: column; gap: 4px; }
+.fld label { font-size: 12.5px; font-weight: 600; color: var(--text-2); display: flex; align-items: center; gap: 6px; }
+.fld input, .fld select, .fld textarea { width: 100%; border: 1px solid var(--line-12); border-radius: 6px; padding: 8px 10px; background: var(--default); font-size: 14px; }
+.fld textarea { min-height: 70px; resize: vertical; line-height: 1.5; }
+.fld input:focus, .fld select:focus, .fld textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 2px rgba(0, 122, 135, .15); }
+.fld.err input { border-color: var(--error); }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.chk { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.opt { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; padding: 12px 14px; border: 1px solid var(--line-12); border-radius: 8px; background: none; font-size: 14px; }
+.opt:hover { border-color: var(--primary); background: var(--action-hover); }
+.opt small { display: block; color: var(--text-2); font-size: 12.5px; }
+.sugg { border-radius: 8px; background: rgba(124, 58, 237, .06); border: 1px solid rgba(124, 58, 237, .2); padding: 12px 14px; font-size: 13px; color: var(--text-2); }
+.sugg b { color: var(--violet); display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+.summ { display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; font-size: 13px; padding: 12px 14px; border-radius: 8px; background: var(--section); }
+.summ dt { color: var(--text-2); } .summ dd { margin: 0; font-weight: 500; }
+
+/* Action History drawer */
+.drawer { position: fixed; top: 0; right: 0; bottom: 0; width: min(400px, 100vw); background: var(--paper); box-shadow: -12px 0 40px rgba(0, 0, 0, .18); z-index: 70; transform: translateX(105%); transition: transform .25s ease; display: flex; flex-direction: column; }
+.drawer.open { transform: none; }
+.drawer-h { display: flex; align-items: center; padding: 14px 16px; border-bottom: 1px solid var(--divider); }
+.drawer-h h2 { margin: 0; font-size: 17px; font-weight: 600; flex: 1; }
+.drawer-b { overflow-y: auto; padding: 12px 16px; display: flex; flex-direction: column; gap: 12px; }
+.hist { border: 1px solid var(--divider); border-radius: 10px; padding: 12px; font-size: 13px; }
+.hist .top { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.hist .top b { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hist .top time { color: var(--text-2); font-size: 12px; }
+.hist .lbl2 { font-size: 10.5px; font-weight: 700; letter-spacing: .06em; color: var(--text-2); margin: 8px 0 2px; }
+.hist p { margin: 0; color: var(--text-2); }
+.scrim { position: fixed; inset: 0; background: rgba(14, 26, 47, .35); z-index: 65; }
+.scrim[hidden] { display: none; }
+
+@media (max-width: 760px) {
+  .list { width: 100%; max-width: none; min-width: 0; border-right: 0; }
+  .inbox.show-detail .list { display: none; }
+  .inbox:not(.show-detail) .detail { display: none; }
+  .d-head .back { display: inline-flex; margin: -4px 0 0 -8px; }
+  .d-head { padding: 12px 14px; } .d-body { padding: 14px 14px 24px; }
+  .tgrid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px 12px; }
+  .da-head { padding: 10px 14px; } .da-head h1 { font-size: 18px; }
+  .sync .lbl { display: none; }
+  .row2 { grid-template-columns: 1fr; }
+}
+@media (max-width: 420px) { .tgrid { grid-template-columns: minmax(0, 1fr); } .conn { display: none; } }
+</style>
+</head>
+<body>
+<div class="demo">
+  <header class="demo-bar" id="demoBar"></header>
+  <section class="app-window" aria-label="Dispatch Agent, running on sample emails">
+    <div class="lb-tabs" role="tablist" aria-label="Load Board">
+      <button type="button" class="lb-tab" role="tab" aria-selected="false" data-tab="board">Load Board</button>
+      <button type="button" class="lb-tab" role="tab" aria-selected="false" data-tab="tickets" aria-controls="ticketsView">Dispatch Tickets<span class="n" id="newCount" hidden></span></button>
+      <button type="button" class="lb-tab" role="tab" aria-selected="true" data-tab="agent" aria-controls="inboxView">Dispatch Agent</button>
+    </div>
+    <div class="views">
+      <div class="da-head" id="daHead">
+        <h1>Dispatch Agent</h1>
+        <span class="conn"><i aria-hidden="true"></i>Gmail connected</span>
+        <span class="sp"></span>
+        <button type="button" class="sync" id="syncBtn"><span class="hint" id="syncHint" aria-hidden="true"></span><span class="ic"></span><span class="lbl" id="syncLbl">Sync</span></button>
+        <button type="button" class="ibtn" id="histBtn" aria-label="Action history" title="Action history"></button>
+        <button type="button" class="ibtn" id="setBtn" aria-label="Settings" title="Settings"></button>
+      </div>
+      <div class="inbox" id="inboxView">
+        <nav class="list" aria-label="Email threads">
+          <ul id="threadList"></ul>
+          <button type="button" class="aside-toggle" id="asideToggle" aria-expanded="false" aria-controls="asideList"></button>
+          <div class="aside-list" id="asideList" hidden></div>
+        </nav>
+        <div class="detail" id="detail" aria-live="polite"></div>
+      </div>
+      <div class="tickets" id="ticketsView" hidden></div>
+    </div>
+  </section>
+  <p class="demo-note">Fictional sample emails. In ReSpark, the Dispatch Agent reads your own Gmail or Outlook dispatch inbox.</p>
+</div>
+
+<dialog id="dlg" aria-labelledby="dlgTitle"></dialog>
+<div class="scrim" id="scrim" hidden></div>
+<aside class="drawer" id="drawer" aria-labelledby="drawerTitle" aria-hidden="true">
+  <div class="drawer-h"><h2 id="drawerTitle">Action History</h2><button type="button" class="ibtn" id="drawerClose" aria-label="Close action history"></button></div>
+  <div class="drawer-b" id="drawerBody"></div>
+</aside>
+
+<script src="../demo-shell/demo-shell.js?v=2"></script>
+<script>
+(() => {
+'use strict';
+const S = DemoShell.create({
+  agent: 'dispatcher',
+  agentName: 'Dispatch Agent',
+  toastTop: true,
+  sample: '<b>Everything here is fictional.</b> The emails, customers and addresses are made up for this test drive. Nothing you approve creates a real ticket or sends an email.',
+  onReset: () => reset(),
+  resetMessage: 'Demo reset. The inbox is back to the start.',
+});
+const { icon, esc, track, toast, sleep, REDUCED } = S;
+const $ = id => document.getElementById(id);
+
+/* ---------------- dates (relative to today so the demo never goes stale) ---------------- */
+const NOW = new Date();
+const TODAY = new Date(NOW.getFullYear(), NOW.getMonth(), NOW.getDate());
+const day = n => new Date(TODAY.getFullYear(), TODAY.getMonth(), TODAY.getDate() + n);
+const fmt = n => day(n).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+const iso = n => { const d = day(n); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+const ahead = dow => { let n = (dow - TODAY.getDay() + 7) % 7; return n === 0 ? 7 : n; };
+const THU = ahead(4), FRI = ahead(5) === 1 ? 8 : ahead(5), MON_AFTER = FRI + 3;
+const rel = m => m < 60 ? `${m}m` : m < 1440 ? `${Math.round(m / 60)}h` : `${Math.round(m / 1440)}d`;
+const clock = m => new Date(NOW.getTime() - m * 60000).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+const whenLabel = m => m < 1440 ? clock(m) : fmt(-Math.round(m / 1440));
+
+/* ---------------- sample inbox: dispatch@millbrookrecycling (fictional) ----------------
+   Body segments: plain strings, or [text, hl] where hl is what | where | when | note.
+   Each recommendation lists the fields the agent extracted, mirroring TicketPreviewGrid. */
+const ME = { name: 'Millbrook Dispatch', email: 'dispatch@millbrookrecycling.example' };
+const THREADS_SRC = () => [
+  {
+    id: 'harlan', subject: 'Swap at Elm St', priority: 'high', from: { name: 'Dana Ruiz', email: 'dana@harlanbuilds.example' },
+    messages: [{ from: 'them', mins: 14, body: ['Hi team,\n\nCan you ', ['swap the 30-yd', 'what'], ' at the ', ['Elm St site', 'where'], ' ', ['Thursday morning', 'when'], '? ', ['Gate code 4471.', 'note'], '\n\nThanks,\nDana'] }],
+    recs: [{
+      id: 'harlan-1', type: 'create', confidence: 94,
+      description: `Dana is asking to exchange the 30-yard roll-off at Harlan Builders' Elm St site on Thursday morning. Customer and location match existing records.`,
+      factors: [['AI Confidence', 94, 'pos'], ['Urgency', 62, 'neu'], ['Data Completeness', 100, 'pos']],
+      ticket: { customer: ['Harlan Builders', 'exact'], location: 'Elm St site · 1180 Elm St', contact: 'Dana Ruiz', scheduleDate: THU, timeWindow: 'Morning (7–11 AM)', ticketType: 'Exchange', container: ['30 yd roll-off', 1], instructions: 'Gate code 4471' },
+      hl: { ticketType: 'what', container: 'what', location: 'where', scheduleDate: 'when', timeWindow: 'when', instructions: 'note' },
+    }],
+  },
+  {
+    id: 'ridgeline', subject: 'Live loads tomorrow', priority: 'urgent', from: { name: 'Marco Belliveau', email: 'marco@ridgelineironworks.example' },
+    messages: [{ from: 'them', mins: 41, body: ['Morning,\n\nWe need ', ['3 live loads', 'what'], ' ', ['tomorrow', 'when'], ':\n• ', ['2 at 7 AM', 'when'], ' at the ', ['Kessler St shop', 'where'], ' (', ['misc metal', 'what'], ' and ', ['rebar', 'what'], ')\n• ', ['1 at noon', 'when'], ' at the ', ['Route 9 job', 'where'], ' (', ['rebar only', 'what'], ')\n\n', ['Driver please call 10 min before arriving.', 'note'], '\n\nMarco\nRidgeline Ironworks'] }],
+    recs: [
+      { id: 'ridgeline-1', type: 'create', confidence: 92, description: 'Live load 1 of 3: 7:00 AM tomorrow at the Kessler St shop, misc metal. One email with three loads becomes three tickets.',
+        factors: [['AI Confidence', 92, 'pos'], ['Urgency', 85, 'pos'], ['Data Completeness', 100, 'pos']],
+        ticket: { customer: ['Ridgeline Ironworks', 'exact'], location: 'Kessler St shop · 42 Kessler St', contact: 'Marco Belliveau', scheduleDate: 1, timeWindow: '7:00 AM', ticketType: 'Live Load', material: 'Misc metal', instructions: 'Call 10 min before arriving' },
+        hl: { ticketType: 'what', material: 'what', location: 'where', scheduleDate: 'when', timeWindow: 'when', instructions: 'note' } },
+      { id: 'ridgeline-2', type: 'create', confidence: 91, description: 'Live load 2 of 3: 7:00 AM tomorrow at the Kessler St shop, rebar.',
+        factors: [['AI Confidence', 91, 'pos'], ['Urgency', 85, 'pos'], ['Data Completeness', 100, 'pos']],
+        ticket: { customer: ['Ridgeline Ironworks', 'exact'], location: 'Kessler St shop · 42 Kessler St', contact: 'Marco Belliveau', scheduleDate: 1, timeWindow: '7:00 AM', ticketType: 'Live Load', material: 'Rebar', instructions: 'Call 10 min before arriving' },
+        hl: { ticketType: 'what', material: 'what', location: 'where', scheduleDate: 'when', timeWindow: 'when', instructions: 'note' } },
+      { id: 'ridgeline-3', type: 'create', confidence: 84, description: `Live load 3 of 3: noon tomorrow at the "Route 9 job", rebar only. Matched to the Route 9 Bridge Project location, worth a quick check.`,
+        factors: [['AI Confidence', 84, 'pos'], ['Urgency', 85, 'pos'], ['Data Completeness', 90, 'pos']],
+        ticket: { customer: ['Ridgeline Ironworks', 'exact'], location: ['Route 9 Bridge Project · Lot B', 'similar', 'Route 9 job'], contact: 'Marco Belliveau', scheduleDate: 1, timeWindow: '12:00 PM', ticketType: 'Live Load', material: 'Rebar', instructions: 'Call 10 min before arriving' },
+        hl: { ticketType: 'what', material: 'what', location: 'where', scheduleDate: 'when', timeWindow: 'when', instructions: 'note' } },
+    ],
+  },
+  {
+    id: 'bluegill', subject: 'Pickup please', priority: 'medium', from: { name: 'Tess Okafor', email: 'tess@bluegillplumbing.example' },
+    messages: [{ from: 'them', mins: 95, body: ['Hey,\n\nCan you ', ['grab the 20 yard box', 'what'], ' from ', ['our new job', 'where'], ' ', ['when you get a chance', 'when'], "? It's full.\n\nThanks!\nTess"] }],
+    reply: { mins: 0, body: ["Sorry about that! It's at ", ['2250 Foundry Rd', 'where'], ', ', ['behind the warehouse', 'note'], '. ', ['Tomorrow morning', 'when'], ' works.\n\nTess'] },
+    recs: [{
+      id: 'bluegill-1', type: 'create', confidence: 58,
+      description: `Tess wants the full 20-yard box picked up from "our new job", but there's no job site on file that matches. A follow-up asking for the address will let this ticket be approved.`,
+      factors: [['AI Confidence', 58, 'neg'], ['Urgency', 40, 'neu'], ['Data Completeness', 67, 'neg']],
+      ticket: { customer: ['Bluegill Plumbing & Heating', 'exact'], location: null, locationNote: '"our new job" isn\'t a location on file', contact: 'Tess Okafor', scheduleDate: 'auto-today', ticketType: 'Pickup', container: ['20 yd roll-off', 1] },
+      hl: { ticketType: 'what', container: 'what', location: 'where', scheduleDate: 'when' },
+      after: { confidence: 90, factors: [['AI Confidence', 90, 'pos'], ['Urgency', 55, 'neu'], ['Data Completeness', 100, 'pos']],
+        description: `Tess replied with the address. The new job site is 2250 Foundry Rd, pickup tomorrow morning. Ready to approve.`,
+        ticket: { customer: ['Bluegill Plumbing & Heating', 'exact'], location: 'New job site · 2250 Foundry Rd', contact: 'Tess Okafor', scheduleDate: 1, timeWindow: 'Morning (7–11 AM)', ticketType: 'Pickup', container: ['20 yd roll-off', 1], instructions: 'Box is behind the warehouse' },
+        hl: { ticketType: 'what', container: 'what', location: 'where', scheduleDate: 'when', timeWindow: 'when', instructions: 'note' } },
+    }],
+  },
+  {
+    id: 'oakhollow', subject: 'Re: 40-yd drop for the Birch Ave job', priority: 'medium', from: { name: 'Priyanka Sethi', email: 'psethi@oakhollowgc.example' },
+    messages: [
+      { from: 'them', mins: 2900, body: ['Hi, can we get a 40-yd dropped at 610 Birch Ave on Friday? Thanks, Priyanka'] },
+      { from: 'me', mins: 2700, body: [`Booked for ${fmt(FRI)}, ticket DT-20417. Thanks!`] },
+      { from: 'them', mins: 180, body: ['Hi again,\n\n', ["Can we push Friday's drop to Monday?", 'when'], " The site isn't ready yet. Sorry for the shuffle!\n\nPriyanka"] },
+    ],
+    recs: [{
+      id: 'oakhollow-1', type: 'update', confidence: 92,
+      description: `Priyanka is asking to move the 40-yard drop on ticket DT-20417 from ${fmt(FRI)} to ${fmt(MON_AFTER)}. The agent read the whole thread, so it updates the existing ticket instead of creating a new one.`,
+      factors: [['AI Confidence', 92, 'pos'], ['Urgency', 50, 'neu'], ['Data Completeness', 100, 'pos']],
+      update: { ticketNo: 'DT-20417', rows: [['Ticket type', 'Dropoff'], ['Container', '40 yd roll-off'], ['Location', '610 Birch Ave'], ['Schedule date', [fmt(FRI), fmt(MON_AFTER)]]] },
+    }],
+  },
+  {
+    id: 'ridgeway', subject: 'Pull the 40 at Maple Ave', priority: 'medium', from: { name: 'Gus Pereira', email: 'office@ridgewayroofs.example' },
+    messages: [{ from: 'them', mins: 260, body: ["Hi,\n\nJob's wrapped at ", ['77 Maple Ave', 'where'], '. Please ', ['pull the 40', 'what'], ' ', ['in the back lot', 'note'], ' ', ['tomorrow', 'when'], '. Mostly ', ['steel siding and some aluminum flashing', 'what'], '.\n\n– Gus, Ridgeway'] }],
+    recs: [{
+      id: 'ridgeway-1', type: 'create', confidence: 81,
+      description: `Gus wants the 40-yard container pulled from 77 Maple Ave tomorrow. "Ridgeway" is a close match to Ridgeway Roofing & Gutters, so check the customer before approving.`,
+      factors: [['AI Confidence', 81, 'pos'], ['Urgency', 55, 'neu'], ['Data Completeness', 92, 'pos']],
+      ticket: { customer: ['Ridgeway Roofing & Gutters', 'similar', 'Ridgeway'], location: 'Maple Ave job · 77 Maple Ave', contact: 'Gus Pereira', scheduleDate: 1, ticketType: 'Pickup', container: ['40 yd roll-off', 1], material: 'Steel siding, aluminum flashing', instructions: 'Container is in the back lot' },
+      hl: { ticketType: 'what', container: 'what', material: 'what', location: 'where', scheduleDate: 'when', instructions: 'note' },
+    }],
+  },
+];
+// Arrives when the visitor clicks Sync
+const SYNC_THREAD = () => ({
+  id: 'fenmore', subject: 'URGENT: box overflowing at Harbor Rd', priority: 'urgent', from: { name: 'Kit Varga', email: 'kvarga@fenmorecastings.example' },
+  messages: [{ from: 'them', mins: 0, body: ['Our ', ['30-yd', 'what'], ' at the ', ['Harbor Rd plant', 'where'], ' is overflowing. Need it ', ['swapped today, before 2 PM', 'when'], ' please!! ', ['Use the east gate.', 'note'], '\n\nKit'] }],
+  recs: [{
+    id: 'fenmore-1', type: 'create', confidence: 89,
+    description: 'Urgent same-day exchange of the 30-yard container at the Harbor Rd plant, before 2:00 PM. Flagged urgent so it sorts to the top.',
+    factors: [['AI Confidence', 89, 'pos'], ['Urgency', 96, 'pos'], ['Data Completeness', 100, 'pos']],
+    ticket: { customer: ['Fenmore Castings', 'learned'], location: 'Harbor Rd plant · 1400 Harbor Rd', contact: 'Kit Varga', scheduleDate: 0, timeWindow: 'Before 2:00 PM', ticketType: 'Exchange', container: ['30 yd roll-off', 1], instructions: 'Use the east gate' },
+    hl: { ticketType: 'what', container: 'what', location: 'where', scheduleDate: 'when', timeWindow: 'when', instructions: 'note' },
+  }],
+});
+const SET_ASIDE = [
+  { subject: 'Question about invoice INV-30882', from: 'Bluegill Plumbing & Heating · Accounts payable' },
+  { subject: 'Scrap Market Weekly: this week in ferrous', from: 'Newsletter' },
+];
+const EXISTING_TICKETS = () => [
+  { no: 'DT-20409', type: 'Dropoff', customer: 'Harlan Builders', location: 'Elm St site · 1180 Elm St', container: '30 yd', date: -9, status: 'Completed' },
+  { no: 'DT-20412', type: 'Live Load', customer: 'Ridgeline Ironworks', location: 'Kessler St shop', container: '—', date: -3, status: 'Completed' },
+  { no: 'DT-20415', type: 'Dropoff', customer: 'Bluegill Plumbing & Heating', location: 'Shop · 19 Weller St', container: '20 yd', date: -6, status: 'Completed' },
+  { no: 'DT-20417', type: 'Dropoff', customer: 'Oak Hollow Contractors', location: '610 Birch Ave', container: '40 yd', date: FRI, status: 'Scheduled' },
+  { no: 'DT-20419', type: 'Exchange', customer: 'Fenmore Castings', location: 'Harbor Rd plant', container: '30 yd', date: -8, status: 'Completed' },
+];
+const CUSTOMERS = ['Bluegill Plumbing & Heating', 'Fenmore Castings', 'Harlan Builders', 'Oak Hollow Contractors', 'Ridgeline Ironworks', 'Ridgeway Roofing & Gutters'];
+const TRIP_TYPES = ['Exchange', 'Dropoff', 'Pickup', 'Pick And Return', 'Delivery', 'Live Load', 'Re-Spot'];
+const CONTAINERS = ['10 yd roll-off', '20 yd roll-off', '30 yd roll-off', '40 yd roll-off'];
+const MATCH = { exact: ['Exact Match', 'exact'], similar: ['Similar', 'similar'], learned: ['Most Recent Map', 'learned'] };
+
+/* ---------------- state ---------------- */
+let st;
+function freshState() {
+  const threads = THREADS_SRC();
+  threads.forEach(t => { t.isNew = true; t.analyzed = false; t.recs.forEach(r => r.status = 'pending'); });
+  return { threads, selected: null, synced: false, tickets: EXISTING_TICKETS(), nextNo: 20431, history: [], showThread: {}, waiting: {}, gen: 0 };
+}
+const T = id => st.threads.find(t => t.id === id);
+const pendingRecs = t => t.recs.filter(r => r.status === 'pending');
+const confClass = c => c >= 80 ? 'c-hi' : c >= 60 ? 'c-mid' : 'c-lo';
+const confColor = c => c >= 80 ? '#16a34a' : c >= 60 ? '#d97706' : '#dc2626';
+const title = (r, t) => (r.type === 'update' ? 'Update Existing Ticket: ' : 'Create Dispatch Ticket: ') + t.subject.slice(0, 50);
+const missingOf = r => { const m = []; if (!r.ticket) return m; if (!r.ticket.customer) m.push('Customer'); if (!r.ticket.location) m.push('Location'); if (!r.ticket.ticketType) m.push('Ticket Type'); return m; };
+const addr = l => { const x = Array.isArray(l) ? l[0] : l; return x.includes(' · ') ? x.split(' · ')[1] : x; };
+const andList = a => a.length < 2 ? a.join('') : a.slice(0, -1).join(', ') + ' and ' + a.at(-1);
+const plain = body => body.map(s => Array.isArray(s) ? s[0] : s).join('');
+
+/* ---------------- header controls ---------------- */
+$('syncBtn').querySelector('.ic').innerHTML = icon('sync', 's16');
+$('histBtn').innerHTML = icon('history');
+$('setBtn').innerHTML = icon('gear');
+$('drawerClose').innerHTML = icon('x');
+$('setBtn').addEventListener('click', () => { toast('In ReSpark, Settings is where you connect Gmail or Outlook and manage blocked senders.'); track('settings_clicked'); });
+
+/* ---------------- thread list ---------------- */
+function renderList() {
+  const order = { urgent: 0, high: 1, medium: 2, low: 3 };
+  const list = st.threads.slice().sort((a, b) => (pendingRecs(a).length ? 0 : 1) - (pendingRecs(b).length ? 0 : 1) || order[a.priority] - order[b.priority] || a.messages.at(-1).mins - b.messages.at(-1).mins);
+  $('threadList').innerHTML = list.map(t => {
+    const pend = pendingRecs(t), last = t.messages.at(-1), done = !pend.length;
+    const avg = Math.round(t.recs.reduce((s, r) => s + r.confidence, 0) / t.recs.length);
+    const preview = last.from === 'me' ? `You replied: "${plain(last.body).slice(0, 62)}…"` : `"${plain(last.body).replace(/\s+/g, ' ').slice(0, 74)}…"`;
+    const types = [...new Set(t.recs.map(r => r.type === 'update' ? 'Update' : 'Create Ticket'))];
+    return `<li><button type="button" class="item ${t.priority}${done ? ' done' : ''}" data-id="${t.id}" aria-current="${st.selected === t.id}">
+      <span class="subj">${esc(t.subject)}</span>
+      <span class="row"><span class="from">${esc(t.from.name)}</span><span class="time">${last.mins === 0 ? 'now' : rel(last.mins)}</span></span>
+      <span class="prev">${esc(preview)}</span>
+      <span class="meta">${t.isNew ? '<span class="mchip new">NEW</span>' : ''}${done ? `<span class="mchip ok">${icon('check', 's14')}Done</span>` : `${t.recs.length > 1 ? `<span class="mchip outline">${pend.length} actions</span>` : ''}${types.map(x => `<span class="mchip soft">${x}</span>`).join('')}`}${st.waiting[t.id] ? '<span class="mchip soft">Waiting on reply</span>' : ''}
+        ${done ? '' : `<span class="conf ${confClass(avg)}">${avg}%</span>`}</span>
+    </button></li>`;
+  }).join('');
+  $('asideToggle').innerHTML = `${icon('inbox', 's16')}<span>${SET_ASIDE.length} emails set aside · not dispatch requests</span>`;
+  const n = st.tickets.filter(x => x.fresh).length;
+  $('newCount').hidden = !n; $('newCount').textContent = n;
+}
+$('threadList').addEventListener('click', e => { const b = e.target.closest('.item'); if (b) openThread(b.dataset.id); });
+$('asideToggle').addEventListener('click', () => {
+  const l = $('asideList'), open = l.hidden; l.hidden = !open; $('asideToggle').setAttribute('aria-expanded', open);
+  l.innerHTML = SET_ASIDE.map((x, i) => `<div><span><b>${esc(x.subject)}</b>${esc(x.from)}</span><button type="button" class="linkbtn" data-i="${i}">Restore to Queue</button></div>`).join('');
+  if (open) track('set_aside_opened');
+});
+$('asideList').addEventListener('click', e => { if (e.target.closest('.linkbtn')) { toast('In ReSpark, this sends the email back through the agent. These two aren\'t dispatch requests, so it set them aside.'); track('restore_clicked'); } });
+
+/* ---------------- detail pane ---------------- */
+function emptyPane() {
+  $('detail').innerHTML = `<div class="empty-pane">${icon('mail')}<h2>Select a thread</h2><p>Choose an email thread from the list to view details and take action</p>
+    ${S.callout('Start with <b>Swap at Elm St</b>, then try <b>Live loads tomorrow</b> (one email, three tickets) and <b>Pickup please</b> (details missing).')}</div>`;
+}
+function hlBody(body) {
+  return body.map(s => Array.isArray(s) ? `<mark class="hl ${s[1]}" data-hl="${s[1]}">${esc(s[0])}</mark>` : esc(s)).join('');
+}
+function emailHtml(t, m) {
+  const me = m.from === 'me';
+  const who = me ? ME : t.from;
+  return `<div class="email"><div class="eh"><span class="av${me ? ' me' : ''}" aria-hidden="true">${esc(who.name[0])}</span><div><b>${esc(who.name)}</b><span>${esc(who.email)}</span></div><span class="t">${m.mins === 0 ? 'Just now' : whenLabel(m.mins)}</span></div>
+    <div class="body">${hlBody(m.body)}</div></div>`;
+}
+function ring(c) {
+  const r = 16, C = 2 * Math.PI * r;
+  return `<span class="ring" title="${c >= 80 ? 'High confidence - AI is very certain about this recommendation' : c >= 60 ? 'Medium confidence - AI suggests review before approval' : 'Low confidence - Manual review strongly recommended'}" aria-label="${c}% confidence"><svg viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="${r}" fill="none" stroke="rgba(14,26,47,.1)" stroke-width="4"/><circle cx="20" cy="20" r="${r}" fill="none" stroke="${confColor(c)}" stroke-width="4" stroke-linecap="round" stroke-dasharray="${C * c / 100} ${C}"/></svg><span>${c}%</span></span>`;
+}
+function fieldHtml(key, label, val, hl, extra = '') {
+  return `<div class="f ${hl || ''}" data-f="${key}"><span class="l">${label}</span>${val}${extra}</div>`;
+}
+function ticketGrid(r) {
+  const k = r.ticket, hl = r.hl || {};
+  const v = s => `<span class="v">${s}</span>`;
+  const missing = `<span class="v"><span class="miss">${icon('warn', 's14')}Missing</span></span>`;
+  const out = [];
+  const [cName, cMatch, cExtract] = k.customer || [];
+  out.push(fieldHtml('customer', 'Customer', k.customer ? v(`${esc(cName)} <span class="mchip ${MATCH[cMatch][1]}">${MATCH[cMatch][0]}</span>`) : missing, hl.customer, cExtract ? `<span class="sub">Email said "${esc(cExtract)}"</span>` : ''));
+  if (Array.isArray(k.location)) out.push(fieldHtml('location', 'Location', v(`${esc(k.location[0])} <span class="mchip ${MATCH[k.location[1]][1]}">${MATCH[k.location[1]][0]}</span>`), hl.location, `<span class="sub">Email said "${esc(k.location[2])}"</span>`));
+  else out.push(fieldHtml('location', 'Location', k.location ? v(esc(k.location)) : missing, hl.location, k.locationNote ? `<span class="sub">${esc(k.locationNote)}</span>` : ''));
+  out.push(fieldHtml('contact', 'Contact', v(esc(k.contact || '—')), hl.contact));
+  out.push(fieldHtml('requestDate', 'Request Date', v(fmt(0))));
+  out.push(fieldHtml('scheduleDate', 'Schedule Date', k.scheduleDate === 'auto-today' ? v(`<span class="auto">Today (Auto-suggested)</span>`) : v(fmt(k.scheduleDate)), hl.scheduleDate));
+  if (k.timeWindow) out.push(fieldHtml('timeWindow', 'Time Window', v(esc(k.timeWindow)), hl.timeWindow));
+  out.push(fieldHtml('ticketType', 'Ticket Type', k.ticketType ? v(esc(k.ticketType)) : missing, hl.ticketType));
+  if (k.material) out.push(fieldHtml('material', 'Material Type', v(esc(k.material)), hl.material));
+  if (k.container) out.push(fieldHtml('container', 'Container Size', v(`${esc(k.container[0])} <span class="q">Qty: ${k.container[1]}</span>`), hl.container));
+  if (k.instructions) out.push(`<div class="f wide ${hl.instructions || ''}" data-f="instructions"><span class="l">Special Instructions</span><span class="v it">${esc(k.instructions)}</span></div>`);
+  return `<div class="tgrid-h">Create New Dispatch Ticket</div><div class="tgrid">${out.join('')}</div>`;
+}
+function updateGrid(r) {
+  return `<div class="tgrid-h">Update Dispatch Ticket ${r.update.ticketNo}</div><dl class="chg">${r.update.rows.map(([l, val]) => `<dt>${l}</dt><dd>${Array.isArray(val) ? `<span class="old">${val[0]}</span><span class="new">${val[1]}</span>` : esc(val)}</dd>`).join('')}</dl>`;
+}
+function cardHtml(r, t) {
+  const miss = missingOf(r), canApprove = !miss.length;
+  const isCreate = r.type === 'create';
+  return `<article class="card" data-rec="${r.id}" aria-label="${esc(title(r, t))}">
+    <div class="card-top">${icon('bulb', 's18')}<h4>${esc(title(r, t))}</h4>${ring(r.confidence)}</div>
+    <p class="desc">${esc(r.description)}</p>
+    <hr>
+    <div class="will">${icon('checkCircle', 's18')}Approval will perform these actions:</div>
+    ${isCreate ? ticketGrid(r) : updateGrid(r)}
+    <hr>
+    <div class="acts">
+      <button type="button" class="mb success" data-act="approve" ${canApprove ? '' : 'disabled aria-describedby="why-' + r.id + '"'} title="${canApprove ? 'Approve and create dispatch ticket' : `Cannot auto-approve: ${miss.join(', ')}. Use Modify to provide these details.`}">${icon('check', 's16')}Approve</button>
+      ${isCreate && canApprove ? `<button type="button" class="mb primary" data-act="confirm" title="Create ticket and send confirmation email to customer">${icon('reply', 's16')}Approve &amp; Confirm</button>` : ''}
+      <button type="button" class="mb" data-act="modify">Modify</button>
+      ${isCreate && !canApprove ? `<button type="button" class="mb o-primary" data-act="followup">${icon('reply', 's16')}Follow Up</button>` : ''}
+      <button type="button" class="mb o-error" data-act="reject">Reject</button>
+      <span class="sp"></span>
+      <button type="button" class="ibtn" data-act="factors" aria-expanded="false" aria-controls="fac-${r.id}" title="Show decision factors" aria-label="Show decision factors">${icon('chevD', 's18')}</button>
+    </div>
+    ${canApprove ? '' : `<div class="why" id="why-${r.id}">${icon('warn', 's14')}<span>Cannot auto-approve: ${miss.join(', ')}. Use Modify to provide these details, or send a Follow Up.</span></div>`}
+    <div class="factors" id="fac-${r.id}" hidden><h5>Decision Factors</h5>${r.factors.map(([n, s, imp]) => `<div class="fac ${imp}"><div class="r"><span>${n}</span><span class="${imp === 'pos' ? 'c-hi' : imp === 'neg' ? 'c-lo' : ''}">${s}%</span></div><div class="trk"><i style="width:${s}%"></i></div></div>`).join('')}</div>
+  </article>`;
+}
+function renderDetail(opts = {}) {
+  const t = T(st.selected);
+  if (!t) { emptyPane(); return; }
+  const pend = pendingRecs(t), showAll = st.showThread[t.id] || t.messages.length === 1;
+  const msgs = showAll ? t.messages : [t.messages.at(-1)];
+  const lastHist = st.history.filter(h => h.thread === t.id);
+  $('detail').innerHTML = `<div class="d-head"><button type="button" class="ibtn back" data-act="back" aria-label="Back to inbox">${icon('chevL')}</button><span class="bar ${t.priority}"></span>
+      <div style="flex:1;min-width:0"><h2>${esc(t.subject)}</h2><div class="by">From: ${esc(t.from.name)} • ${t.messages.at(-1).mins === 0 ? 'Just now' : whenLabel(t.messages.at(-1).mins)}</div></div>
+      ${pend.length ? `<span class="mchip outline">${pend.length} ${pend.length === 1 ? 'action' : 'actions'}</span>` : ''}</div>
+    <div class="d-body">
+      <section class="panel" aria-label="Email content"><div class="panel-h"><h3>Email Content</h3><span class="mchip soft">${t.messages.length} ${t.messages.length === 1 ? 'message' : 'messages'}</span><span class="sp"></span>
+        ${t.messages.length > 1 ? `<button type="button" class="tbtn" data-act="thread" aria-expanded="${showAll}">${showAll ? 'Latest Message Only' : 'View Full Thread'}</button>` : ''}</div>
+        <div id="emails">${msgs.map(m => emailHtml(t, m)).join('')}</div></section>
+      <section aria-labelledby="recsH" style="display:flex;flex-direction:column;gap:12px">
+        <div class="recs-h"><h3 id="recsH">AI Recommendations (${pend.length})</h3><button type="button" class="ibtn" data-act="reprocess" title="Reprocess email with AI" aria-label="Reprocess email with AI">${icon('refresh', 's16')}</button></div>
+        <div id="recs">${opts.reading ? '' : pend.length ? pend.map(r => cardHtml(r, t)).join('') : doneHtml(t, lastHist)}</div>
+        ${st.waiting[t.id] ? `<div class="waiting">${icon('mail', 's16')}<span class="shimmer">Follow-up sent. Waiting for ${esc(t.from.name.split(' ')[0])} to reply…</span></div>` : ''}
+      </section>
+    </div>`;
+  if (!opts.reading) $('detail').querySelectorAll('mark.hl').forEach(m => m.classList.add('on'));
+}
+function doneHtml(t, hist) {
+  const made = hist.filter(h => h.ticketNo);
+  return `<div class="done-pane"><div class="done-msg">${icon('checkCircle', 's18')}All actions for this thread have been completed</div>
+    ${made.length ? S.callout(`In ReSpark, ${andList(made.map(h => `<b>${h.ticketNo}</b>`).sort())} ${made.length === 1 ? 'is' : 'are'} now on the Load Board for your dispatcher to schedule. This is a test drive, so nothing was created. <button type="button" class="linkbtn" data-act="tickets">View Dispatch Tickets</button>`) : ''}</div>`;
+}
+
+/* The "agent reading" moment: highlight what it extracts, then build the card(s). */
+async function analyze(t) {
+  const gen = ++st.gen;
+  renderDetail({ reading: true });
+  const recs = $('recs');
+  const steps = ['Classifying email', t.recs.length > 1 ? `Found ${t.recs.length} separate requests` : 'Extracting ticket details', 'Matching customer and location'];
+  recs.innerHTML = `<div class="reading" role="status"><div class="stp"><span class="shimmer">Dispatch Agent is reading this email…</span></div>${steps.map((s, i) => `<div class="stp" data-s="${i}">${icon('checkCircle', 's16')}<span>${s}</span></div>`).join('')}</div>`;
+  const marks = [...$('detail').querySelectorAll('mark.hl')];
+  await sleep(500);
+  for (let i = 0; i < steps.length; i++) {
+    if (gen !== st.gen) return;
+    if (i === 1) for (const m of marks) { m.classList.add('on', 'flash'); await sleep(170); m.classList.remove('flash'); if (gen !== st.gen) return; }
+    else await sleep(550);
+    recs.querySelector(`[data-s="${i}"]`)?.classList.add('done');
+  }
+  await sleep(300);
+  if (gen !== st.gen) return;
+  t.analyzed = true;
+  recs.innerHTML = pendingRecs(t).map(r => cardHtml(r, t)).join('');
+  recs.querySelectorAll('.card').forEach(c => c.classList.add('enter'));
+  if (!REDUCED) for (const f of recs.querySelectorAll('.f')) { f.classList.add('pop'); await sleep(55); }
+}
+
+function openThread(id, { fromSync } = {}) {
+  st.selected = id;
+  const t = T(id);
+  const first = t.isNew;
+  t.isNew = false;
+  $('inboxView').classList.add('show-detail');
+  renderList();
+  S.setContext({ thread: id });
+  track('thread_opened', { first_open: first });
+  if (!t.analyzed) analyze(t); else renderDetail();
+  $('detail').scrollTop = 0;
+  if (!fromSync) $('detail').focus?.();
+}
+
+/* ---------------- actions ---------------- */
+$('detail').addEventListener('mouseover', e => {
+  const f = e.target.closest('.f[data-f]'); if (!f) return;
+  const cls = [...f.classList].find(c => ['what', 'where', 'when', 'note'].includes(c)); if (!cls) return;
+  $('detail').querySelectorAll(`mark.hl.${cls}`).forEach(m => { m.classList.add('flash'); setTimeout(() => m.classList.remove('flash'), 600); });
+});
+$('detail').addEventListener('click', e => {
+  const b = e.target.closest('[data-act]'); if (!b) return;
+  const act = b.dataset.act, t = T(st.selected);
+  const card = b.closest('.card'), r = card && t.recs.find(x => x.id === card.dataset.rec);
+  if (act === 'back') { $('inboxView').classList.remove('show-detail'); st.selected = null; renderList(); return; }
+  if (act === 'thread') { st.showThread[t.id] = !st.showThread[t.id]; renderDetail(); return; }
+  if (act === 'reprocess') { if (!pendingRecs(t).length) { toast('All actions for this thread are already done.'); return; } track('reprocess_clicked'); analyze(t).then(() => toast('Email reprocessed successfully')); return; }
+  if (act === 'tickets') { showTab('tickets'); return; }
+  if (!r) return;
+  if (act === 'factors') { const fac = card.querySelector('.factors'); fac.hidden = !fac.hidden; b.setAttribute('aria-expanded', !fac.hidden); b.innerHTML = icon(fac.hidden ? 'chevD' : 'chevU', 's18'); b.title = fac.hidden ? 'Show decision factors' : 'Hide details'; if (!fac.hidden) track('decision_factors_opened', { rec: r.id }); return; }
+  if (act === 'approve') approve(t, r, {});
+  if (act === 'confirm') replyDialog(t, r, 'confirm');
+  if (act === 'followup') replyDialog(t, r, 'followup');
+  if (act === 'modify') modifyDialog(t, r);
+  if (act === 'reject') rejectDialog(t, r);
+});
+
+async function approve(t, r, { modified, confirmSent }) {
+  const card = $('detail').querySelector(`.card[data-rec="${r.id}"]`);
+  card?.querySelectorAll('button').forEach(b => b.disabled = true);
+  const btn = card?.querySelector('[data-act="approve"]'); if (btn && !modified && !confirmSent) btn.innerHTML = 'Approving...';
+  await sleep(450);
+  card?.classList.add('leaving');
+  await sleep(400);
+  r.status = 'approved';
+  let ticketNo = null;
+  if (r.type === 'create') {
+    ticketNo = 'DT-' + st.nextNo++;
+    const k = r.ticket;
+    st.tickets.unshift({ no: ticketNo, type: k.ticketType, customer: k.customer[0], location: Array.isArray(k.location) ? k.location[0] : k.location, container: k.container ? k.container[0].replace(' roll-off', '') : '—', date: k.scheduleDate === 'auto-today' ? 0 : k.scheduleDate, time: k.timeWindow, status: 'Unassigned', fresh: true });
+  } else {
+    const ex = st.tickets.find(x => x.no === r.update.ticketNo); if (ex) { ex.date = MON_AFTER; ex.fresh = true; ex.updated = true; }
+    ticketNo = r.update.ticketNo;
+  }
+  st.history.unshift({ thread: t.id, rec: r.id, kind: modified ? 'Modified' : 'Approved', title: title(r, t), ticketNo, email: plain(t.messages.at(-1).body), at: new Date(), confirmSent });
+  track('draft_approved', { kind: r.type === 'update' ? 'ticket_update' : 'ticket', rec: r.id, modified: !!modified, confirmation: !!confirmSent });
+  toast(`Successfully approved recommendation: ${title(r, t)}`);
+  renderList(); renderDetail();
+}
+function reject(t, r, reason) {
+  r.status = 'rejected';
+  st.history.unshift({ thread: t.id, rec: r.id, kind: 'Rejected', title: title(r, t), reason, email: plain(t.messages.at(-1).body), at: new Date() });
+  track('draft_rejected', { rec: r.id, reason });
+  toast('Recommendation rejected. The agent will remember this.');
+  renderList(); renderDetail();
+}
+
+/* ---------------- dialogs ---------------- */
+const dlg = $('dlg');
+let dlgReturn = null;
+function openDialog(html, onReady) {
+  dlgReturn = document.activeElement;
+  dlg.innerHTML = `<div class="dlg">${html}</div>`;
+  dlg.showModal();
+  dlg.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => dlg.close()));
+  onReady && onReady(dlg);
+}
+dlg.addEventListener('close', () => { dlgReturn?.focus?.(); });
+dlg.addEventListener('click', e => { if (e.target === dlg) dlg.close(); });
+const dlgHead = (h, sub = '') => `<div class="dlg-h"><h2 id="dlgTitle">${h}</h2>${sub}<button type="button" class="ibtn" data-close aria-label="Close">${icon('x')}</button></div>`;
+
+function replyDialog(t, r, mode) {
+  const first = t.from.name.split(' ')[0], k = r.ticket;
+  const isConfirm = mode === 'confirm';
+  const when = k.scheduleDate === 'auto-today' ? 'today' : fmt(k.scheduleDate);
+  const text = isConfirm
+    ? `Hi ${first},\n\nYou're all set. We've scheduled the ${k.ticketType.toLowerCase()}${k.container ? ` of the ${k.container[0].replace(' roll-off', '')} container` : ''} at ${addr(k.location)} for ${when}${k.timeWindow ? `, ${k.timeWindow.toLowerCase()}` : ''}.${k.instructions ? ` We've noted: ${k.instructions.toLowerCase()}.` : ''}\n\nReply here if anything changes.\n\nThanks,\nMillbrook Recycling Dispatch`
+    : `Hi ${first},\n\nHappy to grab that 20-yard box. Which job site is it at? If you can send the street address, plus a gate code or the best time for our driver, we'll get it on the schedule.\n\nThanks,\nMillbrook Recycling Dispatch`;
+  const reason = isConfirm ? 'All required ticket details are present, so a short confirmation closes the loop with the customer.' : `The email doesn't say which job site the box is at, and there's no new location on file for ${k.customer[0]}.`;
+  openDialog(`${dlgHead(isConfirm ? 'Send Ticket Confirmation' : 'Follow Up for Missing Information')}
+    <div class="dlg-b">
+      ${isConfirm ? `<dl class="summ"><dt>Customer</dt><dd>${esc(k.customer[0])}</dd><dt>Location</dt><dd>${esc(Array.isArray(k.location) ? k.location[0] : k.location)}</dd><dt>Date</dt><dd>${when}</dd><dt>Time</dt><dd>${esc(k.timeWindow || 'Any time')}</dd><dt>Type</dt><dd>${esc(k.ticketType)}</dd></dl>` : ''}
+      <div class="sugg"><b>${icon('sparkle', 's16')}AI Suggestion</b><div><strong>Reasoning:</strong> ${esc(reason)}</div><div style="margin-top:4px">Feel free to edit the suggested reply below before sending.</div></div>
+      <div class="fld"><label for="replyTo">To</label><input id="replyTo" value="${esc(t.from.email)}" readonly></div>
+      <div class="fld"><label for="replyBody">Your Reply</label><textarea id="replyBody" rows="9" placeholder="Type your reply here...">${esc(text)}</textarea></div>
+    </div>
+    <div class="dlg-f"><button type="button" class="mb" data-close>Cancel</button><button type="button" class="mb primary" id="sendReply">${icon('reply', 's16')}Send Reply</button></div>`, d => {
+    d.querySelector('#replyBody').focus();
+    d.querySelector('#sendReply').addEventListener('click', () => {
+      const edited = d.querySelector('#replyBody').value.trim() !== text.trim();
+      dlg.close();
+      if (edited) track('draft_edited', { kind: isConfirm ? 'confirmation_email' : 'followup_email', rec: r.id });
+      if (isConfirm) {
+        track('reply_sent', { kind: 'confirmation_email', rec: r.id });
+        approve(t, r, { confirmSent: true });
+        setTimeout(() => toast('Ticket approved. In ReSpark, the confirmation goes out from your Gmail. Nothing was sent here.'), 1400);
+      } else {
+        track('followup_sent', { rec: r.id });
+        t.messages.push({ from: 'me', mins: 0, body: [d.querySelector('#replyBody').value] });
+        st.waiting[t.id] = true;
+        renderList(); renderDetail();
+        toast('Follow-up ready. In ReSpark it sends from your Gmail. Here, the customer replies in a few seconds.');
+        customerReplies(t);
+      }
+    });
+  });
+}
+async function customerReplies(t) {
+  await new Promise(res => setTimeout(res, REDUCED ? 300 : 4200));
+  if (!st.threads.includes(t) || !st.waiting[t.id]) return;
+  st.waiting[t.id] = false;
+  t.messages.push({ from: 'them', mins: 0, body: t.reply.body });
+  const r = t.recs[0], a = r.after;
+  r.confidence = a.confidence; r.factors = a.factors; r.description = a.description; r.ticket = a.ticket; r.hl = a.hl;
+  t.analyzed = false; t.isNew = true;
+  track('customer_replied', { rec: r.id });
+  if (st.selected === t.id) { t.isNew = false; t.analyzed = false; renderList(); analyze(t); toast(`${t.from.name} replied. The agent updated the ticket.`); }
+  else { renderList(); toast(`New reply from ${t.from.name}. The ticket is ready to approve.`); }
+}
+
+function modifyDialog(t, r) {
+  if (r.type === 'update') {
+    openDialog(`${dlgHead('Modify Recommendation')}<div class="dlg-b"><div class="fld"><label for="mSched">Schedule Date <span class="mchip ai">AI</span></label><input type="date" id="mSched" value="${iso(MON_AFTER)}"></div>
+      <div class="fld"><label for="mNotes">Notes</label><textarea id="mNotes" placeholder="Optional"></textarea></div></div>
+      <div class="dlg-f"><button type="button" class="mb" data-close>Cancel</button><button type="button" class="mb primary" id="mSave">Save &amp; Approve</button></div>`, d => {
+      d.querySelector('#mSave').addEventListener('click', () => { dlg.close(); track('draft_edited', { kind: 'ticket_update', rec: r.id }); approve(t, r, { modified: true }); });
+    });
+    return;
+  }
+  const k = r.ticket;
+  const loc = Array.isArray(k.location) ? k.location[0] : (k.location || '');
+  const sched = k.scheduleDate === 'auto-today' ? 0 : k.scheduleDate;
+  const ai = '<span class="mchip ai" title="Filled in by the agent">AI</span>';
+  const opt = (list, sel) => list.map(x => `<option${x === sel ? ' selected' : ''}>${esc(x)}</option>`).join('');
+  openDialog(`${dlgHead('Modify Recommendation')}
+    <div class="dlg-b">
+      <div class="sec-h">Trip Details</div>
+      <div class="row2"><div class="fld"><label for="mType">Trip Type * ${ai}</label><select id="mType">${opt(TRIP_TYPES, k.ticketType)}</select></div>
+        <div class="fld"><label for="mCont">Container Type ${k.container ? ai : ''}</label><select id="mCont"><option value="">None</option>${opt(CONTAINERS, k.container && k.container[0])}</select></div></div>
+      <div class="sec-h">Customer &amp; Location</div>
+      <label class="chk"><input type="checkbox" id="mInter"> Intercompany</label>
+      <div class="row2"><div class="fld"><label for="mCust">Customer * ${ai}</label><select id="mCust">${opt(CUSTOMERS, k.customer && k.customer[0])}</select></div>
+        <div class="fld ${loc ? '' : 'err'}"><label for="mLoc">Location * ${loc ? ai : ''}</label><input id="mLoc" value="${esc(loc)}" placeholder="${loc ? '' : 'Required: add the job site address'}"></div></div>
+      <div class="row2"><div class="fld"><label for="mContact">Contact ${ai}</label><input id="mContact" value="${esc(k.contact || '')}"></div>
+        <div class="fld"><label for="mDriver">Driver</label><select id="mDriver"><option>Unassigned</option><option>R. Delgado</option><option>T. Moss</option><option>J. Abara</option></select></div></div>
+      <div class="row2"><div class="fld"><label for="mReq">Request Date</label><input type="date" id="mReq" value="${iso(0)}"></div>
+        <div class="fld"><label for="mSched">Schedule Date ${ai}</label><input type="date" id="mSched" value="${iso(sched)}"></div></div>
+      <div class="fld"><label for="mNotes">Notes ${k.instructions ? ai : ''}</label><textarea id="mNotes">${esc(k.instructions || '')}</textarea></div>
+      ${S.callout('Change anything you like. In ReSpark, every correction teaches the agent your customers, locations and shorthand.')}
+    </div>
+    <div class="dlg-f"><button type="button" class="mb" data-close>Cancel</button><button type="button" class="mb primary" id="mSave">Save &amp; Approve</button></div>`, d => {
+    d.querySelector(loc ? '#mType' : '#mLoc').focus();
+    d.querySelector('#mSave').addEventListener('click', () => {
+      const L = d.querySelector('#mLoc');
+      if (!L.value.trim()) { L.closest('.fld').classList.add('err'); L.focus(); toast('Location is required to create the ticket.'); return; }
+      const before = JSON.stringify(k);
+      const cont = d.querySelector('#mCont').value;
+      r.ticket = { ...k, ticketType: d.querySelector('#mType').value, customer: [d.querySelector('#mCust').value, k.customer && d.querySelector('#mCust').value === k.customer[0] ? k.customer[1] : 'exact'],
+        location: L.value.trim(), contact: d.querySelector('#mContact').value, container: cont ? [cont, 1] : null, instructions: d.querySelector('#mNotes').value.trim() || null,
+        scheduleDate: Math.round((new Date(d.querySelector('#mSched').value + 'T00:00') - TODAY) / 86400000) };
+      dlg.close();
+      track('draft_edited', { kind: 'ticket', rec: r.id, changed: before !== JSON.stringify(r.ticket) });
+      st.waiting[t.id] = false;
+      approve(t, r, { modified: true });
+    });
+  });
+}
+function rejectDialog(t, r) {
+  openDialog(`${dlgHead('Why are you rejecting this?')}
+    <div class="dlg-b"><button type="button" class="opt" data-reason="already_created">${icon('receipt')}<span>I've already created this ticket<small>Mark it handled so it isn't created twice</small></span></button>
+      <button type="button" class="opt" data-reason="not_dispatch_related">${icon('x')}<span>Not dispatch related<small>The agent learns to set emails like this aside</small></span></button></div>
+    <div class="dlg-f"><button type="button" class="mb" data-close>Cancel</button></div>`, d => {
+    d.querySelectorAll('.opt').forEach(o => o.addEventListener('click', () => { dlg.close(); reject(t, r, o.dataset.reason); }));
+    d.querySelector('.opt').focus();
+  });
+}
+
+/* ---------------- sync: a new urgent email arrives ---------------- */
+$('syncBtn').addEventListener('click', async () => {
+  const b = $('syncBtn');
+  if (b.classList.contains('spin')) return;
+  b.classList.add('spin'); $('syncLbl').textContent = 'Syncing...';
+  track('sync_clicked', { new_email: !st.synced });
+  await sleep(1300);
+  b.classList.remove('spin');
+  if (!st.synced) {
+    st.synced = true; $('syncHint').hidden = true;
+    const t = SYNC_THREAD(); t.isNew = true; t.analyzed = false; t.recs.forEach(r => r.status = 'pending');
+    st.threads.unshift(t);
+    renderList();
+    toast('1 new recommendation found');
+    $('threadList').querySelector('[data-id="fenmore"]')?.focus();
+  } else toast('No new recommendations');
+  $('syncLbl').textContent = 'Synced just now';
+});
+
+/* ---------------- tabs + dispatch tickets ---------------- */
+function showTab(tab) {
+  if (tab === 'board') { toast('In ReSpark, the Load Board is where your dispatcher schedules approved tickets and assigns drivers.'); track('tab_clicked', { tab }); return; }
+  document.querySelectorAll('.lb-tab').forEach(x => x.setAttribute('aria-selected', x.dataset.tab === tab));
+  $('ticketsView').hidden = tab !== 'tickets';
+  $('inboxView').hidden = tab !== 'agent';
+  $('daHead').hidden = tab !== 'agent';
+  if (tab === 'tickets') { renderTickets(); track('tab_clicked', { tab }); }
+}
+document.querySelector('.lb-tabs').addEventListener('click', e => { const b = e.target.closest('.lb-tab'); if (b) showTab(b.dataset.tab); });
+function renderTickets() {
+  const n = st.tickets.filter(x => x.fresh).length;
+  $('ticketsView').innerHTML = `<p class="lead">${n ? `<b>${n} ${n === 1 ? 'ticket' : 'tickets'}</b> came from the Dispatch Agent in this session (highlighted). ` : 'Approve a recommendation in the Dispatch Agent tab and the ticket shows up here. '}Sample data.</p>
+    <table><thead><tr><th scope="col">Ticket</th><th scope="col">Type</th><th scope="col">Customer</th><th scope="col">Location</th><th scope="col">Container</th><th scope="col">Scheduled</th><th scope="col">Status</th><th scope="col">Source</th></tr></thead>
+    <tbody>${st.tickets.map(x => `<tr class="${x.fresh ? 'fresh' : ''}"><td><b>${x.no}</b></td><td>${esc(x.type)}</td><td>${esc(x.customer)}</td><td>${esc(x.location)}</td><td>${esc(x.container)}</td><td>${fmt(x.date)}${x.time ? ` · ${esc(x.time)}` : ''}</td>
+      <td><span class="mchip ${x.status === 'Completed' ? 'soft' : x.status === 'Scheduled' ? 'exact' : 'similar'}">${x.updated ? 'Rescheduled' : x.status}</span></td><td>${x.fresh ? `<span class="mchip ai">AI</span> From email` : 'Manual'}</td></tr>`).join('')}</tbody></table>`;
+}
+
+/* ---------------- action history drawer ---------------- */
+function openDrawer() {
+  const body = $('drawerBody');
+  body.innerHTML = st.history.length ? st.history.map((h, i) => `<div class="hist"><div class="top"><span class="mchip ${h.kind === 'Approved' ? 'ok' : h.kind === 'Modified' ? 'mod' : 'no'}">${h.kind}</span><b title="${esc(h.title)}">${esc(h.title)}</b><time>${h.at.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</time></div>
+    <div class="lbl2">SOURCE EMAIL</div><p>"${esc(h.email.replace(/\s+/g, ' ').slice(0, 110))}…"</p>
+    ${h.ticketNo ? `<div class="lbl2">${h.kind === 'Rejected' ? '' : 'CREATED TICKET'}</div><p><b>${h.ticketNo}</b>${h.confirmSent ? ' · confirmation drafted' : ''}</p>` : `<div class="lbl2">REASON</div><p>${h.reason === 'already_created' ? "I've already created this ticket" : 'Not dispatch related'}</p>`}
+    <div style="margin-top:8px"><button type="button" class="mb" data-undo="${i}">${icon('undo', 's16')}${h.kind === 'Rejected' ? 'Restore to Queue' : h.ticketNo === 'DT-20417' ? 'Undo Action' : 'Undo &amp; Void Ticket'}</button></div></div>`).join('')
+    : '<p style="color:var(--text-2);margin:8px 0">No actions taken yet. AI recommendations will appear here once approved.</p>';
+  $('drawer').classList.add('open'); $('drawer').setAttribute('aria-hidden', 'false'); $('scrim').hidden = false;
+  $('drawerClose').focus();
+  track('history_opened', { items: st.history.length });
+}
+function closeDrawer() { $('drawer').classList.remove('open'); $('drawer').setAttribute('aria-hidden', 'true'); $('scrim').hidden = true; $('histBtn').focus(); }
+$('histBtn').addEventListener('click', openDrawer);
+$('drawerClose').addEventListener('click', closeDrawer);
+$('scrim').addEventListener('click', closeDrawer);
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && $('drawer').classList.contains('open')) closeDrawer(); });
+$('drawerBody').addEventListener('click', e => {
+  const b = e.target.closest('[data-undo]'); if (!b) return;
+  const h = st.history[+b.dataset.undo], t = T(h.thread), r = t && t.recs.find(x => x.id === h.rec);
+  if (!r) return;
+  r.status = 'pending';
+  if (h.ticketNo && r.type === 'create') st.tickets = st.tickets.filter(x => x.no !== h.ticketNo);
+  if (r.type === 'update') { const ex = st.tickets.find(x => x.no === r.update.ticketNo); if (ex) { ex.date = FRI; ex.fresh = false; ex.updated = false; } }
+  st.history.splice(+b.dataset.undo, 1);
+  track('undo', { rec: r.id, kind: h.kind });
+  toast('Action undone successfully. Recommendation restored to queue.');
+  renderList(); if (st.selected === t.id) renderDetail();
+  openDrawer();
+});
+
+/* ---------------- reset + boot ---------------- */
+function reset() {
+  if (dlg.open) dlg.close();
+  if ($('drawer').classList.contains('open')) closeDrawer();
+  st = freshState();
+  $('syncHint').hidden = false; $('syncLbl').textContent = 'Synced 2m ago';
+  $('asideList').hidden = true; $('asideToggle').setAttribute('aria-expanded', 'false');
+  $('inboxView').classList.remove('show-detail');
+  S.setContext({});
+  showTab('agent');
+  renderList(); emptyPane();
+}
+$('detail').tabIndex = -1;
+reset();
+if (S.DEBUG) window.__demo = { open: openThread, state: () => st };
+})();
+</script>
+</body>
+</html>

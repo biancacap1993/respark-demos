@@ -1,0 +1,128 @@
+/* ReSpark agent test drives: shared shell.
+   Tokens mirror the product's light/dark MUI palette (frontend/client/src/themes/application.js).
+   Each test drive adds its own agent UI styles on top of these. */
+:root {
+  --page: #f3f5f8;
+  --default: #ffffff;
+  --paper: #ffffff;
+  --section: #F5F6F8;
+  --text: #0E1A2F;
+  --text-2: #445166;
+  --text-3: #5F6A7E;
+  --text-disabled: #98A0AE;
+  --divider: rgba(14, 26, 47, 0.10);
+  --primary: #007A87;
+  --primary-dark: #005A66;
+  --primary-light: #00C9D4;
+  --on-primary: #ffffff;
+  --violet: #7c3aed;
+  --hover: #F5F6F8;
+  --action-hover: rgba(0, 144, 160, 0.06);
+  --selected: rgba(0, 144, 160, 0.12);
+  --error: #DC2626;
+  --warning: #C2410C;
+  --info: #0284C7;
+  --success: #15803d;
+  --success-strong: #166534;
+  --line-12: rgba(0, 0, 0, 0.12);
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --window-shadow: 0 24px 48px -16px rgba(14, 26, 47, 0.18), 0 2px 6px rgba(14, 26, 47, 0.06);
+  --callout: #EDFDFF;
+  --callout-line: rgba(0, 122, 135, 0.35);
+  --font: "Inter", "Roboto", "Helvetica", "Arial", sans-serif;
+  --mono: "SF Mono", "Roboto Mono", Menlo, Consolas, monospace;
+  color-scheme: light;
+}
+:root[data-theme="dark"] {
+  --page: #0a1322;
+  --default: #0E1A2F;
+  --paper: #152036;
+  --section: #1a2740;
+  --text: #EDF1F7;
+  --text-2: #B5BAC4;
+  --text-3: #A4ABB8;
+  --text-disabled: #6D7584;
+  --divider: rgba(255, 255, 255, 0.10);
+  --primary: #00C9D4;
+  --primary-dark: #0090A0;
+  --primary-light: #AEEFF6;
+  --on-primary: #0E1A2F;
+  --violet: #c4b5fd;
+  --hover: #1E2D48;
+  --action-hover: rgba(0, 201, 212, 0.10);
+  --selected: rgba(0, 201, 212, 0.16);
+  --error: #F87171;
+  --warning: #FBBF24;
+  --info: #38BDF8;
+  --success: #4ade80;
+  --success-strong: #22c55e;
+  --line-12: rgba(255, 255, 255, 0.12);
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+  --window-shadow: 0 24px 48px -16px rgba(0, 0, 0, 0.6);
+  --callout: rgba(0, 201, 212, 0.08);
+  --callout-line: rgba(0, 201, 212, 0.35);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body { background: var(--page); color: var(--text); font-family: var(--font); font-size: 14px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
+html.embed body { background: transparent; }
+button, input, textarea, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+svg.i { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+svg.i.s14 { width: 14px; height: 14px; }
+svg.i.s16 { width: 16px; height: 16px; }
+svg.i.s18 { width: 18px; height: 18px; }
+
+/* Page frame: top bar + the agent window + a one-line note */
+.demo { height: 100dvh; display: flex; flex-direction: column; gap: 12px; padding: 16px 24px 12px; max-width: 1180px; margin: 0 auto; }
+html.embed .demo { padding: 0; gap: 8px; max-width: none; }
+.demo-bar { display: flex; align-items: center; gap: 12px; min-height: 40px; }
+.demo-brand { display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1; }
+.demo-brand img { width: 28px; height: 28px; border-radius: 30%; flex: none; }
+.demo-brand .t { font-weight: 700; font-size: 15px; letter-spacing: -0.01em; white-space: nowrap; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.demo-brand .t span { color: var(--text-2); font-weight: 500; }
+.badge-wrap { position: relative; }
+.badge { display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 10px; border-radius: 13px; border: 1px dashed var(--callout-line);
+  background: var(--callout); color: var(--primary-dark); font-size: 12px; font-weight: 600; white-space: nowrap; }
+:root[data-theme="dark"] .badge { color: var(--primary); }
+.badge .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--primary-light); }
+.pop { position: absolute; top: calc(100% + 8px); left: 0; z-index: 60; width: min(300px, calc(100vw - 32px)); background: var(--paper); border: 1px solid var(--divider);
+  border-radius: 12px; box-shadow: var(--window-shadow); padding: 12px 14px; font-size: 13px; color: var(--text-2); }
+.pop b { color: var(--text); }
+.pop[hidden] { display: none; }
+.demo-actions { display: flex; align-items: center; gap: 8px; flex: none; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 36px; padding: 0 14px; border-radius: 8px; font-size: 13px; font-weight: 600;
+  border: 1px solid var(--line-12); background: var(--paper); color: var(--text); text-decoration: none; white-space: nowrap; transition: background .15s, border-color .15s, color .15s; }
+.btn:hover { border-color: var(--primary); color: var(--primary); }
+.btn.cta { background: var(--primary); border-color: var(--primary); color: var(--on-primary); }
+.btn.cta:hover { background: var(--primary-dark); border-color: var(--primary-dark); color: var(--on-primary); }
+.demo-note { margin: 0; text-align: center; font-size: 12px; color: var(--text-3); }
+.app-window { flex: 1; min-height: 0; display: flex; flex-direction: column; background: var(--default); border: 1px solid var(--divider); border-radius: 16px; box-shadow: var(--window-shadow); overflow: hidden; }
+
+/* Toast + "Test drive" callout (explains what the real product would do) */
+.toast { position: fixed; left: 50%; bottom: 20px; transform: translate(-50%, 20px); opacity: 0; pointer-events: none; z-index: 80; max-width: min(440px, calc(100vw - 32px));
+  background: #12233e; color: #fff; border-radius: 10px; padding: 10px 14px; font-size: 13px; line-height: 1.45; box-shadow: 0 12px 28px -8px rgba(12, 20, 34, .45); transition: opacity .2s, transform .2s; }
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+.toast.top { top: 16px; bottom: auto; transform: translate(-50%, -20px); }
+.toast.top.show { transform: translate(-50%, 0); }
+.callout { display: flex; gap: 10px; align-items: flex-start; border: 1px dashed var(--callout-line); background: var(--callout); border-radius: 10px; padding: 10px 12px; font-size: 13px; line-height: 1.5; color: var(--text); }
+.callout svg { color: var(--primary); margin-top: 1px; }
+.callout .lbl { display: block; font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--primary-dark); margin-bottom: 2px; }
+:root[data-theme="dark"] .callout .lbl { color: var(--primary); }
+
+@media (max-width: 520px) {
+  .demo { padding: 10px 10px 8px; gap: 8px; }
+  .demo-brand .t span, .reset-lbl { display: none; }
+  .btn { padding: 0 12px; }
+}
+@media (max-width: 440px) {
+  /* the agent window's own title already names the agent */
+  .demo-brand .t { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
+}
