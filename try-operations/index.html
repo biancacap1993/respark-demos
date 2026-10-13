@@ -1,0 +1,549 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Operations Agent Test Drive</title>
+<meta name="description" content="Try ReSpark's Operations Agent: a bill of lading becomes a pending load and a pre-filled scale ticket, and Sparky reviews scale photos for mis-graded material, on fictional sample data.">
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="../demo-shell/demo-shell.css?v=2">
+<style>
+/* Operations Agent test drive. Standalone recreations of real product screens on fictional data:
+   (1) Purchases > Pending Loads: BOL upload with AI extraction (PendingLoadFormModal), the
+       "Create Ticket" hand-off, and declared vs received weights (PendingLoadComparisonAlert,
+       CompareWeightsModal); (2) Purchases > Anomaly Viewer (AnomalyViewerContainer) with the Watch List.
+   No app code and no network calls. */
+.num { font-variant-numeric: tabular-nums; }
+.caps { font-size: 11px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--text-2); }
+.nav { display: flex; gap: 4px; padding: 0 16px; border-bottom: 1px solid var(--divider); overflow-x: auto; scrollbar-width: none; flex: none; }
+.nav::-webkit-scrollbar { display: none; }
+.nav button { border: 0; background: none; height: 46px; padding: 0 14px; font-size: 14px; font-weight: 600; color: var(--text-2); border-bottom: 2px solid transparent; white-space: nowrap; }
+.nav button:hover { color: var(--text); }
+.nav button[aria-selected="true"] { color: var(--primary); border-bottom-color: var(--primary); }
+.nav .crumb { color: var(--text-disabled); font-weight: 500; }
+.scene { flex: 1; min-height: 0; overflow-y: auto; position: relative; }
+.scene[hidden] { display: none !important; }
+
+.mb { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 34px; padding: 0 14px; border-radius: 6px; font-size: 13.5px; font-weight: 600; border: 1px solid var(--line-12); background: transparent; color: var(--text); white-space: nowrap; }
+.mb:hover:not(:disabled) { background: var(--action-hover); }
+.mb.primary { background: var(--primary); border-color: var(--primary); color: var(--on-primary); }
+.mb.primary:hover:not(:disabled) { background: var(--primary-dark); }
+.mb.success { background: #15803d; border-color: #15803d; color: #fff; }
+.mb.danger { background: #DC2626; border-color: #DC2626; color: #fff; }
+.mb.danger:hover:not(:disabled) { background: #b91c1c; }
+.mb.text { border-color: transparent; color: var(--text-2); }
+.mb.sm { height: 30px; padding: 0 10px; font-size: 12.5px; }
+.mb:disabled { opacity: .45; cursor: not-allowed; }
+.ibtn { width: 32px; height: 32px; border-radius: 50%; border: 0; background: none; color: var(--text-2); display: inline-flex; align-items: center; justify-content: center; }
+.ibtn:hover { background: var(--action-hover); color: var(--text); }
+.chip { display: inline-flex; align-items: center; gap: 4px; height: 22px; padding: 0 8px; border-radius: 11px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+.chip.info { background: rgba(2, 132, 199, .12); color: #0369a1; } .chip.success { background: rgba(21, 128, 61, .12); color: #166534; }
+.chip.error { background: rgba(220, 38, 38, .12); color: #b91c1c; } .chip.warning { background: rgba(194, 65, 12, .12); color: #9A3412; }
+.chip.default { background: rgba(14, 26, 47, .07); color: var(--text-2); }
+.chip.out { background: none; border: 1px solid currentColor; }
+.chip.red { background: #DC2626; color: #fff; } .chip.amber { background: #d97706; color: #fff; }
+:root[data-theme="dark"] .chip.info { color: #7dd3fc; } :root[data-theme="dark"] .chip.success { color: #86efac; } :root[data-theme="dark"] .chip.error { color: #fca5a5; } :root[data-theme="dark"] .chip.warning { color: #fdba74; } :root[data-theme="dark"] .chip.default { background: rgba(255, 255, 255, .08); }
+.page { padding: 18px 24px 28px; }
+.page-h { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+.page-h h1 { margin: 0; font-size: 21px; font-weight: 600; }
+.page-h .sp { flex: 1; }
+.grid-tbl { width: 100%; border-collapse: collapse; font-size: 13.5px; min-width: 760px; }
+.grid-tbl th { text-align: left; font-weight: 600; color: var(--text-2); padding: 9px 12px; border-bottom: 1px solid var(--divider); background: var(--section); white-space: nowrap; }
+.grid-tbl td { padding: 10px 12px; border-bottom: 1px solid var(--divider); white-space: nowrap; }
+.grid-tbl .n { text-align: right; }
+.grid-tbl tr.fresh td { background: rgba(0, 201, 212, .07); }
+.grid-tbl tr.click { cursor: pointer; } .grid-tbl tr.click:hover td { background: var(--action-hover); }
+.tbl-wrap { border: 1px solid var(--divider); border-radius: 8px; overflow: auto; }
+.card { border: 1px solid var(--divider); border-radius: 8px; padding: 14px 16px; background: var(--paper); margin-bottom: 14px; }
+.card h2 { margin: 0 0 10px; font-size: 15px; font-weight: 600; }
+.kvg { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px 16px; font-size: 14px; }
+.kvg span { display: block; font-size: 12px; color: var(--text-2); }
+.pos { color: #15803d; } .neg { color: #DC2626; }
+:root[data-theme="dark"] .pos { color: #4ade80; } :root[data-theme="dark"] .neg { color: #f87171; }
+
+/* dialogs */
+dialog { border: 0; padding: 0; border-radius: 12px; background: var(--paper); color: var(--text); box-shadow: 0 24px 64px rgba(0, 0, 0, .3); width: min(860px, calc(100vw - 24px)); max-height: calc(100dvh - 32px); }
+dialog.sm { width: min(520px, calc(100vw - 24px)); }
+dialog::backdrop { background: rgba(14, 26, 47, .45); }
+.dlg { display: flex; flex-direction: column; max-height: calc(100dvh - 32px); position: relative; }
+.dlg-h { display: flex; align-items: center; gap: 8px; padding: 16px 20px; border-bottom: 1px solid var(--divider); }
+.dlg-h h2 { margin: 0; font-size: 17px; font-weight: 600; flex: 1; }
+.dlg-b { padding: 16px 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; font-size: 14px; }
+.dlg-b p { margin: 0; color: var(--text-2); }
+.dlg-f { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 20px; border-top: 1px solid var(--divider); flex-wrap: wrap; }
+.drop { border: 2px dashed var(--line-12); border-radius: 10px; padding: 18px; text-align: center; }
+.drop b { display: block; font-size: 15px; margin-bottom: 2px; } .drop small { color: var(--text-2); }
+.picks { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; text-align: left; }
+.pick { display: flex; align-items: center; gap: 10px; width: 100%; border: 1px solid var(--line-12); border-radius: 8px; background: var(--paper); padding: 10px 12px; text-align: left; }
+.pick:hover { border-color: var(--primary); }
+.fi { width: 28px; height: 34px; border-radius: 4px; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 3px; font-size: 8px; font-weight: 800; color: #fff; flex: none; }
+.fi.pdf { background: #DC2626; } .fi.jpg { background: #0284C7; }
+.pick b { display: block; font-size: 13.5px; } .pick small { color: var(--text-2); font-size: 12px; }
+.or { text-align: center; font-size: 11px; font-weight: 700; letter-spacing: .1em; color: var(--text-disabled); }
+.alert { padding: 10px 12px; border-radius: 8px; font-size: 13.5px; display: flex; gap: 8px; align-items: flex-start; }
+.alert.success { background: rgba(21, 128, 61, .08); color: #166534; } .alert.warning { background: rgba(194, 65, 12, .08); color: #9A3412; } .alert.info { background: rgba(2, 132, 199, .08); color: #075985; }
+:root[data-theme="dark"] .alert.success { color: #86efac; } :root[data-theme="dark"] .alert.warning { color: #fdba74; } :root[data-theme="dark"] .alert.info { color: #7dd3fc; }
+.alert .sp { flex: 1; }
+.srcdoc { display: grid; grid-template-columns: 1fr 1.3fr; gap: 14px; align-items: start; }
+.doc { position: relative; background: #fff; color: #1f2937; border: 1px solid #d1d5db; border-radius: 4px; padding: 12px 14px; font-size: 11px; line-height: 1.5; box-shadow: 0 6px 16px rgba(14, 26, 47, .1); font-family: var(--mono); overflow: hidden; }
+.doc.photo { transform: rotate(-1.2deg); background: #fbf8ef; font-family: "Comic Sans MS", "Segoe Print", cursive; font-size: 12px; box-shadow: 0 10px 24px rgba(0, 0, 0, .2); }
+.doc .lh { font-weight: 800; letter-spacing: .05em; border-bottom: 2px solid #111; padding-bottom: 4px; margin-bottom: 6px; font-family: var(--font); }
+.doc mark { background: rgba(34, 197, 94, .22); color: inherit; }
+.doc .scan { position: absolute; left: 0; right: 0; height: 30px; top: -36px; background: linear-gradient(180deg, transparent, rgba(0, 201, 212, .25), transparent); }
+.doc .scan.go { animation: scan 1.8s ease-in-out infinite; } @keyframes scan { to { top: 100%; } }
+.fgrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 14px; }
+.fld { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.fld label { font-size: 12px; font-weight: 600; color: var(--text-2); }
+.fld input, .fld select, .fld textarea { width: 100%; border: 1px solid var(--line-12); border-radius: 6px; padding: 8px 10px; background: var(--default); font-size: 14px; min-height: 38px; }
+.fld textarea { min-height: 56px; resize: vertical; }
+.fld input:focus, .fld select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 2px rgba(0, 122, 135, .15); }
+.fld.ai input, .fld.ai select, .fld.ai textarea { background: rgba(46, 125, 50, .06); border-color: rgba(46, 125, 50, .45); }
+.fld .hint { font-size: 11.5px; color: var(--text-2); }
+.fld.wide { grid-column: 1 / -1; }
+.sec-h { font-size: 14px; font-weight: 700; margin: 4px 0 -4px; display: flex; align-items: center; gap: 8px; }
+.line { border: 1px solid var(--divider); border-radius: 8px; padding: 10px 12px; display: grid; grid-template-columns: 1.3fr 1.3fr repeat(3, .7fr); gap: 8px 10px; align-items: end; }
+.line.ai { border-color: rgba(46, 125, 50, .5); background: rgba(46, 125, 50, .04); }
+.line.need { border-color: rgba(194, 65, 12, .5); background: rgba(194, 65, 12, .04); }
+.line .fld input, .line .fld select { min-height: 34px; padding: 6px 8px; font-size: 13.5px; }
+.line .note { grid-column: 1 / -1; font-size: 12px; color: var(--warning); font-weight: 600; display: flex; gap: 4px; align-items: center; }
+.radio { display: flex; gap: 10px; align-items: flex-start; border: 1px solid var(--line-12); border-radius: 8px; padding: 10px 12px; cursor: pointer; }
+.radio:has(input:checked) { border-color: var(--primary); background: rgba(0, 122, 135, .05); }
+.radio input { margin-top: 3px; accent-color: var(--primary); }
+.radio b { display: block; font-size: 14px; } .radio small { color: var(--text-2); font-size: 12.5px; }
+.overlay { position: absolute; inset: 0; background: rgba(255, 255, 255, .86); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 5; text-align: center; padding: 16px; border-radius: 12px; }
+:root[data-theme="dark"] .overlay { background: rgba(21, 32, 54, .9); }
+.overlay[hidden] { display: none; }
+.ring { position: relative; width: 72px; height: 72px; margin-bottom: 14px; display: flex; align-items: center; justify-content: center; color: #2e7d32; isolation: isolate; }
+.ring::before { content: ""; position: absolute; inset: 0; border-radius: 50%; background: conic-gradient(from 0deg, #22c55e, #00C9D4, transparent 70%, #22c55e); animation: spin 1.4s linear infinite; z-index: -2; }
+.ring::after { content: ""; position: absolute; inset: 6px; border-radius: 50%; background: var(--paper); z-index: -1; }
+.ring svg { width: 30px; height: 30px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.overlay b { font-size: 15px; } .overlay span { color: var(--text-2); font-size: 13px; }
+
+/* scale ticket (hand-off) */
+.tkt-tbl { width: 100%; border-collapse: collapse; font-size: 13.5px; min-width: 640px; }
+.tkt-tbl th { text-align: left; font-size: 12px; font-weight: 600; color: var(--text-2); padding: 8px; border-bottom: 1px solid var(--divider); }
+.tkt-tbl td { padding: 9px 8px; border-bottom: 1px solid var(--divider); }
+.tkt-tbl .n { text-align: right; }
+.tkt-tbl tr.total td { font-weight: 700; border-bottom: 0; }
+.prefill { display: inline-flex; align-items: center; gap: 3px; font-size: 10.5px; font-weight: 700; color: #2e7d32; background: rgba(46, 125, 50, .12); border-radius: 9px; padding: 0 6px; height: 18px; }
+.cmp-tbl { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 560px; }
+.cmp-tbl th { text-align: left; font-size: 12px; color: var(--text-2); font-weight: 600; padding: 7px 8px; border-bottom: 1px solid var(--divider); }
+.cmp-tbl td { padding: 7px 8px; border-bottom: 1px solid var(--divider); }
+.cmp-tbl .n { text-align: right; } .cmp-tbl tr.total td { font-weight: 700; }
+.cmp-tbl td.hot { background: rgba(217, 119, 6, .12); }
+
+/* Anomaly Viewer */
+.av-tabs { display: flex; border-bottom: 1px solid var(--divider); margin: -4px 0 14px; }
+.av-tabs button { flex: 1; border: 0; background: none; height: 52px; font-size: 14px; font-weight: 600; color: var(--text-2); border-bottom: 2px solid transparent; }
+.av-tabs button[aria-selected="true"] { color: var(--primary); border-bottom-color: var(--primary); }
+.filters { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; margin-bottom: 14px; }
+.filters .fld { min-width: 150px; } .filters .fld.grow { flex: 1; min-width: 200px; }
+.cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.acard { border-radius: 10px; background: var(--paper); box-shadow: 0 2px 6px rgba(14, 26, 47, .12), 0 1px 2px rgba(14, 26, 47, .08); overflow: hidden; display: flex; flex-direction: column; }
+.acard.decided { opacity: .82; }
+.photo { position: relative; aspect-ratio: 4 / 3; background: #1a1a1a; overflow: hidden; }
+.photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.photo button.zoom { position: absolute; inset: 0; border: 0; background: transparent; cursor: zoom-in; }
+.photo .vchip { position: absolute; top: 10px; left: 10px; }
+.photo .region { position: absolute; border: 2px dashed #00C9D4; border-radius: 4px; box-shadow: 0 0 0 9999px rgba(0, 0, 0, .35); pointer-events: none; }
+.photo .region[hidden] { display: none; }
+.photo .cam { position: absolute; bottom: 8px; right: 10px; font-size: 11px; color: #fff; background: rgba(0, 0, 0, .55); border-radius: 4px; padding: 1px 6px; }
+.abody { padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; font-size: 13px; flex: 1; }
+.abody .lbl { font-size: 10.5px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--text-2); }
+.abody .mat { font-size: 15px; font-weight: 700; }
+.abody .meta { color: var(--text-2); }
+.abody .meta a { color: var(--primary); font-weight: 600; text-decoration: none; }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.wt { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; background: var(--section); border-radius: 6px; padding: 6px 8px; font-variant-numeric: tabular-nums; }
+.wt span { display: block; font-size: 10.5px; color: var(--text-2); }
+.sees { background: rgba(0, 122, 135, .05); border-radius: 6px; padding: 8px 10px; }
+.sugg .mat { color: var(--primary); }
+.afoot { border-top: 1px solid var(--divider); padding: 10px 14px; display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.afoot .sp { flex: 1; }
+.empty { text-align: center; color: var(--text-2); padding: 40px 0; }
+.lightbox { width: min(900px, calc(100vw - 24px)); }
+.lightbox img { width: 100%; display: block; border-radius: 6px; }
+
+@media (max-width: 1000px) { .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 760px) { .srcdoc { grid-template-columns: 1fr; } .kvg { grid-template-columns: repeat(2, minmax(0, 1fr)); } .line { grid-template-columns: 1fr 1fr; } .line .fld:nth-child(n+3) { grid-column: auto; } }
+@media (max-width: 600px) {
+  .page { padding: 14px 12px 22px; } .cards { grid-template-columns: minmax(0, 1fr); } .fgrid { grid-template-columns: minmax(0, 1fr); }
+  .picks { grid-template-columns: minmax(0, 1fr); } .filters .fld { min-width: calc(50% - 5px); } .filters .fld.grow { min-width: 100%; }
+}
+</style>
+</head>
+<body>
+<div class="demo">
+  <header class="demo-bar" id="demoBar"></header>
+  <section class="app-window" aria-label="Operations Agent, running on sample data">
+    <div class="nav" role="tablist" aria-label="Purchases">
+      <button type="button" role="tab" aria-selected="true" data-scene="pl"><span class="crumb">Purchases ›</span> Pending Loads</button>
+      <button type="button" role="tab" aria-selected="false" data-scene="av"><span class="crumb">Purchases ›</span> Anomaly Viewer</button>
+    </div>
+    <div class="scene" id="scenePl"></div>
+    <div class="scene" id="sceneAv" hidden></div>
+  </section>
+  <p class="demo-note">Fictional suppliers and tickets. In ReSpark, the Operations Agent works on your own paperwork and scale cameras.</p>
+</div>
+<dialog id="dlg" aria-labelledby="dlgTitle"></dialog>
+
+<script src="../demo-shell/demo-shell.js?v=2"></script>
+<script>
+(() => {
+'use strict';
+const S = DemoShell.create({
+  agent: 'operations',
+  agentName: 'Operations Agent',
+  toastTop: true,
+  sample: '<b>Everything here is fictional.</b> The suppliers, tickets and weights are made up for this test drive. Nothing you create or confirm is saved.',
+  onReset: () => reset(),
+  resetMessage: 'Demo reset. Everything is back to the start.',
+});
+const { icon, esc, track, toast, sleep } = S;
+const $ = id => document.getElementById(id);
+
+/* ---------------- dates + formatting ---------------- */
+const NOW = new Date();
+const TODAY = new Date(NOW.getFullYear(), NOW.getMonth(), NOW.getDate());
+const day = n => new Date(TODAY.getFullYear(), TODAY.getMonth(), TODAY.getDate() + n);
+const iso = n => { const d = day(n); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+const fmt = n => day(n).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+const usDate = n => day(n).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit' });
+const n0 = v => Math.round(v).toLocaleString('en-US');
+const lbs = v => n0(v) + ' lbs';
+const sgn = v => (v > 0 ? '+' : v < 0 ? '−' : '') + n0(Math.abs(v));
+const spc = p => (p > 0 ? '+' : p < 0 ? '−' : '') + Math.abs(p).toFixed(1) + '%';
+const clock = m => new Date(NOW.getTime() - m * 60000).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+
+/* ---------------- sample data (same fictional Millbrook yard as the other test drives) ---------------- */
+const MATS = ['#1 Copper', '#2 Copper', 'Bare Bright', 'Electric Motors', 'Yellow Brass', 'Dirty Yellow Brass', 'Red Brass', '6063 Aluminum Extrusion', 'Aluminum Extrusion w/ Thermal Breaks', 'Cast Aluminum', 'Painted Sheet Aluminum', 'Light Iron', 'HMS #1', 'Cast Iron'];
+const SUPPLIERS = ['Bellweather Gutters & Siding', 'Copperline HVAC', 'Juniper Flats Hauling', 'Kestrel Demolition', 'Tallgrass Industrial Services'];
+const BOLS = {
+  tallgrass: {
+    key: 'tallgrass', file: 'BOL_220917.pdf', kind: 'pdf', size: '96 KB', blurb: 'Typed BOL · 3 lines', supplier: 'Tallgrass Industrial Services', ref: '220917', arrive: 1, total: 28180,
+    raw: ['SHIPPER: TALLGRASS INDUSTRIAL SVCS', `BOL# 220917 · ETA ${usDate(1)}`, 'CONSIGNEE: MILLBROOK RECYCLING'],
+    lines: [
+      { raw: '4 SKIDS CU MOTORS', mat: 'Electric Motors', ai: true, g: 31940, t: 17740, n: 14200, sugg: ['Electric Motors', '#2 Copper', 'Cast Iron'] },
+      { raw: '#2 CU WIRE – 6 GAYLORDS', mat: '#2 Copper', ai: true, g: 10820, t: 960, n: 9860, sugg: ['#2 Copper', '#1 Copper', 'Bare Bright'] },
+      { raw: 'AL EXT W/ BREAKS – 3 BINS', mat: 'Aluminum Extrusion w/ Thermal Breaks', ai: true, g: 4600, t: 480, n: 4120, sugg: ['Aluminum Extrusion w/ Thermal Breaks', '6063 Aluminum Extrusion', 'Painted Sheet Aluminum'] },
+    ],
+    received: [13780, 9720, 3840],
+  },
+  juniper: {
+    key: 'juniper', file: 'IMG_0412.jpg', kind: 'jpg', size: '1.8 MB', blurb: 'Handwritten BOL, phone photo · 3 lines', supplier: 'Juniper Flats Hauling', ref: 'JF-1188', arrive: 0, total: 21600,
+    raw: ['Juniper Flats Hauling', `BOL JF-1188   ${usDate(0)}`, 'to: Millbrook'],
+    lines: [
+      { raw: 'light iron  18,400', mat: 'Light Iron', ai: true, g: 18400, t: 0, n: 18400, sugg: ['Light Iron', 'HMS #1', 'Cast Iron'] },
+      { raw: 'cast alum  2,100', mat: 'Cast Aluminum', ai: true, g: 2100, t: 0, n: 2100, sugg: ['Cast Aluminum', 'Painted Sheet Aluminum', '6063 Aluminum Extrusion'] },
+      { raw: 'mixed brass  1,100', mat: null, ai: false, g: 1100, t: 0, n: 1100, sugg: ['Yellow Brass', 'Dirty Yellow Brass', 'Red Brass'] },
+    ],
+    received: [18960, 2040, 1060],
+  },
+};
+const PAST_LOADS = () => [
+  { ref: '#220846', status: 'Arrived', type: 'BOL / Supplier Declaration', customer: 'Kestrel Demolition', weight: 31260, lines: 2, arrive: -38, created: -40 },
+  { ref: '#JF-1171', status: 'Arrived', type: 'BOL / Supplier Declaration', customer: 'Juniper Flats Hauling', weight: 22480, lines: 3, arrive: -5, created: -6 },
+  { ref: 'PL-3f9a21c0', status: 'Expected', type: 'Manual Entry', customer: 'Copperline HVAC', weight: 1800, lines: 2, arrive: 2, created: -1 },
+];
+const ANOMALIES = () => [
+  { id: 'a1', photo: 'heavy-iron', ticket: 41006, customer: 'Kestrel Demolition', operator: 'Operator 14 · Scale 2', cam: 'Cam 2', mins: 34, selected: 'Electric Motors', suggested: 'Cast Iron',
+    verdict: 'MISMATCH', conf: 92, types: ['Material', 'Price'], g: 38420, t: 16180, n: 22240, value: 7116.80, price: [0.12, 0.32], dir: 'lower',
+    sees: 'Cast iron pump housings, flanged fittings and steel I-beam sections. No copper windings, stators or motor shells visible.', reason: 'Electric motors show round steel shells with end caps and visible copper windings. This load is heavy cast iron, which is priced well below motors.', region: [36, 6, 46, 52], status: 'undecided' },
+  { id: 'a2', photo: 'copper', ticket: 41011, customer: 'Copperline HVAC', operator: 'Operator 08 · Scale 1', cam: 'Cam 1', mins: 71, selected: 'Bare Bright', suggested: '#2 Copper',
+    verdict: 'MISMATCH', conf: 87, types: ['Material', 'Price'], g: 3120, t: 980, n: 2140, value: 8667.00, price: [3.55, 4.05], dir: 'lower',
+    sees: 'Copper pipe with solder joints and brass couplings, mixed with tarnished wire. Bare bright should be clean, unalloyed, uncoated wire only.', reason: 'Fittings, solder and tarnish put this load in #2 Copper, not Bare Bright.', region: [50, 30, 40, 52], status: 'undecided' },
+  { id: 'a3', photo: 'aluminum', ticket: 41014, customer: 'Bellweather Gutters & Siding', operator: 'Operator 14 · Scale 2', cam: 'Cam 2', mins: 118, selected: '6063 Aluminum Extrusion', suggested: 'Aluminum Extrusion w/ Thermal Breaks',
+    verdict: 'UNCERTAIN', conf: 58, types: ['Material'], g: 4980, t: 1720, n: 3260, value: 3423.00, price: [0.78, 1.05], dir: 'lower',
+    sees: 'Mostly extrusion profiles. Some pieces look painted, and a few appear to have thermal breaks or steel screws still attached.', reason: 'Clean 6063 is likely for part of the load, but attachments on several pieces would change the grade. A person should look.', region: [26, 40, 54, 36], status: 'undecided' },
+];
+const WATCH0 = () => [
+  { operator: 'Operator 14 · Scale 2', customer: 'Kestrel Demolition', count: 2, tickets: ['#40711 — Electric Motors (MISMATCH)', '#40893 — Electric Motors (MISMATCH)'], by: 'Yard manager', at: -6 },
+  { operator: 'Operator 08 · Scale 1', customer: 'Quarry Road Salvage', count: 1, tickets: ['#40750 — Yellow Brass (MISMATCH)'], by: 'Yard manager', at: -12 },
+];
+
+let st;
+function fresh() { return { pl: { view: 'list', loads: PAST_LOADS(), cur: null, ticket: null }, av: { tab: 'anomalies', items: ANOMALIES(), watch: WATCH0(), filters: { verdict: 'all', type: 'all', status: 'undecided', q: '' } }, gen: 0 }; }
+
+/* =====================================================================
+   Scene 1: Pending Loads
+   ===================================================================== */
+const STATUS = { Expected: 'info', Arrived: 'success', Reconciled: 'default', Cancelled: 'error' };
+const stChip = s => `<span class="chip ${STATUS[s]} out">${s}</span>`;
+function renderPl() {
+  const v = st.pl.view;
+  if (v === 'list') return plList();
+  if (v === 'detail') return plDetail();
+  if (v === 'ticket') return plTicket();
+}
+function plList() {
+  const rows = st.pl.loads.filter(l => l.status === 'Expected' || l.status === 'Arrived').sort((a, b) => b.created - a.created);
+  $('scenePl').innerHTML = `<div class="page"><div class="page-h"><h1>Pending Loads</h1><span class="sp"></span><button type="button" class="mb primary" id="newPl">+ Pending Load</button></div>
+    ${st.pl.cur ? '' : `<div style="margin-bottom:14px">${S.callout('Click <b>+ Pending Load</b> and upload a sample bill of lading. The agent builds the load before the truck arrives, so the scale ticket is ready when it does.')}</div>`}
+    <div class="tbl-wrap"><table class="grid-tbl"><thead><tr><th>Reference</th><th>Status</th><th>Type</th><th>Customer</th><th class="n">Declared Weight</th><th class="n">Lines</th><th>Expected Arrival</th><th>Created</th></tr></thead>
+    <tbody>${rows.map(l => `<tr class="${l.fresh ? 'fresh click' : ''}" ${l.fresh ? 'data-open="1" tabindex="0"' : ''}><td><b>${esc(l.ref)}</b></td><td>${stChip(l.status)}</td><td>${l.type}</td><td>${esc(l.customer)}</td><td class="n num">${lbs(l.weight)}</td><td class="n">${l.lines}</td><td>${fmt(l.arrive)}</td><td>${fmt(l.created)}</td></tr>`).join('')}</tbody></table></div></div>`;
+  $('newPl').addEventListener('click', newLoadDialog);
+  const fr = $('scenePl').querySelector('[data-open]');
+  if (fr) { const go = () => { st.pl.view = 'detail'; renderPl(); }; fr.addEventListener('click', go); fr.addEventListener('keydown', e => { if (e.key === 'Enter') go(); }); }
+}
+
+const dlg = $('dlg');
+let dlgReturn = null;
+function openDialog(html, onReady, small) {
+  dlgReturn = document.activeElement;
+  dlg.className = small ? 'sm' : '';
+  dlg.innerHTML = `<div class="dlg">${html}</div>`; if (!dlg.open) dlg.showModal();
+  dlg.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => dlg.close()));
+  onReady && onReady(dlg);
+}
+dlg.addEventListener('close', () => dlgReturn?.focus?.());
+dlg.addEventListener('click', e => { if (e.target === dlg) dlg.close(); });
+const head = t => `<div class="dlg-h"><h2 id="dlgTitle">${t}</h2><button type="button" class="ibtn" data-close aria-label="Close">${icon('x')}</button></div>`;
+
+function bolDoc(b, scanning) {
+  return `<div class="doc ${b.kind === 'jpg' ? 'photo' : ''}">${scanning ? '<span class="scan go"></span>' : ''}<div class="lh">${b.kind === 'jpg' ? 'Bill of Lading' : 'STRAIGHT BILL OF LADING'}</div>
+    ${b.raw.map(r => `<div><mark>${esc(r)}</mark></div>`).join('')}<div style="margin-top:6px">${b.lines.map(l => `<div><mark>${esc(l.raw)}</mark></div>`).join('')}</div>
+    ${b.kind === 'pdf' ? `<div style="margin-top:6px">DECLARED TOTAL NET: <mark>${n0(b.total)} LBS</mark></div>` : ''}</div>`;
+}
+function newLoadDialog() {
+  track('upload_opened', { tool: 'pending_load' });
+  openDialog(`${head('New Pending Load')}<div class="dlg-b">
+      <div class="drop"><b>Upload Bill of Lading</b><small>Drag &amp; drop or click to upload a BOL document · Supports PDF, PNG, JPG (max 5MB)</small>
+        <div class="picks">${Object.values(BOLS).map(b => `<button type="button" class="pick" data-k="${b.key}"><span class="fi ${b.kind}">${b.kind.toUpperCase()}</span><span><b>${esc(b.file)}</b><small>${esc(b.supplier)} · ${esc(b.blurb)}</small></span></button>`).join('')}</div>
+        <div style="margin-top:8px;font-size:12px;color:var(--text-2)">Pick a sample BOL for this test drive.</div></div>
+      <div class="or">OR ENTER MANUALLY</div>
+      <p>In ReSpark you can also type a pending load in by hand. For the test drive, pick a sample BOL above.</p>
+    </div><div class="overlay" id="plProc" hidden><div class="ring">${icon('sparkle')}</div><b>Processing Document with AI...</b><span>Extracting supplier and material information</span></div>
+    <div class="dlg-f"><button type="button" class="mb" data-close>Cancel</button></div>`, d => {
+    d.querySelectorAll('.pick').forEach(b => b.addEventListener('click', () => processBol(b.dataset.k)));
+    d.querySelector('.pick').focus();
+  });
+}
+async function processBol(key) {
+  const gen = ++st.gen, b = BOLS[key];
+  S.setContext({ tool: 'pending_load', bol: key });
+  track('document_uploaded', { tool: 'pending_load', bol: key });
+  $('plProc').hidden = false;
+  await sleep(2200); if (gen !== st.gen) return;
+  toast('Document processed successfully');
+  track('answer_shown', { tool: 'pending_load', bol: key });
+  const lines = b.lines.map(l => ({ ...l }));
+  let edited = false;
+  const form = () => `${head('New Pending Load - BOL Upload')}<div class="dlg-b">
+      <div class="alert success">${icon('checkCircle', 's18')}<span><b>AI Extraction Complete:</b> Found ${b.lines.length} material lines and matched to ${esc(b.supplier)}</span></div>
+      <div class="srcdoc"><div><div class="caps" style="margin-bottom:6px">Source Document · ${esc(b.file)} (${b.size})</div>${bolDoc(b)}</div>
+        <div><div class="sec-h">Basic Information</div><div class="fgrid" style="margin-top:12px">
+          <div class="fld ai"><label for="pSup">Supplier</label><select id="pSup">${SUPPLIERS.map(s => `<option${s === b.supplier ? ' selected' : ''}>${esc(s)}</option>`).join('')}</select></div>
+          <div class="fld ai"><label for="pType">Type</label><select id="pType"><option selected>BOL / Supplier Declaration</option><option>Manual Entry</option></select></div>
+          <div class="fld ai"><label for="pRef">Reference / BOL Number</label><input id="pRef" value="${esc(b.ref)}"></div>
+          <div class="fld"><label for="pRail">Rail Car Number</label><input id="pRail" placeholder="Optional"></div>
+          <div class="fld ai"><label for="pArr">Expected Arrival Date</label><input type="date" id="pArr" value="${iso(b.arrive)}"></div>
+          <div class="fld ai"><label for="pTot">Declared Total Net Weight (lbs)</label><input id="pTot" class="num" value="${n0(b.total)}"><span class="hint">Weight Source: ${b.kind === 'pdf' ? 'From Document' : 'Calculated from Lines'}</span></div>
+        </div></div></div>
+      <div class="sec-h">Material Lines (${lines.length})</div>
+      ${lines.map((l, i) => `<div class="line ${l.mat ? (l.ai ? 'ai' : '') : 'need'}">
+          <div class="fld"><label>BOL/Document Name ${l.ai ? `<span style="color:#2e7d32">${icon('sparkle', 's14')}</span>` : ''}</label><input value="${esc(l.raw)}" readonly><span class="hint">Name as it appears on the document</span></div>
+          <div class="fld"><label for="lm${i}">Linked Material</label><select id="lm${i}" data-i="${i}"><option value="">Search materials...</option><optgroup label="AI suggestions">${l.sugg.map(m => `<option${m === l.mat ? ' selected' : ''}>${esc(m)}</option>`).join('')}</optgroup><optgroup label="All materials">${MATS.filter(m => !l.sugg.includes(m)).map(m => `<option${m === l.mat ? ' selected' : ''}>${esc(m)}</option>`).join('')}</optgroup></select></div>
+          <div class="fld"><label>Gross</label><input class="num" value="${n0(l.g)}" readonly></div><div class="fld"><label>Tare</label><input class="num" value="${n0(l.t)}" readonly></div><div class="fld"><label>Net</label><input class="num" value="${n0(l.n)}" readonly><span class="hint">Auto-calculated</span></div>
+          ${l.mat ? '' : `<div class="note">${icon('warn', 's14')}No confident match for "${esc(l.raw)}". Pick a material from the AI suggestions.</div>`}</div>`).join('')}
+    </div><div class="dlg-f"><button type="button" class="mb" data-close>Cancel</button><button type="button" class="mb primary" id="pCreate" ${lines.every(l => l.mat) ? '' : 'disabled'}>Create Pending Load</button></div>`;
+  const bind = d => {
+    d.querySelectorAll('select[data-i]').forEach(s => s.addEventListener('change', () => {
+      const l = lines[+s.dataset.i]; l.mat = s.value || null; l.ai = l.mat && l.mat === b.lines[+s.dataset.i].mat;
+      if (!edited) { edited = true; track('draft_edited', { kind: 'pending_load', bol: key }); }
+      openDialog(form(), bind);
+    }));
+    d.querySelector('#pCreate').addEventListener('click', () => {
+      const ref = b.kind === 'pdf' ? '#' + b.ref : '#' + b.ref;
+      st.pl.cur = { ref, key, supplier: d.querySelector('#pSup').value, lines, total: b.total, arrive: b.arrive, status: 'Expected', ticket: null };
+      st.pl.loads.push({ ref, status: 'Expected', type: 'BOL / Supplier Declaration', customer: st.pl.cur.supplier, weight: b.total, lines: lines.length, arrive: b.arrive, created: 0, fresh: true });
+      track('draft_approved', { kind: 'pending_load', bol: key, edited });
+      dlg.close(); toast('Pending load created successfully');
+      st.pl.view = 'detail'; renderPl();
+    });
+  };
+  openDialog(form(), bind);
+}
+function plDetail() {
+  const c = st.pl.cur, actual = c.ticket ? c.ticket.received.reduce((a, b) => a + b, 0) : null;
+  const v = actual != null ? actual - c.total : null;
+  $('scenePl').innerHTML = `<div class="page"><div class="page-h"><button type="button" class="mb sm text" id="back">${icon('chevL', 's16')}Pending Loads</button><h1>${esc(c.ref)}</h1>${stChip(c.status)}<span class="sp"></span>
+      ${c.status === 'Expected' ? '<button type="button" class="mb success" id="mkTicket">Create Ticket</button>' : ''}<button type="button" class="mb" id="editPl">Edit</button></div>
+    ${c.status === 'Expected' ? `<div style="margin-bottom:14px">${S.callout('The load is waiting for the truck. When it pulls onto the scale, click <b>Create Ticket</b> and the scale ticket opens already filled in.')}</div>` : ''}
+    <div class="card"><h2>Details</h2><div class="kvg"><div><span>Type</span>BOL / Supplier Declaration</div><div><span>Expected Arrival</span>${fmt(c.arrive)}</div><div><span>Customer</span>${esc(c.supplier)}</div><div><span>Declared Total Weight</span>${lbs(c.total)}</div><div><span>Rail Car Number</span>—</div><div><span>Notes</span>—</div></div></div>
+    <div class="card"><h2>Linked Entities</h2><div class="kvg"><div><span>Inbound Ticket</span>${c.ticket ? `<a href="#" id="viewTkt" style="color:var(--primary);font-weight:600">View Linked Ticket #${c.ticket.no}</a>` : 'Not linked'}</div><div><span>Appointment</span>No appointment</div><div><span>Purchase Order</span>Not linked</div></div></div>
+    ${actual != null ? `<div class="card"><h2>Weight Variance</h2><div class="kvg num"><div><span>Declared</span>${lbs(c.total)}</div><div><span>Actual</span>${lbs(actual)}</div><div><span>Variance</span><b class="${v >= 0 ? 'pos' : 'neg'}">${sgn(v)} lbs</b></div><div><span>Variance %</span><b class="${v >= 0 ? 'pos' : 'neg'}">${spc(v / c.total * 100)}</b></div></div></div>` : ''}
+    <div class="card"><h2>Material Lines (${c.lines.length})</h2><div style="overflow-x:auto"><table class="tkt-tbl"><thead><tr><th>BOL/Document Name</th><th>Linked Material</th><th class="n">Gross</th><th class="n">Tare</th><th class="n">Net</th></tr></thead>
+      <tbody>${c.lines.map(l => `<tr><td>${esc(l.raw)}</td><td>${esc(l.mat)}</td><td class="n num">${n0(l.g)}</td><td class="n num">${n0(l.t)}</td><td class="n num">${n0(l.n)}</td></tr>`).join('')}</tbody></table></div></div>
+    ${c.status === 'Arrived' ? `<div>${S.callout('In ReSpark, the load is now Arrived and linked to the ticket, and the declared vs. received numbers stay with both records. This is a test drive, so nothing was saved. Next: see how Sparky reviews scale photos. <button type="button" class="mb sm" id="goAv">Anomaly Viewer</button>')}</div>` : ''}</div>`;
+  $('back').addEventListener('click', () => { st.pl.view = 'list'; renderPl(); });
+  $('editPl').addEventListener('click', () => toast('In ReSpark, Edit reopens the pending load form.'));
+  $('mkTicket')?.addEventListener('click', createTicketDialog);
+  $('viewTkt')?.addEventListener('click', e => { e.preventDefault(); st.pl.view = 'ticket'; renderPl(); });
+  $('goAv')?.addEventListener('click', () => showScene('av'));
+}
+function createTicketDialog() {
+  openDialog(`${head('Create Ticket from Pending Load')}<div class="dlg-b"><p>What information would you like to copy to the new ticket?</p>
+    <label class="radio"><input type="radio" name="copy" value="weights" checked><span><b>Materials with weights</b><small>Copy material names and declared weights from the pending load</small></span></label>
+    <label class="radio"><input type="radio" name="copy" value="materials"><span><b>Materials only</b><small>Copy material names but enter weights manually on the ticket</small></span></label>
+    <label class="radio"><input type="radio" name="copy" value="link"><span><b>Link only</b><small>Just link the pending load without copying materials</small></span></label></div>
+    <div class="dlg-f"><button type="button" class="mb" data-close>Cancel</button><button type="button" class="mb primary" id="goTkt">Create Ticket</button></div>`, d => {
+    d.querySelector('#goTkt').addEventListener('click', () => {
+      const mode = d.querySelector('input[name="copy"]:checked').value;
+      st.pl.ticket = { no: 41052, mode, weighed: false };
+      track('ticket_created_from_load', { mode });
+      dlg.close(); st.pl.view = 'ticket'; renderPl();
+    });
+  }, true);
+}
+function plTicket() {
+  const c = st.pl.cur, t = st.pl.ticket, b = BOLS[c.key];
+  const saved = !!c.ticket;
+  const rows = c.lines.map((l, i) => ({ mat: l.mat, declared: t.mode === 'weights' ? l.n : null, rec: t.weighed ? b.received[i] : null, show: t.mode !== 'link' || t.weighed }));
+  const dec = rows.reduce((a, r) => a + (r.declared || 0), 0), rec = rows.reduce((a, r) => a + (r.rec || 0), 0);
+  const v = rec - c.total, pctv = v / c.total * 100;
+  $('scenePl').innerHTML = `<div class="page"><div class="page-h"><button type="button" class="mb sm text" id="back">${icon('chevL', 's16')}${esc(c.ref)}</button><h1>${saved ? 'Purchase Ticket #' + t.no : 'New Purchase Ticket'}</h1><span class="chip ${saved ? 'success' : 'info'}">${saved ? 'Scale Complete' : 'On scale'}</span><span class="sp"></span>
+      ${saved ? '' : `<button type="button" class="mb" id="weigh" ${t.weighed ? 'disabled' : ''}>${icon('truck', 's16')}Capture weights</button><button type="button" class="mb primary" id="saveTkt" ${t.weighed ? '' : 'disabled'}>Save Ticket</button>`}</div>
+    <div class="card"><div class="kvg"><div><span>Customer</span>${esc(c.supplier)}</div><div><span>BOL</span>${esc(c.ref.replace('#', ''))}</div><div><span>Effective date</span>${fmt(c.arrive)}</div></div></div>
+    ${t.weighed ? `<div class="alert ${Math.abs(pctv) > 5 ? 'warning' : 'info'}" style="margin-bottom:14px">${icon('info', 's18')}<span><b>Pending Load Linked: ${esc(c.ref)}</b> · Expected: ${lbs(c.total)} · Paid: ${lbs(rec)} · Variance: ${sgn(v)} lbs (${spc(pctv)})</span><span class="sp"></span><button type="button" class="mb sm" id="cmp">Compare</button></div>`
+      : `<div style="margin-bottom:14px">${S.callout(t.mode === 'link' ? 'Linked to the pending load with no materials copied. Click <b>Capture weights</b> to simulate the scale; the operator records materials as usual.' : `The ticket opened with ${t.mode === 'weights' ? 'materials and declared weights' : 'materials'} from ${esc(c.ref)} already in place. Click <b>Capture weights</b> to simulate the truck crossing the scale.`)}</div>`}
+    <div class="card"><h2>Materials</h2><div style="overflow-x:auto"><table class="tkt-tbl"><thead><tr><th>Material</th><th class="n">Declared</th><th class="n">Net (scale)</th></tr></thead>
+      <tbody>${rows.filter(r => r.show).map(r => `<tr><td>${esc(r.mat)} ${t.mode !== 'link' ? '<span class="prefill">' + icon('sparkle', 's14') + 'Pre-filled</span>' : ''}</td><td class="n num">${r.declared != null ? lbs(r.declared) : '—'}</td><td class="n num">${r.rec != null ? lbs(r.rec) : '<span style="color:var(--text-disabled)">waiting for scale</span>'}</td></tr>`).join('') || '<tr><td colspan="3" style="color:var(--text-2)">No materials yet. The operator adds them at the scale.</td></tr>'}
+      ${t.weighed ? `<tr class="total"><td>Total</td><td class="n num">${dec ? lbs(dec) : '—'}</td><td class="n num">${lbs(rec)}</td></tr>` : ''}</tbody></table></div></div></div>`;
+  $('back').addEventListener('click', () => { st.pl.view = 'detail'; renderPl(); });
+  $('weigh')?.addEventListener('click', async () => { $('weigh').disabled = true; $('weigh').textContent = 'Weighing…'; await sleep(900); t.weighed = true; track('weights_captured'); renderPl(); });
+  $('cmp')?.addEventListener('click', () => compareDialog(rows, c));
+  $('saveTkt')?.addEventListener('click', () => {
+    c.ticket = { no: t.no, received: b.received }; c.status = 'Arrived';
+    const row = st.pl.loads.find(l => l.ref === c.ref); if (row) row.status = 'Arrived';
+    track('ticket_saved', { variance_pct: +pctv.toFixed(1) });
+    toast('Pending load linked to ticket'); st.pl.view = 'detail'; renderPl();
+  });
+}
+function compareDialog(rows, c) {
+  track('compare_opened');
+  const tot = rows.reduce((a, r) => ({ e: a.e + (r.declared || 0), p: a.p + (r.rec || 0) }), { e: 0, p: 0 });
+  const cell = (a, b) => { if (!a || b == null) return '<td class="n">—</td>'; const d = b - a, p = d / a * 100; return `<td class="n num ${Math.abs(p) > 5 ? 'hot' : ''}"><span class="${d >= 0 ? 'pos' : 'neg'}">${sgn(d)} (${spc(p)})</span></td>`; };
+  openDialog(`${head('Compare Weights')}<div class="dlg-b"><p>Compare net weights across stages. Click a row to see gross/tare breakdown.</p>
+    <div style="overflow-x:auto"><table class="cmp-tbl"><thead><tr><th>Material</th><th class="n">Expected</th><th class="n">Paid</th><th class="n">Received</th><th class="n">Exp → Paid</th><th class="n">Paid → Recv</th></tr></thead>
+    <tbody>${rows.map(r => `<tr><td>${esc(r.mat)}</td><td class="n num">${r.declared ? n0(r.declared) : '—'}</td><td class="n num">${n0(r.rec)}</td><td class="n num">${n0(r.rec)}</td>${cell(r.declared, r.rec)}<td class="n num">0</td></tr>`).join('')}
+    <tr class="total"><td>Total</td><td class="n num">${tot.e ? n0(tot.e) : '—'}</td><td class="n num">${n0(tot.p)}</td><td class="n num">${n0(tot.p)}</td>${cell(tot.e, tot.p)}<td class="n num">0</td></tr></tbody></table></div>
+    <div style="display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--text-2)"><span><span style="display:inline-block;width:10px;height:10px;background:rgba(217,119,6,.3);border-radius:2px"></span> Variance exceeds 5%</span><span><span class="chip warning" style="height:16px;font-size:10px">Unexpected</span> Unexpected material</span><span><span class="chip error" style="height:16px;font-size:10px">Missing</span> Expected material missing</span></div></div>
+    <div class="dlg-f"><button type="button" class="mb primary" data-close>Close</button></div>`);
+}
+
+/* =====================================================================
+   Scene 2: Anomaly Viewer
+   ===================================================================== */
+function renderAv() {
+  const a = st.av;
+  $('sceneAv').innerHTML = `<div class="page"><div class="av-tabs" role="tablist"><button type="button" role="tab" data-t="anomalies" aria-selected="${a.tab === 'anomalies'}">Anomalies</button><button type="button" role="tab" data-t="watch" aria-selected="${a.tab === 'watch'}">Watch List</button></div>
+    <div id="avBody"></div></div>`;
+  $('sceneAv').querySelectorAll('[data-t]').forEach(b => b.addEventListener('click', () => { a.tab = b.dataset.t; track('tab_clicked', { tab: a.tab }); renderAv(); }));
+  a.tab === 'anomalies' ? renderAnomalies() : renderWatch();
+}
+function visible() {
+  const f = st.av.filters, q = f.q.toLowerCase();
+  return st.av.items.filter(x => (f.verdict === 'all' || x.verdict.toLowerCase() === f.verdict) && (f.type === 'all' || x.types.includes(f.type)) && (f.status === 'all' || x.status === f.status || (f.status === 'undecided' && x.justDecided))
+    && (!q || [x.ticket, x.customer, x.operator, x.selected].join(' ').toLowerCase().includes(q)));
+}
+function renderAnomalies() {
+  const f = st.av.filters, list = visible();
+  $('avBody').innerHTML = `${st.av.items.every(x => x.status === 'undecided') ? `<div style="margin-bottom:14px">${S.callout('When a ticket reaches scale complete, Sparky compares the scale photos with the material the operator selected. Possible mis-grades land here for a manager to <b>Confirm Anomaly</b> or <b>Deny</b>. Nothing changes on the ticket by itself.')}</div>` : ''}
+    <div class="filters">
+      <div class="fld grow"><label for="fq">Search</label><input id="fq" placeholder="Search ticket, customer, operator, material" value="${esc(f.q)}"></div>
+      <div class="fld"><label for="fv">Verdict</label><select id="fv">${[['all', 'All Anomalies'], ['mismatch', 'Mismatch'], ['uncertain', 'Uncertain']].map(([v, l]) => `<option value="${v}"${f.verdict === v ? ' selected' : ''}>${l}</option>`).join('')}</select></div>
+      <div class="fld"><label for="ft">Anomaly type</label><select id="ft">${['all', 'Material', 'Weight', 'Price', 'Scale Interference'].map(v => `<option value="${v}"${f.type === v ? ' selected' : ''}>${v === 'all' ? 'All' : v}</option>`).join('')}</select></div>
+      <div class="fld"><label for="fs">Status</label><select id="fs">${['all', 'undecided', 'confirmed', 'denied'].map(v => `<option value="${v}"${f.status === v ? ' selected' : ''}>${v[0].toUpperCase() + v.slice(1)}</option>`).join('')}</select></div>
+      <button type="button" class="mb" id="refresh">${icon('refresh', 's16')}Refresh</button><button type="button" class="ibtn" id="settings" aria-label="Material Analysis Settings" title="Material Analysis Settings">${icon('gear')}</button>
+    </div>
+    ${list.length ? `<div class="cards">${list.map(cardHtml).join('')}</div>` : '<div class="empty">No anomalies found.</div>'}`;
+  const upd = () => { f.q = $('fq').value; f.verdict = $('fv').value; f.type = $('ft').value; f.status = $('fs').value; st.av.items.forEach(x => x.justDecided = false); renderAnomalies(); };
+  $('fq').addEventListener('input', () => { f.q = $('fq').value; const pos = $('fq').selectionStart; renderAnomalies(); $('fq').focus(); $('fq').setSelectionRange(pos, pos); });
+  ['fv', 'ft', 'fs'].forEach(id => $(id).addEventListener('change', upd));
+  $('refresh').addEventListener('click', () => { st.av.items.forEach(x => x.justDecided = false); renderAnomalies(); toast('Anomalies refreshed'); });
+  $('settings').addEventListener('click', () => { toast('In ReSpark, Material Analysis Settings sets dollar minimums, qualifying ticket statuses, excluded materials and which cameras to use.'); track('settings_clicked'); });
+  $('avBody').querySelectorAll('.acard').forEach(bindCard);
+}
+function cardHtml(x) {
+  const decided = x.status !== 'undecided';
+  return `<article class="acard ${decided ? 'decided' : ''}" data-id="${x.id}" aria-label="Ticket ${x.ticket} anomaly">
+    <div class="photo"><img src="img/scale-photo-${x.photo}.jpg" alt="Scale photo for ticket ${x.ticket}: ${esc(x.sees)}" loading="lazy">
+      <span class="region" hidden style="left:${x.region[0]}%;top:${x.region[1]}%;width:${x.region[2]}%;height:${x.region[3]}%"></span>
+      <button type="button" class="zoom" data-a="zoom" aria-label="Click to expand photo"></button>
+      <span class="vchip chip ${x.verdict === 'MISMATCH' ? 'red' : 'amber'}">${x.verdict === 'MISMATCH' ? `MISMATCH ${x.conf}%` : 'UNCERTAIN'}</span><span class="cam">${x.cam} · ${clock(x.mins)}</span></div>
+    <div class="abody">
+      <div><div class="lbl">Selected Material Name</div><div class="mat">${esc(x.selected)}</div></div>
+      <div class="meta">Customer: ${esc(x.customer)} · Operator: ${esc(x.operator)} · <a href="#" data-a="ticket">View Ticket #${x.ticket}</a></div>
+      <div class="chips"><span class="chip default">Scale Complete</span>${x.types.map(t => `<span class="chip ${t === 'Price' ? 'warning' : 'info'}">${t}</span>`).join('')}<button type="button" class="chip default" data-a="sees" style="border:0;cursor:pointer" aria-pressed="false">${icon('sparkle', 's14')}What Sparky sees</button></div>
+      <div><div class="lbl">Weight</div><div class="wt"><div><span>Gross</span>${n0(x.g)}</div><div><span>Tare</span>${n0(x.t)}</div><div><span>Net</span>${n0(x.n)} lb</div></div></div>
+      <div class="sees"><div class="lbl">What Sparky Sees</div><div>${esc(x.sees)}</div><div style="color:var(--text-2);margin-top:4px">${esc(x.reason)}</div></div>
+      <div class="sugg"><div class="lbl">Sparky Suggested Material</div><div class="mat">${esc(x.suggested)}</div></div>
+      ${x.types.includes('Price') ? `<span class="chip warning" style="align-self:flex-start">Possible ${x.dir} value ($${x.price[0].toFixed(2)} vs $${x.price[1].toFixed(2)}/unit)</span>` : ''}
+    </div>
+    <div class="afoot">${decided ? `<span class="chip ${x.status === 'confirmed' ? 'error' : 'default'}">${x.status === 'confirmed' ? 'Confirmed' : 'Denied'}</span><span class="sp"></span><button type="button" class="mb sm" data-a="undo">Undo</button>`
+      : `<button type="button" class="mb sm danger" data-a="confirm">Confirm Anomaly</button><button type="button" class="mb sm" data-a="deny">Deny</button><span class="sp"></span><button type="button" class="mb sm text" data-a="exclude">Exclude material</button><button type="button" class="mb sm text" data-a="catchall">Mark as catch-all</button>`}</div>
+  </article>`;
+}
+function bindCard(el) {
+  const x = st.av.items.find(i => i.id === el.dataset.id);
+  el.addEventListener('click', e => {
+    const b = e.target.closest('[data-a]'); if (!b) return;
+    const a = b.dataset.a;
+    if (a === 'zoom') { track('photo_expanded', { anomaly: x.id }); openDialog(`${head(`Ticket #${x.ticket} · ${x.cam}`)}<div class="dlg-b"><img src="img/scale-photo-${x.photo}.jpg" alt="Scale photo for ticket ${x.ticket}" style="width:100%;border-radius:6px"><div style="font-size:12.5px;color:var(--text-2)">1 of 1</div></div>`); return; }
+    if (a === 'sees') { const r = el.querySelector('.region'); r.hidden = !r.hidden; b.setAttribute('aria-pressed', !r.hidden); b.innerHTML = `${icon('sparkle', 's14')}${r.hidden ? 'What Sparky sees' : 'Hide scale region'}`; if (!r.hidden) track('region_shown', { anomaly: x.id }); return; }
+    if (a === 'ticket') { e.preventDefault(); toast(`In ReSpark, this opens ticket #${x.ticket} with its photos.`); return; }
+    if (a === 'confirm') {
+      x.status = 'confirmed'; x.justDecided = true;
+      const w = st.av.watch.find(r => r.operator === x.operator && r.customer === x.customer);
+      const entry = `#${x.ticket} — ${x.selected} (${x.verdict})`;
+      if (w) { w.count++; w.tickets.unshift(entry); w.at = 0; w.fresh = true; } else st.av.watch.unshift({ operator: x.operator, customer: x.customer, count: 1, tickets: [entry], by: 'You', at: 0, fresh: true });
+      track('draft_approved', { kind: 'anomaly', anomaly: x.id, verdict: x.verdict });
+      toast(`Anomaly confirmed. ${x.operator} and ${x.customer} added to the Watch List.`);
+      renderAnomalies(); return;
+    }
+    if (a === 'deny') { x.status = 'denied'; x.justDecided = true; track('draft_rejected', { kind: 'anomaly', anomaly: x.id, verdict: x.verdict }); toast('Denied 1 anomaly.'); renderAnomalies(); return; }
+    if (a === 'undo') {
+      if (x.status === 'confirmed') { const w = st.av.watch.find(r => r.operator === x.operator && r.customer === x.customer); if (w) { w.count--; w.tickets = w.tickets.filter(t => !t.startsWith('#' + x.ticket)); if (!w.count) st.av.watch.splice(st.av.watch.indexOf(w), 1); } }
+      x.status = 'undecided'; track('undo', { anomaly: x.id }); renderAnomalies(); return;
+    }
+    if (a === 'exclude' || a === 'catchall') {
+      const ex = a === 'exclude';
+      openDialog(`${head(ex ? `Exclude ${esc(x.selected)} from analysis?` : `Mark ${esc(x.selected)} as a catch-all?`)}<div class="dlg-b"><p>${ex ? `Sparky will stop checking tickets for ${esc(x.selected)}.` : `Catch-all materials can hold many kinds of scrap, so Sparky won't flag them as mismatches.`}</p></div>
+        <div class="dlg-f"><button type="button" class="mb" data-close>Cancel</button><button type="button" class="mb primary" id="okEx">${ex ? 'Exclude' : 'Mark as catch-all'}</button></div>`, d => {
+        d.querySelector('#okEx').addEventListener('click', () => { dlg.close(); toast(ex ? `${x.selected} excluded from future material analysis. (Test drive: nothing changed.)` : `${x.selected} marked as a catch-all material. (Test drive: nothing changed.)`); track(ex ? 'material_excluded' : 'material_catchall', { anomaly: x.id }); });
+      }, true);
+    }
+  });
+}
+function renderWatch() {
+  const w = st.av.watch.slice().sort((a, b) => b.count - a.count);
+  $('avBody').innerHTML = `<div style="margin-bottom:14px">${S.callout('Every confirmed anomaly is counted against the operator and the customer. Repeat names here are a signal for grader training, or a closer look at a supplier.')}</div>
+    <div class="tbl-wrap"><table class="grid-tbl"><thead><tr><th>Operator</th><th>Customer</th><th class="n">Infractions</th><th>Contaminated Tickets</th><th>Added By</th><th>Added At</th></tr></thead>
+    <tbody>${w.length ? w.map(r => `<tr class="${r.fresh ? 'fresh' : ''}"><td>${esc(r.operator)}</td><td>${esc(r.customer)}</td><td class="n"><span class="chip ${r.count > 1 ? 'error' : 'default'}">${r.count}</span></td><td style="white-space:normal;min-width:220px">${r.tickets.slice(0, 5).map(esc).join('<br>')}${r.tickets.length > 5 ? `<br>+${r.tickets.length - 5} more` : ''}</td><td>${esc(r.by)}</td><td>${fmt(r.at)}</td></tr>`).join('')
+      : '<tr><td colspan="6" class="empty">No operators on the watch list. Confirm an anomaly to get started.</td></tr>'}</tbody></table></div>`;
+}
+
+/* ---------------- tabs, reset ---------------- */
+function showScene(k, silent) {
+  document.querySelectorAll('.nav [data-scene]').forEach(b => b.setAttribute('aria-selected', b.dataset.scene === k));
+  $('scenePl').hidden = k !== 'pl'; $('sceneAv').hidden = k !== 'av';
+  k === 'pl' ? renderPl() : renderAv();
+  if (!silent) track('tab_clicked', { tab: k === 'pl' ? 'pending_loads' : 'anomaly_viewer' });
+}
+document.querySelector('.nav').addEventListener('click', e => { const b = e.target.closest('[data-scene]'); if (b) showScene(b.dataset.scene); });
+function reset() {
+  if (st) st.gen++;
+  if (dlg.open) dlg.close();
+  st = fresh(); S.setContext({});
+  showScene('pl', true);
+}
+reset();
+if (S.DEBUG) window.__demo = { process: k => { newLoadDialog(); return processBol(k); }, state: () => st, showScene };
+})();
+</script>
+</body>
+</html>
