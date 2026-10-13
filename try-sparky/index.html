@@ -332,6 +332,25 @@ html.embed .demo { padding: 0; gap: 8px; max-width: none; }
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
   .shimmer { -webkit-text-fill-color: currentColor; background-image: none; color: var(--text-2); }
 }
+/* Fit to width (no sideways scrolling, e.g. embedded on respark.com):
+   when an answer table is too narrow for its columns, each row becomes a
+   card of label / value pairs that stacks downward instead. */
+.tbl { container-type: inline-size; }
+@container (max-width: 640px) {
+  .tbl .scroll { overflow: visible; max-height: none; }
+  .tbl table, .tbl tbody { display: block; min-width: 0; width: 100%; }
+  .tbl thead { display: none; }
+  .tbl tr { display: block; margin: 0 0 8px; border: 1px solid var(--line-12); border-radius: 8px; overflow: hidden; }
+  .tbl td { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; max-width: none; min-width: 0; border: 0; border-bottom: 1px solid var(--line-12); padding: 6px 10px; text-align: right; }
+  .tbl td:last-child { border-bottom: 0; }
+  .tbl td::before { content: attr(data-label); flex: none; max-width: 48%; text-align: left; font-weight: 600; color: var(--text-2); }
+  .tbl td:first-child { background: var(--th); font-weight: 700; }
+  .tbl td.n, .tbl th.n { text-align: right; }
+}
+@media (max-width: 520px) {
+  .sugs { flex-wrap: wrap; overflow-x: visible; justify-content: center; }
+  .sug { flex: 0 1 auto; }
+}
 </style>
 </head>
 <body>
@@ -921,7 +940,7 @@ function tableBlock(b) {
   const numCol = b.cols.map(c => c.n);
   wrap.innerHTML = `<button type="button" class="exp" aria-label="Export table to CSV" title="Export to CSV">${icon('download', 's16')}</button>
     <div class="scroll" tabindex="0" role="region" aria-label="${esc(b.label || 'Results table')}"><table><thead><tr>${b.cols.map(c => `<th scope="col"${c.n ? ' class="n"' : ''}>${esc(c.label)}</th>`).join('')}</tr></thead>
-    <tbody>${b.rows.map(r => `<tr${r.total ? ' class="total"' : ''}>${(r.cells || r).map((v, i) => `<td${numCol[i] ? ' class="n"' : ''}>${v}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+    <tbody>${b.rows.map(r => `<tr${r.total ? ' class="total"' : ''}>${(r.cells || r).map((v, i) => `<td${numCol[i] ? ' class="n"' : ''} data-label="${esc(b.cols[i] ? b.cols[i].label : '')}">${v}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
   wrap.querySelector('.exp').addEventListener('click', () => {
     const strip = h => { const d = document.createElement('div'); d.innerHTML = h; return d.textContent; };
     const csv = [b.cols.map(c => c.label), ...b.rows.map(r => (r.cells || r).map(strip))].map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');

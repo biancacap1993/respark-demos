@@ -244,6 +244,26 @@ dialog::backdrop { background: rgba(14, 26, 47, .45); }
   .row2 { grid-template-columns: 1fr; }
 }
 @media (max-width: 420px) { .tgrid { grid-template-columns: minmax(0, 1fr); } .conn { display: none; } }
+/* Fit to width (no sideways scrolling, e.g. embedded on respark.com). */
+.email .eh { min-width: 0; }
+.email .eh > div { min-width: 0; }
+.email .eh > div span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 900px) {
+  .tickets table { min-width: 0; }
+  .tickets th:nth-child(4), .tickets td:nth-child(4),
+  .tickets th:nth-child(8), .tickets td:nth-child(8) { display: none; }
+  .tickets td:nth-child(3) { white-space: normal; }
+}
+@media (max-width: 520px) {
+  .tickets td, .tickets th { white-space: normal; }
+  .tickets { padding: 12px; }
+  .tickets th:nth-child(2), .tickets td:nth-child(2),
+  .tickets th:nth-child(5), .tickets td:nth-child(5),
+  .tickets th:nth-child(6), .tickets td:nth-child(6) { display: none; }
+  .tickets th, .tickets td { padding-left: 8px; padding-right: 8px; }
+  .lb-tabs { flex-wrap: wrap; overflow-x: visible; }
+  .lb-tab { height: 40px; padding: 0 10px; }
+}
 </style>
 </head>
 <body>

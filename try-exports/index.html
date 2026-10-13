@@ -193,6 +193,32 @@ dialog::backdrop { background: rgba(14, 26, 47, .45); }
   .composer { margin: 10px 12px 12px; }
   .obt-card { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+/* Fit to width (no sideways scrolling, e.g. embedded on respark.com):
+   drop secondary booking columns as the frame narrows; tabs and suggestion
+   chips wrap on phones. */
+@media (max-width: 1100px) {
+  .grid-tbl { min-width: 0; }
+  .grid-tbl th:nth-child(3), .grid-tbl td:nth-child(3),
+  .grid-tbl th:nth-child(6), .grid-tbl td:nth-child(6),
+  .grid-tbl th:nth-child(9), .grid-tbl td:nth-child(9),
+  .grid-tbl th:nth-child(11), .grid-tbl td:nth-child(11) { display: none; }
+}
+@media (max-width: 900px) {
+  .grid-tbl th:nth-child(7), .grid-tbl td:nth-child(7),
+  .grid-tbl th:nth-child(10), .grid-tbl td:nth-child(10) { display: none; }
+  .grid-tbl td { white-space: normal; }
+}
+@media (max-width: 520px) {
+  .grid-tbl { font-size: 12px; }
+  .grid-tbl .chip { height: auto; min-height: 20px; padding: 2px 7px; white-space: normal; font-size: 11px; }
+  .grid-tbl th:nth-child(4), .grid-tbl td:nth-child(4) { display: none; }
+  .grid-tbl th, .grid-tbl td { padding-left: 6px; padding-right: 6px; }
+  .grid-tbl th { white-space: normal; }
+  .nav { flex-wrap: wrap; overflow-x: visible; }
+  .nav button { height: 40px; padding: 0 10px; }
+  .sugs { flex-wrap: wrap; overflow-x: visible; justify-content: center; }
+  .sug { flex: 0 1 auto; }
+}
 </style>
 </head>
 <body>

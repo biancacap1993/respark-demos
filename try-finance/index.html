@@ -239,6 +239,30 @@ dialog::backdrop { background: rgba(14, 26, 47, .45); }
   .sbs { grid-template-columns: 1fr; }
 }
 @media (max-width: 520px) { .tiles { grid-template-columns: repeat(2, 1fr); } .decide { grid-template-columns: 1fr; } .doc dl { grid-template-columns: auto 1fr; } .d-row .t { display: none; } }
+/* Fit to width (no sideways scrolling, e.g. embedded on respark.com). */
+@media (max-width: 900px) {
+  .grid-tbl { min-width: 0; }
+  .grid-tbl th:nth-child(4), .grid-tbl td:nth-child(4),
+  .grid-tbl th:nth-child(6), .grid-tbl td:nth-child(6),
+  .grid-tbl th:nth-child(7), .grid-tbl td:nth-child(7) { display: none; }
+  /* Reconciliation rows: keep material, net, value and the actions. */
+  .cols, .mrow, .mfoot { grid-template-columns: minmax(0, 1.6fr) 6px minmax(64px, .8fr) minmax(84px, 1fr) auto; min-width: 0; }
+  .mc { min-width: 0; }
+  .cols > :nth-child(3), .cols > :nth-child(4), .cols > :nth-child(5), .cols > :nth-child(7),
+  .mrow > :nth-child(3), .mrow > :nth-child(4), .mrow > :nth-child(5), .mrow > :nth-child(7),
+  .mfoot > :nth-child(3), .mfoot > :nth-child(4), .mfoot > :nth-child(5), .mfoot > :nth-child(7) { display: none; }
+}
+@media (max-width: 520px) {
+  .grid-tbl { font-size: 12px; }
+  .grid-tbl .chip { height: auto; min-height: 20px; padding: 2px 7px; white-space: normal; font-size: 11px; }
+  .grid-tbl td, .grid-tbl th { white-space: normal; }
+  .grid-tbl th:nth-child(5), .grid-tbl td:nth-child(5) { display: none; }
+  .grid-tbl th, .grid-tbl td { padding-left: 6px; padding-right: 6px; }
+  .cols, .mrow, .mfoot { grid-template-columns: minmax(0, 1fr) 6px auto auto; }
+  .mrow > :nth-child(9), .mfoot > :nth-child(9), .cols > :nth-child(9) { grid-column: 1 / -1; justify-content: flex-start; padding-top: 6px; }
+  .s-tabs { flex-wrap: wrap; overflow-x: visible; }
+  .s-tab { height: 40px; padding: 0 10px; }
+}
 </style>
 </head>
 <body>

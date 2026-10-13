@@ -236,6 +236,20 @@ dialog::backdrop { background: rgba(14, 26, 47, .45); }
   .sug { flex: none; }
   .sliders, .tiles { grid-template-columns: minmax(0, 1fr); }
 }
+/* Fit to width (no sideways scrolling, e.g. embedded on respark.com). */
+@media (max-width: 760px) {
+  .mat-tbl { min-width: 0; }
+  .mat-tbl th:nth-child(3), .mat-tbl td:nth-child(3) { display: none; }
+}
+@media (max-width: 520px) {
+  .grid-tbl td, .grid-tbl th, .mat-tbl td, .mat-tbl th { white-space: normal; }
+  .grid-tbl { min-width: 0; }
+  .grid-tbl th:nth-child(2), .grid-tbl td:nth-child(2) { display: none; }
+  .grid-tbl th, .grid-tbl td, .mat-tbl th, .mat-tbl td { padding-left: 8px; padding-right: 8px; }
+  .mat-tbl th:nth-child(2), .mat-tbl td:nth-child(2) { display: none; }
+  .nav { flex-wrap: wrap; overflow-x: visible; }
+  .nav button { height: 40px; padding: 0 10px; }
+}
 </style>
 </head>
 <body>
