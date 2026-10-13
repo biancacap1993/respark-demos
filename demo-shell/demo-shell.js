@@ -122,4 +122,36 @@
   }
 
   window.DemoShell = { create: create, icon: icon, esc: esc };
+  /* Embedded: ask the host page for a taller frame whenever the demo's panels
+     would otherwise have to scroll, so a visitor sees everything without
+     scrolling inside the iframe. The demo fills 100dvh and its panels scroll,
+     so "needed" = current viewport + the largest overflow of any scroll panel.
+     Posts { source: 'respark-demo', type: 'resize', height }; respark.com grows
+     the iframe (grow-only, capped) and never forwards this to analytics. */
+  if (EMBED && window.parent && window.parent !== window) {
+    var lastAsked = 0;
+    var pending = false;
+    var measure = function () {
+      pending = false;
+      var over = document.documentElement.scrollHeight - innerHeight;
+      var els = document.querySelectorAll('*');
+      for (var i = 0; i < els.length; i++) {
+        var el = els[i];
+        if (!el.clientHeight) continue;
+        var cs = getComputedStyle(el);
+        if (!/(auto|scroll)/.test(cs.overflowY + cs.overflow)) continue;
+        over = Math.max(over, el.scrollHeight - el.clientHeight);
+      }
+      if (over <= 1) return;
+      var needed = Math.ceil(innerHeight + over);
+      if (needed <= lastAsked) return;
+      lastAsked = needed;
+      try { window.parent.postMessage({ source: 'respark-demo', type: 'resize', height: needed }, '*'); } catch (e) {}
+    };
+    var schedule = function () { if (!pending) { pending = true; requestAnimationFrame(measure); } };
+    new MutationObserver(schedule).observe(document.body, { childList: true, subtree: true, characterData: true, attributes: true });
+    addEventListener('resize', schedule);
+    addEventListener('load', schedule);
+    schedule();
+  }
 })();
