@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sparky Embed Example</title>
+<meta name="robots" content="noindex">
+<style>
+/* Mock of an agent product-page section embedding the Sparky test drive.
+   The iframe + listener below are what the website (respark-website) needs. */
+:root { --bg: #ffffff; --ink: #12233E; --muted: #5F6A7E; --aqua: #00C9D4; --line: rgba(18, 35, 62, .12); --code: #f3f5f8; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.55 Inter, system-ui, -apple-system, "Segoe UI", sans-serif; }
+section { max-width: 1120px; margin: 0 auto; padding: 56px 16px; }
+.eyebrow { color: #0090A0; font-weight: 700; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; }
+h1 { font-size: clamp(28px, 4vw, 40px); line-height: 1.15; margin: 8px 0 12px; }
+p.lede { color: var(--muted); max-width: 640px; margin: 0 0 28px; }
+/* The embed itself */
+.try-frame { width: 100%; height: 760px; border: 0; display: block; border-radius: 16px; }
+@media (max-width: 600px) { .try-frame { height: 680px; } }
+.log { margin-top: 28px; background: var(--code); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; font: 12.5px/1.5 ui-monospace, Menlo, monospace; max-height: 220px; overflow: auto; }
+.log b { font-family: Inter, system-ui, sans-serif; font-size: 13px; display: block; margin-bottom: 6px; }
+</style>
+</head>
+<body>
+<section id="try">
+  <div class="eyebrow">Test drive</div>
+  <h1>Ask Sparky about a sample yard</h1>
+  <p class="lede">Pick a question and watch Sparky find suppliers who stopped coming, accounts that are growing and where your revenue is concentrated, then draft the outreach for you to approve.</p>
+
+  <!-- ===== Embed: copy from here ===== -->
+  <iframe class="try-frame" src="./?embed=1" title="Sparky test drive with sample data" loading="lazy"
+          allow="clipboard-write" referrerpolicy="strict-origin-when-cross-origin"></iframe>
+  <script>
+    // Forward test-drive events from the iframe to GTM's dataLayer.
+    // Events: demo_opened, demo_prompt_sent, demo_answer_shown, demo_draft_approved,
+    // demo_draft_edited, demo_draft_rejected, demo_action_approved, demo_action_rejected,
+    // demo_cta_clicked, demo_reset, demo_more_questions_clicked, demo_table_exported.
+    (function () {
+      var DEMO_ORIGIN = new URL(document.querySelector('.try-frame').src, location.href).origin;
+      window.addEventListener('message', function (e) {
+        if (e.origin !== DEMO_ORIGIN || !e.data || e.data.source !== 'respark-demo') return;
+        var d = Object.assign({}, e.data); delete d.source;
+        (window.dataLayer = window.dataLayer || []).push(d);
+      });
+    })();
+  </script>
+  <!-- ===== Embed: copy to here ===== -->
+
+  <div class="log" aria-live="polite"><b>Events pushed to dataLayer (this example page only)</b><div id="log"></div></div>
+</section>
+<script>
+  (function () {
+    var log = document.getElementById('log');
+    window.dataLayer = window.dataLayer || [];
+    var push = window.dataLayer.push.bind(window.dataLayer);
+    window.dataLayer.push = function (d) {
+      var line = document.createElement('div');
+      line.textContent = new Date().toLocaleTimeString() + '  ' + JSON.stringify(d);
+      log.prepend(line);
+      return push(d);
+    };
+  })();
+</script>
+</body>
+</html>
