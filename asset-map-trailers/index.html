@@ -1,0 +1,592 @@
+<meta charset="utf-8">
+<title>ReSpark Asset Map Trailers</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+<style>
+/* Layout: an Arcade-style player. One framed browser window holds a scaled
+   1440×820 mock of the ReSpark Asset Map (based on the Assets > Asset Map
+   screen); a pulsing hotspot + tooltip guides each step; step controls sit
+   under the frame. The app mock keeps ReSpark's light theme (it stands in
+   for a screenshot); the page around it follows the viewer's theme. */
+:root {
+  --bg: #f3f5f8;
+  --glow: rgba(0, 168, 176, 0.10);
+  --fg: #12233e;
+  --fg-muted: rgba(18, 35, 62, 0.62);
+  --frame: #ffffff;
+  --frame-bar: #eef1f5;
+  --frame-line: rgba(18, 35, 62, 0.12);
+  --ctl: #ffffff;
+  --ctl-line: rgba(18, 35, 62, 0.16);
+  --teal: #00a3a8;
+  --teal-strong: #008a8f;
+  --tip-bg: #12233e;
+  --tip-fg: #ffffff;
+
+  /* ReSpark app tokens (frontend/client/src/global.css, light mode) */
+  --a-fg: hsl(217 55% 16%);
+  --a-surface: #ffffff;
+  --a-muted: hsla(217, 55%, 16%, 0.03);
+  --a-muted-solid: #f8f9fa;
+  --a-hover: hsla(217, 55%, 16%, 0.06);
+  --a-border: hsla(217, 55%, 16%, 0.14);
+  --a-border-subtle: hsla(217, 55%, 16%, 0.08);
+  --a-text-2: hsla(217, 55%, 16%, 0.75);
+  --a-text-3: hsla(217, 55%, 16%, 0.52);
+  --a-icon-2: hsla(217, 55%, 16%, 0.42);
+  --a-primary: hsl(183 100% 33%);
+  --a-primary-hover: hsl(183 100% 27%);
+  --a-primary-subtle: hsla(183, 100%, 33%, 0.10);
+  --a-success: hsl(162 73% 37%);
+  --a-success-strong: hsl(162 73% 30%);
+  --a-error: hsl(348 81% 48%);
+  --a-error-strong: hsl(348 81% 38%);
+  --a-accent: hsl(252 89% 65%);
+  --a-accent-strong: hsl(252 60% 50%);
+  --a-accent-subtle: hsla(252, 89%, 65%, 0.10);
+  --a-dark: hsl(217 45% 14%);
+  --a-nav-selected: hsl(217 55% 16%);
+
+  --font: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0c1422; --glow: rgba(0, 201, 212, 0.10); --fg: #e8eef7; --fg-muted: rgba(232, 238, 247, 0.62);
+    --frame: #17202f; --frame-bar: #1c2738; --frame-line: rgba(232, 238, 247, 0.12);
+    --ctl: #17202f; --ctl-line: rgba(232, 238, 247, 0.18); --teal: #19c3cb; --teal-strong: #4fd6dc;
+    --tip-bg: #00a3a8; --tip-fg: #ffffff; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0c1422; --glow: rgba(0, 201, 212, 0.10); --fg: #e8eef7; --fg-muted: rgba(232, 238, 247, 0.62);
+  --frame: #17202f; --frame-bar: #1c2738; --frame-line: rgba(232, 238, 247, 0.12);
+  --ctl: #17202f; --ctl-line: rgba(232, 238, 247, 0.18); --teal: #19c3cb; --teal-strong: #4fd6dc;
+  --tip-bg: #00a3a8; --tip-fg: #ffffff; color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--fg); font-family: var(--font);
+  background-image: radial-gradient(60% 50% at 50% 38%, var(--glow), transparent 70%);
+  min-height: 100vh; padding-inline: 16px; padding-block: 28px 40px;
+}
+.wrap { max-width: 1180px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
+.head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 15px; letter-spacing: -0.01em; }
+.brand svg { width: 28px; height: 28px; color: var(--fg); }
+.head .tag { font-size: 12px; color: var(--fg-muted); font-weight: 500; }
+
+.frame { background: var(--frame); border: 1px solid var(--frame-line); border-radius: 12px; overflow: hidden;
+  box-shadow: 0 30px 60px -20px rgba(18, 35, 62, 0.28), 0 8px 18px -8px rgba(18, 35, 62, 0.18); }
+.bar { height: 38px; background: var(--frame-bar); border-bottom: 1px solid var(--frame-line); display: flex; align-items: center; gap: 12px; padding-inline: 14px; position: relative; }
+.dots { display: flex; gap: 6px; }
+.dots i { width: 10px; height: 10px; border-radius: 50%; background: var(--frame-line); display: block; }
+.url { flex: 1; max-width: 460px; margin-inline: auto; height: 24px; border-radius: 6px; background: var(--frame); border: 1px solid var(--frame-line);
+  display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 12px; color: var(--fg-muted); padding-inline: 10px; min-width: 0; overflow: hidden; white-space: nowrap; }
+.url span { overflow: hidden; text-overflow: ellipsis; }
+.url svg { width: 12px; height: 12px; flex-shrink: 0; }
+.progress { position: absolute; left: 0; bottom: -1px; height: 2px; background: var(--teal); transition: width .35s ease; }
+
+.stage { position: relative; width: 100%; aspect-ratio: 1440 / 820; max-width: 100%; overflow: hidden; background: #fff; }
+.canvas { position: absolute; left: 0; top: 0; width: 1440px; height: 820px; transform-origin: 0 0; }
+.overlay { position: absolute; inset: 0; pointer-events: none; }
+
+.ring { position: absolute; border-radius: 6px; box-shadow: 0 0 0 2px var(--a-primary), 0 0 0 6px hsla(183, 100%, 33%, 0.18); transition: all .3s ease; pointer-events: none; }
+.hot { position: absolute; width: 26px; height: 26px; margin: -13px 0 0 -13px; border-radius: 50%; pointer-events: auto; cursor: pointer;
+  background: hsla(183, 100%, 33%, 0.28); border: 0; padding: 0; transition: left .3s ease, top .3s ease; }
+.hot::before { content: ""; position: absolute; inset: 7px; border-radius: 50%; background: var(--a-primary); box-shadow: 0 0 0 2px #fff; }
+.hot::after { content: ""; position: absolute; inset: 0; border-radius: 50%; border: 2px solid var(--a-primary); animation: pulse 1.6s ease-out infinite; }
+.hot:focus-visible { outline: 3px solid var(--teal-strong); outline-offset: 3px; }
+@keyframes pulse { 0% { transform: scale(.7); opacity: .9; } 100% { transform: scale(2.1); opacity: 0; } }
+
+.tip { position: absolute; max-width: 310px; background: var(--tip-bg); color: var(--tip-fg); border-radius: 10px; padding: 12px 14px;
+  font-size: 14px; line-height: 1.45; box-shadow: 0 12px 28px -8px rgba(12, 20, 34, 0.45); pointer-events: auto; animation: tipIn .25s ease; }
+.tip b { font-weight: 600; }
+.tip code, .caption code { font-family: var(--mono); font-size: 12.5px; background: rgba(255, 255, 255, 0.16); padding: 1px 5px; border-radius: 4px; }
+.caption code { background: var(--frame-bar); }
+.tip .n, .caption .n { display: block; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; opacity: .7; margin-bottom: 4px; }
+@keyframes tipIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+.caption { display: none; background: var(--frame); border: 1px solid var(--frame-line); border-radius: 10px; padding: 12px 14px; font-size: 14px; line-height: 1.5; }
+body.narrow .caption { display: block; }
+body.narrow .tip { display: none; }
+
+.controls { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.btn { font: inherit; font-size: 13px; font-weight: 600; height: 36px; padding-inline: 14px; border-radius: 8px; border: 1px solid var(--ctl-line);
+  background: var(--ctl); color: var(--fg); cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+.btn:hover { border-color: var(--teal); }
+.btn:disabled { opacity: .4; cursor: default; border-color: var(--ctl-line); }
+.btn:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+.btn.primary { background: var(--teal); border-color: var(--teal); color: #fff; }
+.btn svg { width: 16px; height: 16px; }
+.count { font-size: 13px; color: var(--fg-muted); font-variant-numeric: tabular-nums; min-width: 48px; text-align: right; }
+.pips { display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; flex: 1; min-width: 0; }
+.pips button { width: 22px; height: 6px; border-radius: 3px; border: 0; padding: 0; background: var(--ctl-line); cursor: pointer; }
+.pips button.on { background: var(--teal); }
+.pips button.done { background: color-mix(in srgb, var(--teal) 45%, transparent); }
+.hint { font-size: 12px; color: var(--fg-muted); text-align: center; }
+kbd { font: inherit; font-size: 11px; border: 1px solid var(--ctl-line); border-radius: 4px; padding: 1px 5px; }
+
+/* ================= ReSpark app mock (fixed light theme) ================= */
+.app { width: 1440px; height: 820px; display: flex; font-family: var(--font); color: var(--a-fg); font-size: 13px; background: var(--a-surface); position: relative; overflow: hidden; }
+.app svg.lucide { width: 16px; height: 16px; stroke-width: 1.75; flex-shrink: 0; }
+.side { width: 236px; flex-shrink: 0; background: var(--a-muted-solid); border-right: 1px solid var(--a-border-subtle); display: flex; flex-direction: column; padding: 12px 10px; gap: 10px; }
+.side .top { display: flex; align-items: center; gap: 8px; padding: 2px 4px; }
+.side .top svg.mark { width: 28px; height: 28px; color: #12233e; }
+.yard { flex: 1; display: flex; align-items: center; justify-content: space-between; border: 1px solid var(--a-border); border-radius: 6px; height: 30px; padding-inline: 8px; background: var(--a-surface); font-weight: 500; font-size: 12.5px; }
+.yard svg.lucide { width: 14px; height: 14px; color: var(--a-icon-2); }
+.cmd { display: flex; align-items: center; gap: 8px; height: 30px; border: 1px solid var(--a-border); border-radius: 6px; padding-inline: 8px; color: var(--a-text-3); background: var(--a-surface); font-size: 12.5px; }
+.cmd kbd { margin-left: auto; font-size: 10.5px; border-color: var(--a-border); color: var(--a-text-3); }
+.nav { display: flex; flex-direction: column; gap: 1px; }
+.nrow { display: flex; align-items: center; gap: 8px; padding: 5px 8px; border-radius: 6px; font-weight: 500; color: hsla(217, 55%, 16%, 0.88); }
+.nrow .chev { margin-left: auto; width: 14px; height: 14px; color: var(--a-icon-2); }
+.nrow.sub { padding-left: 30px; font-weight: 450; font-size: 12.5px; color: var(--a-text-2); }
+.nrow.sub svg.lucide { width: 14px; height: 14px; color: var(--a-icon-2); }
+.nrow.active { background: var(--a-nav-selected); color: #fff; }
+.nrow.active svg.lucide { color: #fff; }
+.pill { margin-left: auto; font-size: 10px; font-weight: 600; color: var(--a-text-2); background: var(--a-hover); padding: 1px 6px; border-radius: 999px; }
+.nsep { height: 1px; background: var(--a-border-subtle); margin: 4px 6px; }
+.foot { margin-top: auto; display: flex; align-items: center; gap: 8px; padding: 8px 4px 0; border-top: 1px solid var(--a-border-subtle); }
+.av { width: 28px; height: 28px; border-radius: 50%; background: var(--a-primary-subtle); color: var(--a-primary-hover); display: grid; place-items: center; font-weight: 600; font-size: 11px; }
+.foot .who { display: flex; flex-direction: column; line-height: 1.25; }
+.foot .who small { color: var(--a-text-3); font-size: 11px; }
+.foot .ico { margin-left: auto; display: flex; gap: 4px; }
+.foot .ico span { width: 28px; height: 28px; border: 1px solid var(--a-border-subtle); border-radius: 6px; display: grid; place-items: center; }
+
+.main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.phead { display: flex; align-items: center; gap: 12px; padding: 14px 22px 12px; border-bottom: 1px solid var(--a-border-subtle); }
+.crumbs { font-size: 12px; color: var(--a-text-3); display: flex; align-items: center; gap: 4px; }
+.crumbs svg.lucide { width: 12px; height: 12px; }
+.phead h1 { font-size: 20px; font-weight: 600; margin: 0; letter-spacing: -0.015em; }
+.phead .left { display: flex; flex-direction: column; gap: 4px; }
+.phead .acts { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+
+.rb { font: inherit; font-size: 13px; font-weight: 500; height: 32px; padding-inline: 12px; border-radius: 6px; display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--a-border); background: var(--a-surface); color: var(--a-fg); cursor: default; white-space: nowrap; }
+.rb.pri { background: var(--a-primary); border-color: var(--a-primary); color: #fff; }
+.rb.icon { width: 32px; padding: 0; justify-content: center; }
+.badge { display: inline-flex; align-items: center; height: 20px; padding-inline: 8px; border-radius: 999px; font-size: 11.5px; font-weight: 500; white-space: nowrap; }
+.b-success { background: hsla(162, 73%, 37%, 0.14); color: var(--a-success-strong); }
+.b-accent { background: hsla(252, 89%, 65%, 0.14); color: var(--a-accent-strong); }
+.b-neutral { background: hsla(217, 55%, 16%, 0.07); color: var(--a-text-2); }
+
+/* assets page */
+.phead { padding: 14px 24px 0; border-bottom: 0; align-items: flex-start; }
+.ptabs { display: flex; gap: 22px; padding: 0 24px; border-bottom: 1px solid var(--a-border-subtle); margin-top: 10px; }
+.ptabs span { font-size: 13.5px; font-weight: 500; padding: 8px 0 9px; color: var(--a-text-3); border-bottom: 2px solid transparent; }
+.ptabs span.on { color: var(--a-fg); border-color: var(--a-fg); }
+.abody { flex: 1; min-height: 0; display: flex; gap: 14px; padding: 14px 16px 16px; background: var(--a-muted-solid); }
+.alist { width: 372px; flex-shrink: 0; background: var(--a-surface); border: 1px solid var(--a-border-subtle); border-radius: 10px; display: flex; flex-direction: column; overflow: hidden; position: relative; }
+.alist .tools { display: flex; gap: 8px; padding: 12px 12px 8px; }
+.inp { height: 32px; border: 1px solid var(--a-border); border-radius: 6px; display: flex; align-items: center; gap: 6px; padding-inline: 9px; color: var(--a-text-3); font-size: 12.5px; background: var(--a-surface); white-space: nowrap; }
+.inp svg.lucide { width: 14px; height: 14px; color: var(--a-icon-2); }
+.inp .chev { margin-left: auto; }
+.alist .lbl { font-size: 11.5px; color: var(--a-text-3); padding: 2px 12px 4px; }
+.sel { margin: 0 12px 10px; height: 34px; border: 1px solid var(--a-border); border-radius: 6px; display: flex; align-items: center; padding-inline: 10px; font-size: 13px; color: var(--a-fg); background: var(--a-surface); }
+.sel svg.lucide { margin-left: auto; width: 14px; height: 14px; color: var(--a-icon-2); }
+.sel.open { border-color: var(--a-primary); box-shadow: 0 0 0 3px hsla(183, 100%, 33%, 0.15); }
+.sel .new { font-size: 10px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--a-accent-strong); background: var(--a-accent-subtle); border-radius: 4px; padding: 1px 5px; margin-left: 8px; }
+.rows { border-top: 1px solid var(--a-border-subtle); overflow: hidden; flex: 1; }
+.arow { display: flex; align-items: center; gap: 11px; padding: 9px 12px; border-bottom: 1px solid var(--a-border-subtle); }
+.arow.hl { background: hsla(183, 100%, 33%, 0.07); }
+.arow .ai { width: 32px; height: 32px; border-radius: 7px; display: grid; place-items: center; flex-shrink: 0; }
+.arow .ai svg.lucide { width: 16px; height: 16px; }
+.arow .tx { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.arow .tx b { font-weight: 600; font-size: 13px; display: flex; align-items: center; gap: 6px; }
+.arow .tx small { font-size: 12px; color: var(--a-text-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.arow .kind { font-size: 10.5px; font-weight: 500; color: var(--a-text-2); background: var(--a-hover); border-radius: 4px; padding: 0 5px; }
+.dd { position: absolute; left: 12px; right: 12px; top: 128px; background: var(--a-surface); border: 1px solid var(--a-border); border-radius: 8px; box-shadow: 0 6px 22px rgba(15, 23, 42, 0.16); padding: 4px; z-index: 5; animation: pop .18s ease; }
+.dd .o { display: flex; align-items: center; gap: 8px; padding: 8px 9px; border-radius: 5px; font-size: 13px; }
+.dd .o svg.lucide { width: 15px; height: 15px; color: var(--a-primary-hover); margin-left: auto; }
+.dd .o.cur { font-weight: 600; }
+.dd .o.hv { background: var(--a-hover); }
+@keyframes pop { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; transform: none; } }
+
+.map { flex: 1; min-width: 0; position: relative; border-radius: 10px; overflow: hidden; border: 1px solid var(--a-border-subtle); background: #eef0e8; }
+.map svg.bg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.map .mt { position: absolute; top: 12px; right: 12px; display: flex; background: #fff; border-radius: 6px; box-shadow: 0 1px 4px rgba(0,0,0,.18); overflow: hidden; font-size: 12.5px; font-weight: 500; }
+.map .mt span { padding: 7px 12px; }
+.map .mt span.on { background: var(--a-dark); color: #fff; }
+.map .zm { position: absolute; right: 12px; bottom: 30px; background: #fff; border-radius: 6px; box-shadow: 0 1px 4px rgba(0,0,0,.18); display: flex; flex-direction: column; }
+.map .zm span { width: 30px; height: 30px; display: grid; place-items: center; font-size: 18px; }
+.map .zm span + span { border-top: 1px solid var(--a-border-subtle); }
+.map .attr { position: absolute; right: 0; bottom: 0; background: rgba(255,255,255,.8); font-size: 10.5px; padding: 2px 6px; color: var(--a-text-2); }
+.pin { position: absolute; width: 34px; height: 34px; margin: -17px 0 0 -17px; border-radius: 50%; border: 2.5px solid #fff; box-shadow: 0 2px 6px rgba(0,0,0,.3); display: grid; place-items: center; color: #fff; font-weight: 700; font-size: 14px; z-index: 2; }
+.pin svg.lucide { width: 16px; height: 16px; stroke-width: 2.2; }
+.pin.tr { border-radius: 9px; }
+.pin.fresh { animation: drop .4s ease both; }
+@keyframes drop { from { opacity: 0; transform: translateY(-14px); } to { opacity: 1; transform: none; } }
+.d-green { background: #2f7d32; } .d-yellow { background: #f4b120; } .d-orange { background: #ef7a12; } .d-red { background: #d7262d; } .d-gray { background: #6b7280; }
+.c-green { background: hsla(122, 45%, 34%, 0.12); color: #2f7d32; } .c-yellow { background: hsla(41, 90%, 54%, 0.16); color: #c98a00; }
+.c-orange { background: hsla(28, 88%, 50%, 0.14); color: #d4660a; } .c-red { background: hsla(357, 70%, 50%, 0.13); color: #d7262d; } .c-gray { background: hsla(220, 9%, 46%, 0.14); color: #4b5563; }
+.legend { position: absolute; left: 14px; bottom: 14px; background: #fff; border-radius: 8px; box-shadow: 0 1px 6px rgba(0,0,0,.18); padding: 10px 12px; font-size: 12.5px; display: flex; flex-direction: column; gap: 5px; z-index: 3; }
+.legend b { font-weight: 600; font-size: 13px; margin-bottom: 2px; }
+.legend div { display: flex; align-items: center; gap: 8px; border-radius: 4px; }
+.legend i { width: 11px; height: 11px; border-radius: 50%; display: block; }
+.pop { position: absolute; width: 264px; transform: translate(-50%, -100%); background: #fff; border-radius: 10px; box-shadow: 0 6px 22px rgba(0,0,0,.22); padding: 12px 14px; font-size: 12.5px; line-height: 1.5; z-index: 4; }
+.pop::after { content: ""; position: absolute; left: 50%; bottom: -7px; margin-left: -7px; width: 14px; height: 14px; background: #fff; transform: rotate(45deg); box-shadow: 3px 3px 4px rgba(0,0,0,.06); }
+.pop .x { position: absolute; top: 9px; right: 10px; color: var(--a-text-3); }
+.pop .x svg.lucide { width: 14px; height: 14px; }
+.pop h4 { margin: 0 0 2px; font-size: 14px; font-weight: 600; }
+.pop .kv { color: var(--a-text-2); }
+.pop .lnk { display: inline-flex; align-items: center; gap: 4px; color: var(--a-primary-hover); font-weight: 600; margin-top: 6px; padding: 2px 0; }
+.pop .lnk svg.lucide { width: 14px; height: 14px; }
+/* intro / outro */
+.cover { position: absolute; inset: 0; background: rgba(248, 250, 252, 0.88); backdrop-filter: blur(3px); display: grid; place-items: center; z-index: 10; }
+.cover .card { width: 700px; display: flex; flex-direction: column; gap: 14px; align-items: flex-start; }
+.cover .eyebrow { font-size: 13px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--a-primary-hover); display: flex; align-items: center; gap: 8px; }
+.cover h2 { margin: 0; font-size: 40px; line-height: 1.12; letter-spacing: -0.025em; font-weight: 700; text-wrap: balance; }
+.cover p { margin: 0; font-size: 17px; line-height: 1.55; color: var(--a-text-2); max-width: 620px; }
+.cover .chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.cover .chips code { font-family: var(--mono); font-size: 14px; padding: 5px 10px; border-radius: 6px; background: var(--a-surface); border: 1px solid var(--a-border); }
+.cover .cta { display: flex; gap: 10px; margin-top: 8px; }
+.cover .go { font: inherit; font-size: 15px; font-weight: 600; height: 44px; padding-inline: 20px; border-radius: 8px; border: 0; background: var(--a-primary); color: #fff; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; text-decoration: none; }
+.cover .go.sec { background: var(--a-surface); color: var(--a-fg); border: 1px solid var(--a-border); }
+.cover .go:hover { background: var(--a-primary-hover); }
+.cover .go.sec:hover { background: var(--a-muted-solid); }
+.cover .go svg.lucide { width: 18px; height: 18px; }
+.cover .go:focus-visible { outline: 3px solid var(--a-primary); outline-offset: 2px; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+</style>
+
+<div class="wrap">
+  <div class="head">
+    <div class="brand" id="brand"></div>
+    <div class="tag">Interactive demo · Web console</div>
+  </div>
+
+  <div class="frame">
+    <div class="bar">
+      <div class="dots"><i></i><i></i><i></i></div>
+      <div class="url"><i data-lucide="lock"></i><span id="url">app.respark.com</span></div>
+      <div style="width:42px"></div>
+      <div class="progress" id="progress"></div>
+    </div>
+    <div class="stage" id="stage">
+      <div class="canvas" id="canvas"></div>
+      <div class="overlay" id="overlay"></div>
+    </div>
+  </div>
+
+  <div class="caption" id="caption" aria-live="polite"></div>
+
+  <div class="controls">
+    <button class="btn" id="back" type="button"><i data-lucide="arrow-left"></i>Back</button>
+    <div class="pips" id="pips" role="tablist" aria-label="Demo steps"></div>
+    <span class="count" id="count"></span>
+    <button class="btn primary" id="next" type="button">Next<i data-lucide="arrow-right"></i></button>
+  </div>
+  <div class="hint">Click the pulsing dot, or use <kbd>←</kbd> <kbd>→</kbd></div>
+</div>
+
+<script>
+(() => {
+  const W = 1440, H = 820;
+  const MARK = '<svg class="mark" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M152.38 13.33C171.29 13.33 186.67 28.71 186.67 47.62V152.38C186.67 171.29 171.29 186.67 152.38 186.67H47.62C28.71 186.67 13.33 171.29 13.33 152.38V47.62C13.33 28.71 28.71 13.33 47.62 13.33H152.38ZM152.38 0H47.62C21.32 0 0 21.32 0 47.62V152.38C0 178.68 21.32 200 47.62 200H152.38C178.68 200 200 178.68 200 152.38V47.62C200 21.32 178.68 0 152.38 0Z" fill="#00C9D4"/><path d="M93.39 62.1C89.98 59.66 84.7 58.7 80.99 58.69L26.11 58.74L44.28 71.71H82.53C83.21 71.71 83.79 71.96 84.24 72.29C85.21 72.98 85.5 74.27 84.5 75.67L72.84 92.1L84.25 100.24L96.2 83.46C101.27 76.35 101.05 67.54 93.42 62.1L93.4 62.08Z" fill="currentColor"/><path d="M49.21 102.91C53.53 102.91 58.53 105.26 61.64 107.48L107.62 140.38H84.65L52.58 117.49C52.03 117.05 51.38 116.94 50.8 116.94C49.57 116.94 48.56 117.84 48.56 119.62L48.53 140.38H34.11V119.16C34.11 110.16 39.55 102.91 49.19 102.91Z" fill="currentColor"/><path d="M166.27 115.45V103.76C166.27 96.91 164.14 91.42 159.86 87.3C155.58 83.18 149.91 81.1 142.82 81.1H133.49C128.74 81.1 124.57 82.06 120.95 83.97C117.32 85.88 114.54 88.56 112.55 92.02C110.56 95.49 109.58 99.5 109.58 104.01V119.65C109.58 123.94 110.56 127.7 112.55 130.98C114.54 134.26 117.3 136.82 120.92 138.62C124.55 140.39 128.72 141.3 133.46 141.3H142.32C149.41 141.3 155.11 139.5 159.47 135.92C163.83 132.34 166.02 127.59 166.02 121.67H152.85C152.85 124.15 151.9 126.15 149.99 127.68C148.08 129.18 145.57 129.95 142.46 129.95H133.49C130.3 129.95 127.76 128.99 125.85 127.14C123.94 125.26 122.99 122.77 122.99 119.66V115.46H166.27ZM122.72 105.4V104.34C122.72 100.76 123.7 97.84 125.69 95.63C127.65 93.42 130.24 92.3 133.43 92.3H142.89C145.94 92.3 148.37 93.36 150.25 95.47C152.13 97.57 153.06 100.36 153.06 103.77V105.41H122.71Z" fill="currentColor"/></svg>';
+  document.getElementById('brand').innerHTML = MARK + '<span>ReSpark</span>';
+
+  const ic = (n, extra = '') => `<i data-lucide="${n}" ${extra}></i>`;
+
+  // Sample data (illustrative). Days on site drives the pin color; anything
+  // parked at the org's own yard is "At yard" and stays out of the color scale.
+  const tone = d => d == null ? 'gray' : d > 90 ? 'red' : d > 60 ? 'orange' : d > 30 ? 'yellow' : 'green';
+  const CONTAINERS = [
+    { n: 'Hopper 22', site: 'Lakeside Machining', d: 97 },
+    { n: '40-yd 05', site: 'DuPage Roofing', d: 72 },
+    { n: '40-yd 12', site: 'Hartwell Demolition', d: 64 },
+    { n: '30-yd 19', site: 'Kenosha Tool & Die', d: 52 },
+    { n: '40-yd 18', site: 'Hartwell Demolition', d: 51 },
+    { n: '20-yd 03', site: 'Keller Fabrication', d: 41 },
+    { n: '40-yd 21', site: 'Fox River Castings', d: 35 },
+    { n: '20-yd 16', site: 'Elgin Metal Works', d: 28 },
+    { n: 'Lugger 04', site: 'Midwest Auto Salvage', d: 23 },
+    { n: 'Lugger 08', site: 'Riverside Steel Service', d: 19 },
+    { n: '30-yd 15', site: 'Midwest Auto Salvage', d: 17 },
+  ];
+  const TRAILERS = [
+    { n: 'TR-112', kind: 'Trailer', site: 'Calumet HVAC', d: 66 },
+    { n: 'VAN-07', kind: 'Van', site: 'Kenosha Tool & Die', d: 38 },
+    { n: 'TR-104', kind: 'Trailer', site: 'Riverside Steel Service', d: 12 },
+    { n: 'VAN-03', kind: 'Van', site: 'Fox River Castings', d: 8 },
+  ];
+  // Map pins: [x, y, count, days] in map pixels (786×683).
+  const C_PINS = [
+    [548, 74, 1, 97], [312, 384, 1, 72], [372, 598, 2, 64], [338, 196, 1, 52], [430, 300, 1, 41],
+    [196, 470, 1, 35], [222, 282, 1, 28], [592, 404, 2, 23], [292, 482, 2, 17], [700, 560, 3, 19], [612, 566, 2, 25],
+  ];
+  const T_PINS = [
+    { id: 'pin-tr112', x: 520, y: 470, d: 66, k: 'container' },
+    { id: 'pin-van07', x: 386, y: 150, d: 38, k: 'truck' },
+    { id: 'pin-tr104', x: 470, y: 534, d: 12, k: 'container' },
+    { id: 'pin-van03', x: 150, y: 372, d: 8, k: 'truck' },
+  ];
+  const YARD = { x: 560, y: 336 };
+
+  const MAPBG = `<svg class="bg" viewBox="0 0 786 683" preserveAspectRatio="none" aria-hidden="true">
+    <rect width="786" height="683" fill="#eef0e8"/>
+    <path d="M90 520 q40 -30 90 -10 q30 30 -10 60 q-60 20 -80 -50z M250 330 q30 -20 60 0 q10 30 -30 40 q-40 0 -30 -40z M430 90 q40 -10 50 20 q-10 30 -50 20z M470 610 q50 -20 80 10 q-20 40 -70 30z" fill="#d3e6c4"/>
+    <g stroke="#ffffff" stroke-width="2" fill="none" opacity=".9">
+      <path d="M0 120 H600"/><path d="M0 240 H620"/><path d="M0 420 H640"/><path d="M0 560 H600"/>
+      <path d="M120 0 V683"/><path d="M260 0 V683"/><path d="M400 0 V683"/><path d="M520 0 V683"/>
+    </g>
+    <g stroke="#f1c46a" stroke-width="3.5" fill="none" stroke-linecap="round">
+      <path d="M0 300 C160 310 300 330 470 360 S600 380 640 380"/>
+      <path d="M40 683 C150 560 280 470 420 420 S560 390 640 380"/>
+      <path d="M330 0 C340 120 360 220 420 300 S520 360 640 380"/>
+      <path d="M560 0 C560 120 580 240 610 330"/>
+      <path d="M640 380 C620 470 600 560 640 683"/>
+    </g>
+    <g stroke="#e9a3a8" stroke-width="2.5" fill="none" opacity=".8"><path d="M0 640 C200 620 420 640 620 600"/><path d="M180 0 C190 200 200 420 170 683"/></g>
+    <path d="M600 0 H786 V683 H600 C585 620 590 560 615 500 C650 430 668 390 650 330 C628 260 612 200 606 120 C602 70 600 30 600 0z" fill="#b9d7ea"/>
+    <g font-family="Inter, sans-serif" font-size="11" fill="#5b6472">
+      <text x="452" y="58">Waukegan</text><text x="210" y="172">Elgin</text><text x="268" y="246">Schaumburg</text>
+      <text x="530" y="214">Evanston</text><text x="572" y="368" font-weight="600">Chicago</text><text x="210" y="420">Naperville</text>
+      <text x="318" y="650">Joliet</text><text x="660" y="640">Hammond</text><text x="676" y="210" fill="#6f8fa6" font-style="italic">Lake Michigan</text>
+    </g>
+  </svg>`;
+
+  // ---------- steps ----------
+  const URL = '/app/assets/asset-map';
+  const STEPS = [
+    { show: 'c', cover: 'intro', url: URL },
+    { show: 'c', t: '#nav-map', place: 'right', url: URL,
+      tip: 'Open <b>Assets → Asset Map</b>. Until now, this map only showed containers.' },
+    { show: 'c', t: '#shown', place: 'right', url: URL,
+      tip: 'New: the <b>Assets shown</b> dropdown above the asset list. <b>Containers</b> is still the default.' },
+    { show: 'c', dd: true, t: '#opt-both', place: 'right', url: URL,
+      tip: 'Pick <b>Containers</b>, <b>Trailers</b>, or <b>Containers and trailers</b>. Choose the last one to see everything you’ve dropped.' },
+    { show: 'ct', fresh: true, t: '#pin-tr112', place: 'left', url: URL,
+      tip: 'Your trailers and vans now show as pins where they were dropped, right next to your containers.' },
+    { show: 'ct', popup: true, t: '#pop-open', place: 'left', url: URL,
+      tip: 'Click a pin to see its details. From there you can open the trailer’s own page.' },
+    { show: 'ct', t: '#pin-yard', place: 'left', url: URL, legend: true,
+      tip: 'Equipment parked at your own yards shows as <b>At yard</b> in gray. Those pins don’t count toward days on site, so long-parked trailers don’t turn the pins around them red.' },
+    { show: 'ct', cover: 'outro', url: URL },
+  ];
+
+  // ---------- chrome ----------
+  function sidebar() {
+    const row = (i, l, extra = '') => `<div class="nrow">${ic(i)}<span>${l}</span>${extra || ic('chevron-right', 'class="chev"')}</div>`;
+    return `<aside class="side">
+      <div class="top">${MARK}<div class="yard"><span>North Yard</span>${ic('chevrons-up-down')}</div></div>
+      <div class="nav">
+        ${row('inbox', 'Inbox', '<span class="pill">4</span>')}
+        ${row('messages-square', 'ScrapChat', ' ')}
+        <div class="cmd" style="margin:2px 0">${ic('search')}<span>Search &amp; actions</span><kbd>⌘K</kbd></div>
+        <div class="nsep"></div>
+        ${row('shopping-cart', 'Purchases')}${row('tag', 'Sales')}${row('file-text', 'Contracts')}${row('boxes', 'Inventory')}
+        ${row('users', 'Customers')}${row('layers', 'Commodities')}${row('truck', 'Logistics')}${row('clipboard-list', 'Load Board')}
+        <div class="nrow">${ic('warehouse')}<span>Assets</span>${ic('chevron-down', 'class="chev"')}</div>
+        <div class="nrow sub active" id="nav-map">${ic('map')}<span>Asset Map</span></div>
+        <div class="nrow sub">${ic('container')}<span>Containers</span></div>
+        <div class="nrow sub">${ic('truck')}<span>Trucks</span></div>
+        <div class="nrow sub">${ic('caravan')}<span>Trailers</span></div>
+        ${row('chart-column', 'Reports')}${row('landmark', 'Ledger')}
+      </div>
+      <div class="foot"><div class="av">JP</div><div class="who"><span>Jordan Pike</span><small>General Manager</small></div>
+        <div class="ico"><span>${ic('settings')}</span><span>${ic('circle-help')}</span></div></div>
+    </aside>`;
+  }
+
+  function assetRows(s) {
+    const items = CONTAINERS.map(c => ({ ...c, kind: null }));
+    if (s.show === 'ct') items.push(...TRAILERS);
+    items.sort((a, b) => b.d - a.d);
+    return items.slice(0, 10).map(a => {
+      const t = tone(a.d);
+      const icon = a.kind === 'Van' ? 'truck' : a.kind ? 'caravan' : 'package';
+      return `<div class="arow${s.popup && a.n === 'TR-112' ? ' hl' : ''}"><span class="ai c-${t}">${ic(icon)}</span>
+        <div class="tx"><b>${a.n}${a.kind ? `<span class="kind">${a.kind}</span>` : ''}</b><small>${a.site} - ${a.d} days on site</small></div></div>`;
+    }).join('');
+  }
+
+  function mapLayer(s) {
+    let pins = C_PINS.map(([x, y, n, d]) => `<div class="pin d-${tone(d)}" style="left:${x}px;top:${y}px">${n}</div>`).join('');
+    const yardCount = s.show === 'ct' ? 6 : 4;
+    pins += `<div class="pin d-gray" id="pin-yard" style="left:${YARD.x}px;top:${YARD.y}px">${yardCount}</div>`;
+    if (s.show === 'ct') {
+      pins += T_PINS.map(p => `<div class="pin tr d-${tone(p.d)}${s.fresh ? ' fresh' : ''}" id="${p.id}" style="left:${p.x}px;top:${p.y}px">${ic(p.k)}</div>`).join('');
+    }
+    if (s.popup) {
+      pins += `<div class="pop" style="left:520px;top:${470 - 26}px">
+        <span class="x">${ic('x')}</span>
+        <h4>TR-112 · 53' Tallside</h4>
+        <div class="kv">Dropped at Calumet HVAC</div>
+        <div class="kv">66 days on site</div>
+        <span class="lnk" id="pop-open">Open trailer${ic('arrow-right')}</span>
+      </div>`;
+    }
+    const yardRow = s.legend ? ' style="background:hsla(183,100%,33%,.10);margin:0 -4px;padding:0 4px"' : '';
+    return `<div class="map" id="map">${MAPBG}
+      <div class="mt"><span class="on">Street</span><span>Satellite</span></div>
+      ${pins}
+      <div class="legend" id="legend"><b>Days on site</b>
+        <div><i class="d-green"></i>0–30 days</div><div><i class="d-yellow"></i>31–60 days</div>
+        <div><i class="d-orange"></i>61–90 days</div><div><i class="d-red"></i>91+ days</div>
+        <div${yardRow}><i class="d-gray"></i>At yard</div></div>
+      <div class="zm"><span>+</span><span>−</span></div>
+      <div class="attr">Leaflet | © OpenStreetMap contributors</div>
+    </div>`;
+  }
+
+  function assets(s) {
+    const label = s.show === 'ct' ? 'Containers and trailers' : 'Containers';
+    const dd = s.dd ? `<div class="dd" id="dd">
+        <div class="o cur">Containers${ic('check')}</div>
+        <div class="o">Trailers</div>
+        <div class="o hv" id="opt-both">Containers and trailers</div></div>` : '';
+    return `<main class="main">
+      <div class="phead"><div class="left"><div class="crumbs"><span>Assets</span>${ic('chevron-right')}<span>Asset Map</span></div><h1>Assets</h1></div>
+        <div class="acts"><span class="rb">${ic('plus')}Add Truck</span><span class="rb">${ic('plus')}Add Trailer</span><span class="rb pri">${ic('plus')}Add Container</span></div></div>
+      <div class="ptabs"><span class="on">Asset Map</span><span>Containers</span><span>Trucks</span><span>Trailers</span></div>
+      <div class="abody">
+        <div class="alist">
+          <div class="tools"><div class="inp" style="flex:1">${ic('search')}Search Assets</div><div class="inp" style="width:150px">Sort Days on Site${ic('chevron-down', 'class="chev"')}</div><div class="inp" style="width:32px;padding:0;justify-content:center">${ic('panel-left')}</div></div>
+          <div class="lbl">Assets shown</div>
+          <div class="sel${s.dd ? ' open' : ''}" id="shown">${label}<span class="new">New</span>${ic('chevron-down')}</div>
+          ${dd}
+          <div class="rows">${assetRows(s)}</div>
+        </div>
+        ${mapLayer(s)}
+      </div>
+    </main>`;
+  }
+
+  function cover(kind) {
+    if (kind === 'intro') {
+      return `<div class="cover"><div class="card">
+        <div class="eyebrow">${ic('map')}ReSpark Asset Map</div>
+        <h2>See your dropped trailers and vans on the Asset Map</h2>
+        <p>Your trailers and vans now show on the map right next to your containers, so you know where everything you’ve dropped is sitting. It takes about 30 seconds to walk through.</p>
+        <div class="cta"><button class="go" type="button" data-go="next">Get started${ic('arrow-right')}</button></div>
+      </div></div>`;
+    }
+    return `<div class="cover"><div class="card">
+      <div class="eyebrow">${ic('circle-check')}Now on the Asset Map</div>
+      <h2>Every container, trailer and van in one place</h2>
+      <p>Switch <b>Assets shown</b> to Containers and trailers, click any pin for details, and let gray <b>At yard</b> pins stay out of the way. Trucks aren’t on the map yet.</p>
+      <div class="cta"><button class="go sec" type="button" data-go="restart">${ic('rotate-ccw')}Replay</button></div>
+    </div></div>`;
+  }
+
+  function renderApp(s) {
+    return `<div class="app">${sidebar()}${assets(s)}${s.cover ? cover(s.cover) : ''}</div>`;
+  }
+  function anchorMenus() {}
+
+  // ---------- player ----------
+  const stage = document.getElementById('stage');
+  const canvas = document.getElementById('canvas');
+  const overlay = document.getElementById('overlay');
+  const caption = document.getElementById('caption');
+  const pips = document.getElementById('pips');
+  const backBtn = document.getElementById('back');
+  const nextBtn = document.getElementById('next');
+  let step = 0;
+  const guided = STEPS.map((s, i) => (s.tip ? i : null)).filter(i => i !== null);
+
+  pips.innerHTML = STEPS.map((_, i) => `<button type="button" role="tab" aria-label="Step ${i + 1}" data-i="${i}"></button>`).join('');
+  pips.addEventListener('click', e => { const b = e.target.closest('button'); if (b) go(+b.dataset.i); });
+
+  function scale() {
+    const k = stage.clientWidth / W;
+    canvas.style.transform = `scale(${k})`;
+    document.body.classList.toggle('narrow', stage.clientWidth < 700);
+    return k;
+  }
+
+  function place() {
+    overlay.innerHTML = '';
+    const s = STEPS[step];
+    anchorMenus(s);
+    if (!s.t) return;
+    const el = canvas.querySelector(s.t);
+    if (!el) return;
+    const sr = stage.getBoundingClientRect();
+    const r = el.getBoundingClientRect();
+    const x = r.left - sr.left, y = r.top - sr.top, w = r.width, h = r.height;
+    const n = guided.indexOf(step) + 1;
+    const label = `<span class="n">Step ${n} of ${guided.length}</span>`;
+
+    const ring = document.createElement('div');
+    ring.className = 'ring';
+    Object.assign(ring.style, { left: x - 3 + 'px', top: y - 3 + 'px', width: w + 6 + 'px', height: h + 6 + 'px' });
+    const hot = document.createElement('button');
+    hot.className = 'hot';
+    hot.type = 'button';
+    hot.setAttribute('aria-label', 'Continue to next step');
+    hot.style.left = x + w / 2 + 'px';
+    hot.style.top = y + h / 2 + 'px';
+    hot.addEventListener('click', () => go(step + 1));
+    overlay.append(ring, hot);
+
+    caption.innerHTML = label + s.tip;
+    if (document.body.classList.contains('narrow')) return;
+
+    const tip = document.createElement('div');
+    tip.className = 'tip';
+    tip.innerHTML = label + s.tip;
+    overlay.append(tip);
+    const tw = tip.offsetWidth, th = tip.offsetHeight, gap = 18;
+    const SW = stage.clientWidth, SH = stage.clientHeight;
+    let tx, ty;
+    const side = s.place || 'right';
+    if (side === 'right') { tx = x + w + gap; ty = y + h / 2 - th / 2; }
+    if (side === 'left') { tx = x - tw - gap; ty = y + h / 2 - th / 2; }
+    if (side === 'bottom') { tx = x + w / 2 - tw / 2; ty = y + h + gap; }
+    if (side === 'top') { tx = x + w / 2 - tw / 2; ty = y - th - gap; }
+    if (side === 'right' && tx + tw > SW - 8) { tx = x - tw - gap; }
+    if (side === 'left' && tx < 8) { tx = x + w + gap; }
+    tx = Math.max(10, Math.min(SW - tw - 10, tx));
+    ty = Math.max(10, Math.min(SH - th - 10, ty));
+    tip.style.left = tx + 'px';
+    tip.style.top = ty + 'px';
+  }
+
+  function render() {
+    const s = STEPS[step];
+    canvas.innerHTML = renderApp(s);
+    if (window.lucide) lucide.createIcons({ attrs: { 'aria-hidden': 'true' } });
+    document.getElementById('url').textContent = 'app.respark.com' + s.url;
+    document.getElementById('progress').style.width = (step / (STEPS.length - 1)) * 100 + '%';
+    [...pips.children].forEach((b, i) => { b.className = i === step ? 'on' : i < step ? 'done' : ''; b.setAttribute('aria-selected', i === step); });
+    const n = guided.indexOf(step);
+    document.getElementById('count').textContent = s.cover === 'intro' ? 'Intro' : s.cover === 'outro' ? 'Done' : `${n + 1} / ${guided.length}`;
+    backBtn.disabled = step === 0;
+    nextBtn.disabled = step === STEPS.length - 1;
+    if (s.cover) caption.innerHTML = s.cover === 'intro'
+      ? '<span class="n">Intro</span>See your dropped trailers and vans on the Asset Map.'
+      : '<span class="n">Done</span>Containers, trailers and vans on one map. Replay any step with the bars above.';
+    scale();
+    requestAnimationFrame(place);
+  }
+
+  function go(i) {
+    step = Math.max(0, Math.min(STEPS.length - 1, i));
+    render();
+  }
+
+  canvas.addEventListener('click', e => {
+    const g = e.target.closest('[data-go]');
+    if (g) { go(g.dataset.go === 'restart' ? 0 : step + 1); return; }
+    const s = STEPS[step];
+    if (s.t && e.target.closest(s.t)) go(step + 1);
+  });
+  backBtn.addEventListener('click', () => go(step - 1));
+  nextBtn.addEventListener('click', () => go(step + 1));
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight') go(step + 1);
+    if (e.key === 'ArrowLeft') go(step - 1);
+  });
+  new ResizeObserver(() => { scale(); place(); }).observe(stage);
+  if (document.fonts) document.fonts.ready.then(place);
+
+  if (window.lucide) lucide.createIcons({ attrs: { 'aria-hidden': 'true' } });
+  render();
+})();
+</script>
