@@ -85,6 +85,8 @@ html.embed .demo { padding: 0; gap: 8px; max-width: none; }
 .demo-brand img { width: 28px; height: 28px; border-radius: 30%; flex: none; }
 .demo-brand .t { font-weight: 700; font-size: 15px; letter-spacing: -0.01em; white-space: nowrap; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .demo-brand .t span { color: var(--text-2); font-weight: 500; }
+/* Embedded: the host section already says "test drive", so show just the agent name. */
+html.embed .demo-brand .t span { display: none; }
 .badge-wrap { position: relative; }
 .badge { display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 10px; border-radius: 13px; border: 1px dashed var(--callout-line);
   background: var(--callout); color: var(--primary-dark); font-size: 12px; font-weight: 600; white-space: nowrap; }
