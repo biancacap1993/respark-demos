@@ -452,7 +452,8 @@ td { padding: 0 12px; height: 44px; border-bottom: 1px solid var(--a-border-subt
 
   function drawer(s) {
     if (!s.drawer) return '';
-    const still = STEPS[step - 1] && STEPS[step - 1].drawer && STEPS[step - 1].drawer.slice(0, 2) === s.drawer.slice(0, 2) ? ' still' : '';
+    const prev = STEPS[step - 1];
+    const still = prev && prev.drawer && prev.view === s.view ? ' still' : '';
     const shell = (title, body, foot) => `<div class="drawer${still}"><div class="dh"><h3>${title}</h3><span class="x">${ic('x')}</span></div><div class="db">${body}</div>${foot ? `<div class="df">${foot}</div>` : ''}</div>`;
     if (s.drawer === 'pkg') {
       const f = s.filled;
@@ -629,8 +630,60 @@ td { padding: 0 12px; height: 44px; border-bottom: 1px solid var(--a-border-subt
       ? '<span class="n">Intro</span>Package material from loose inventory and turn it straight into finished goods.'
       : '<span class="n">Done</span>From loose weight to package to finished goods. Replay any step with the bars above.';
     scale();
-    requestAnimationFrame(place);
+    // Measure only after entrance animations (panels sliding in, menus
+    // popping, pins dropping) finish, or the ring lands where the element
+    // was mid-animation instead of where it ends up.
+    const token = ++renderToken;
+    settle().then(() => { if (token === renderToken) place(); });
   }
+
+  let renderToken = 0;
+  function settle() {
+    const finite = (canvas.getAnimations ? canvas.getAnimations({ subtree: true }) : [])
+      .filter(a => a.effect && a.effect.getComputedTiming().iterations !== Infinity);
+    const done = Promise.all(finite.map(a => a.finished.catch(() => {})));
+    const timeout = new Promise(r => setTimeout(r, 1200));
+    // If the timeline is throttled (background tab), snap leftovers to their
+    // end state so the measurement still matches the final layout.
+    return Promise.race([done, timeout]).then(() => {
+      finite.forEach(a => { if (a.playState !== 'finished') try { a.finish(); } catch (e) {} });
+      return new Promise(r => setTimeout(r, 30));
+    });
+  }
+
+  // Self-check used before publishing: walks every step and reports any
+  // highlight that doesn't sit on its target, targets that are missing or
+  // clipped, and tooltips that cover the thing they point at.
+  function checkStep() {
+    const s = STEPS[step];
+    if (!s.t) return { step, ok: true };
+    const el = canvas.querySelector(s.t), ring = overlay.querySelector('.ring'), tip = overlay.querySelector('.tip');
+    if (!el) return { step, ok: false, why: `target ${s.t} not found` };
+    if (!ring) return { step, ok: false, why: 'highlight not drawn' };
+    const a = el.getBoundingClientRect(), b = ring.getBoundingClientRect(), st = stage.getBoundingClientRect();
+    const off = Math.max(Math.abs(a.left - 3 - b.left), Math.abs(a.top - 3 - b.top), Math.abs(a.width + 6 - b.width), Math.abs(a.height + 6 - b.height));
+    const issues = [];
+    if (off > 2) issues.push(`highlight off by ${Math.round(off)}px`);
+    if (a.width < 4 || a.height < 4) issues.push('target has no size');
+    if (a.left < st.left - 1 || a.top < st.top - 1 || a.right > st.right + 1 || a.bottom > st.bottom + 1) issues.push('target clipped by frame');
+    if (tip) {
+      const t = tip.getBoundingClientRect();
+      const ix = Math.max(0, Math.min(a.right, t.right) - Math.max(a.left, t.left)), iy = Math.max(0, Math.min(a.bottom, t.bottom) - Math.max(a.top, t.top));
+      if (ix * iy > 0.25 * a.width * a.height) issues.push('tooltip covers target');
+    }
+    return { step, target: s.t, ok: issues.length === 0, issues };
+  }
+  window.walkthroughAudit = async () => {
+    const results = [];
+    for (let i = 0; i < STEPS.length; i++) {
+      go(i);
+      await settle();
+      await new Promise(r => setTimeout(r, 60));
+      results.push(checkStep());
+    }
+    go(0);
+    return { ok: results.every(r => r.ok), problems: results.filter(r => !r.ok), steps: results.length };
+  };
 
   function go(i) {
     step = Math.max(0, Math.min(STEPS.length - 1, i));
@@ -649,7 +702,7 @@ td { padding: 0 12px; height: 44px; border-bottom: 1px solid var(--a-border-subt
     if (e.key === 'ArrowRight') go(step + 1);
     if (e.key === 'ArrowLeft') go(step - 1);
   });
-  new ResizeObserver(() => { scale(); place(); }).observe(stage);
+  new ResizeObserver(() => { scale(); settle().then(place); }).observe(stage);
   if (document.fonts) document.fonts.ready.then(place);
 
   if (window.lucide) lucide.createIcons({ attrs: { 'aria-hidden': 'true' } });
