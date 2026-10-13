@@ -1,0 +1,726 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Commercial Agent Test Drive</title>
+<meta name="description" content="Try ReSpark's Commercial Agent: a customer PO becomes a draft sales order, and buyer price sheets are compared side by side, on fictional sample data.">
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="../demo-shell/demo-shell.css?v=2">
+<style>
+/* Commercial Agent test drive. Standalone recreations of two product flows on fictional data:
+   (1) Contracts > Sales Orders > New, "AI Direct Upload" of a customer PO (EditableSalesOrderContainer,
+       AIUploadPreviewModal, AIResultsDrawer), and (2) Commodities > Price Lists > "Analyze Prices with AI",
+       which opens Sparky and runs analyze_price_sheets. No app code and no network calls. */
+.num { font-variant-numeric: tabular-nums; }
+.caps { font-size: 11px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--text-2); }
+.nav { display: flex; gap: 4px; padding: 0 16px; border-bottom: 1px solid var(--divider); overflow-x: auto; scrollbar-width: none; flex: none; }
+.nav::-webkit-scrollbar { display: none; }
+.nav button { border: 0; background: none; height: 46px; padding: 0 14px; font-size: 14px; font-weight: 600; color: var(--text-2); border-bottom: 2px solid transparent; white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; }
+.nav button:hover { color: var(--text); }
+.nav button[aria-selected="true"] { color: var(--primary); border-bottom-color: var(--primary); }
+.nav .crumb { color: var(--text-disabled); font-weight: 500; }
+.scene { flex: 1; min-height: 0; display: flex; position: relative; }
+.scene[hidden] { display: none !important; }
+.pane { flex: 1; min-width: 0; overflow-y: auto; }
+
+.mb { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 34px; padding: 0 14px; border-radius: 6px; font-size: 13.5px; font-weight: 600; border: 1px solid var(--line-12); background: transparent; color: var(--text); white-space: nowrap; }
+.mb:hover:not(:disabled) { background: var(--action-hover); }
+.mb.primary { background: var(--primary); border-color: var(--primary); color: var(--on-primary); }
+.mb.primary:hover:not(:disabled) { background: var(--primary-dark); }
+.mb:disabled { opacity: .45; cursor: not-allowed; }
+.ibtn { width: 32px; height: 32px; border-radius: 50%; border: 0; background: none; color: var(--text-2); display: inline-flex; align-items: center; justify-content: center; }
+.ibtn:hover { background: var(--action-hover); color: var(--text); }
+.chip { display: inline-flex; align-items: center; gap: 4px; height: 22px; padding: 0 8px; border-radius: 11px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+.chip.success { background: rgba(21, 128, 61, .12); color: #166534; } .chip.info { background: rgba(2, 132, 199, .12); color: #0369a1; }
+.chip.warning { background: rgba(194, 65, 12, .12); color: #9A3412; } .chip.default { background: rgba(14, 26, 47, .07); color: var(--text-2); }
+.chip.out { background: none; border: 1px solid currentColor; height: 20px; font-size: 11.5px; }
+.chip.out.p { color: var(--primary); } .chip.out.i { color: #0284C7; }
+.aichip { display: inline-flex; align-items: center; gap: 3px; height: 18px; padding: 0 6px; border-radius: 9px; font-size: 10.5px; font-weight: 700; background: rgba(46, 125, 50, .12); color: #2e7d32; }
+:root[data-theme="dark"] .chip.success, :root[data-theme="dark"] .aichip { color: #86efac; } :root[data-theme="dark"] .chip.info { color: #7dd3fc; } :root[data-theme="dark"] .chip.warning { color: #fdba74; } :root[data-theme="dark"] .chip.default { background: rgba(255, 255, 255, .08); }
+
+/* ---------- Scene 1: New Sales Order ---------- */
+.so-head { display: flex; align-items: center; gap: 10px; padding: 16px 24px; border-bottom: 1px solid var(--divider); flex-wrap: wrap; position: sticky; top: 0; background: var(--default); z-index: 5; }
+.so-head h1 { margin: 0; font-size: 21px; font-weight: 600; flex: 1; min-width: 180px; }
+.ai-btn { position: relative; width: 40px; height: 40px; border-radius: 50%; border: 0; background: var(--paper); color: #2e7d32; display: inline-flex; align-items: center; justify-content: center; isolation: isolate; }
+.ai-btn::before { content: ""; position: absolute; inset: -3px; border-radius: 50%; background: conic-gradient(from 0deg, #22c55e, #00C9D4, #a3e635, #22c55e); z-index: -2; animation: spin 2.4s linear infinite; }
+.ai-btn::after { content: ""; position: absolute; inset: 0; border-radius: 50%; background: var(--paper); z-index: -1; }
+.ai-btn:hover { color: #15803d; }
+.ai-btn.nudge { box-shadow: 0 0 0 6px rgba(34, 197, 94, .18); }
+@keyframes spin { to { transform: rotate(360deg); } }
+.so-body { padding: 18px 24px 28px; display: flex; flex-direction: column; gap: 18px; }
+.sec { border: 1px solid var(--divider); border-radius: 8px; padding: 14px 16px; background: var(--paper); }
+.sec h2 { margin: 0 0 12px; font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+.fgrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px 14px; }
+.fld { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.fld label { font-size: 12px; font-weight: 600; color: var(--text-2); display: flex; align-items: center; gap: 6px; }
+.fld input, .fld select, .fld textarea { width: 100%; border: 1px solid var(--line-12); border-radius: 6px; padding: 8px 10px; background: var(--default); font-size: 14px; min-height: 38px; }
+.fld textarea { min-height: 56px; resize: vertical; }
+.fld input:focus, .fld select:focus, .fld textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 2px rgba(0, 122, 135, .15); }
+.fld.ai input, .fld.ai select, .fld.ai textarea { background: rgba(46, 125, 50, .05); border-color: rgba(46, 125, 50, .35); }
+.fld.wide { grid-column: 1 / -1; }
+.fld .hint { font-size: 11.5px; color: var(--text-2); }
+.fld.err select { border-color: var(--error); }
+.empty-form { color: var(--text-disabled); }
+.mat-tbl { width: 100%; border-collapse: collapse; font-size: 13.5px; min-width: 620px; }
+.mat-tbl th { text-align: left; font-size: 12px; font-weight: 600; color: var(--text-2); padding: 8px; border-bottom: 1px solid var(--divider); white-space: nowrap; }
+.mat-tbl td { padding: 8px; border-bottom: 1px solid var(--divider); vertical-align: top; }
+.mat-tbl td.n, .mat-tbl th.n { text-align: right; }
+.mat-tbl select, .mat-tbl input { width: 100%; border: 1px solid var(--line-12); border-radius: 6px; padding: 6px 8px; background: var(--default); font-size: 13.5px; }
+.mat-tbl input.n { text-align: right; }
+.mat-tbl .ovr { font-size: 12px; color: var(--text-2); margin-top: 4px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.mat-tbl tr.need td { background: rgba(194, 65, 12, .05); }
+.mat-tbl .warn { color: var(--warning); font-size: 12px; font-weight: 600; display: flex; gap: 4px; align-items: center; margin-top: 4px; }
+.mat-tbl tfoot td { font-weight: 700; border-bottom: 0; }
+.scrollx { overflow-x: auto; }
+.created { display: flex; flex-direction: column; gap: 10px; }
+
+/* AI Extraction Results drawer */
+.aidrawer { width: 380px; flex: none; border-left: 1px solid var(--divider); background: var(--paper); display: flex; flex-direction: column; min-height: 0; }
+.aidrawer[hidden] { display: none; }
+.aid-h { display: flex; align-items: center; gap: 8px; padding: 12px 14px; border-bottom: 1px solid var(--divider); }
+.aid-h h2 { margin: 0; font-size: 16px; font-weight: 600; flex: 1; display: flex; align-items: center; gap: 8px; }
+.aid-h h2 svg { color: #2e7d32; }
+.aid-b { flex: 1; overflow-y: auto; padding: 12px 14px; display: flex; flex-direction: column; gap: 12px; }
+.aid-b > * { flex: none; }
+.card { border: 1px solid var(--divider); border-radius: 8px; padding: 10px 12px; font-size: 13px; }
+.card h3 { margin: 0 0 8px; font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 6px; }
+.card .kv { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin: 3px 0; }
+.card .kv span:first-child { color: var(--text-2); }
+.mline { padding: 8px 0; border-top: 1px dashed var(--divider); }
+.mline:first-of-type { border-top: 0; padding-top: 0; }
+.mline .top { display: flex; align-items: center; gap: 6px; font-weight: 600; }
+.mline .chips { display: flex; gap: 6px; margin: 4px 0; flex-wrap: wrap; }
+.mline .to { font-size: 12px; color: #2e7d32; font-weight: 600; }
+.mline .to.miss { color: var(--warning); }
+:root[data-theme="dark"] .mline .to { color: #86efac; }
+.thumbs { display: inline-flex; gap: 2px; }
+.reopen { position: absolute; top: 12px; right: 14px; width: 40px; height: 40px; border-radius: 50%; border: 0; background: var(--primary); color: var(--on-primary); display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 16px rgba(0, 0, 0, .2); z-index: 6; }
+.reopen[hidden] { display: none; }
+
+/* sample documents (rendered like a PDF / photo) */
+.doc { position: relative; background: #fff; color: #1f2937; border: 1px solid #d1d5db; border-radius: 4px; padding: 14px 16px; font-size: 11px; line-height: 1.45; box-shadow: 0 6px 16px rgba(14, 26, 47, .1); overflow: hidden; }
+.doc.photo { transform: rotate(-1deg); background: #fbfaf6; box-shadow: 0 10px 24px rgba(0, 0, 0, .2); }
+.doc.photo::after { content: ""; position: absolute; inset: 0; background: linear-gradient(115deg, transparent 55%, rgba(255, 255, 255, .5) 70%, transparent 85%); pointer-events: none; }
+.doc.csv { font-family: var(--mono); font-size: 10.5px; background: #f8fafc; }
+.doc .lh { display: flex; justify-content: space-between; gap: 8px; border-bottom: 2px solid #111827; padding-bottom: 6px; margin-bottom: 8px; }
+.doc .co { font-weight: 800; letter-spacing: .05em; font-size: 12px; }
+.doc .ttl { font-weight: 700; text-align: right; }
+.doc table { width: 100%; border-collapse: collapse; margin-top: 6px; font-variant-numeric: tabular-nums; }
+.doc th { text-align: left; font-size: 9.5px; text-transform: uppercase; color: #6b7280; border-bottom: 1px solid #9ca3af; padding: 3px; }
+.doc td { padding: 3px; border-bottom: 1px solid #e5e7eb; }
+.doc .r { text-align: right; }
+.doc .note { margin-top: 6px; color: #4b5563; }
+.doc mark { background: rgba(0, 201, 212, .22); color: inherit; }
+
+/* dialogs + processing overlay */
+dialog { border: 0; padding: 0; border-radius: 12px; background: var(--paper); color: var(--text); box-shadow: 0 24px 64px rgba(0, 0, 0, .3); width: min(560px, calc(100vw - 24px)); max-height: calc(100dvh - 32px); }
+dialog::backdrop { background: rgba(14, 26, 47, .45); }
+.dlg { display: flex; flex-direction: column; max-height: calc(100dvh - 32px); }
+.dlg-h { display: flex; align-items: center; gap: 8px; padding: 16px 20px; border-bottom: 1px solid var(--divider); }
+.dlg-h h2 { margin: 0; font-size: 17px; font-weight: 600; flex: 1; }
+.dlg-b { padding: 16px 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; font-size: 14px; }
+.dlg-b p { margin: 0; color: var(--text-2); }
+.dlg-f { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 20px; border-top: 1px solid var(--divider); }
+.pick { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; border: 1px solid var(--line-12); border-radius: 8px; background: none; padding: 10px 12px; }
+.pick:hover { border-color: var(--primary); }
+.pick[aria-pressed="true"] { border-color: var(--primary); background: rgba(0, 122, 135, .06); box-shadow: inset 0 0 0 1px var(--primary); }
+.fi { width: 30px; height: 36px; border-radius: 4px; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 3px; font-size: 8.5px; font-weight: 800; color: #fff; flex: none; }
+.fi.pdf { background: #DC2626; } .fi.jpg { background: #0284C7; } .fi.csv { background: #15803d; }
+.pick b { display: block; font-size: 14px; } .pick small { color: var(--text-2); font-size: 12.5px; }
+.overlay { position: absolute; inset: 0; background: rgba(0, 0, 0, .5); display: flex; align-items: center; justify-content: center; z-index: 30; padding: 16px; }
+.overlay[hidden] { display: none; }
+.proc { background: var(--paper); border-radius: 16px; padding: 28px 32px; width: min(380px, 100%); text-align: center; box-shadow: 0 24px 64px rgba(0, 0, 0, .35); }
+.ring { position: relative; width: 80px; height: 80px; margin: 0 auto 16px; display: flex; align-items: center; justify-content: center; color: #2e7d32; isolation: isolate; }
+.ring::before { content: ""; position: absolute; inset: 0; border-radius: 50%; background: conic-gradient(from 0deg, #22c55e, #00C9D4, transparent 70%, #22c55e); animation: spin 1.4s linear infinite; z-index: -2; }
+.ring::after { content: ""; position: absolute; inset: 6px; border-radius: 50%; background: var(--paper); z-index: -1; }
+.ring svg { width: 32px; height: 32px; animation: pulse 1.2s ease-in-out infinite; }
+@keyframes pulse { 50% { transform: scale(1.18); opacity: .7; } }
+.proc b { display: block; font-size: 15px; margin-bottom: 4px; }
+.proc span { color: var(--text-2); font-size: 13px; }
+
+/* ---------- Scene 2: Price Lists + Sparky ---------- */
+.pl-head { display: flex; align-items: center; gap: 10px; padding: 16px 24px; border-bottom: 1px solid var(--divider); flex-wrap: wrap; }
+.pl-head h1 { margin: 0; font-size: 21px; font-weight: 600; flex: 1; min-width: 160px; }
+.pl-body { padding: 16px 24px 24px; }
+.grid-tbl { width: 100%; border-collapse: collapse; font-size: 13.5px; min-width: 520px; }
+.grid-tbl th { text-align: left; font-weight: 600; color: var(--text-2); padding: 9px 12px; border-bottom: 1px solid var(--divider); background: var(--section); white-space: nowrap; }
+.grid-tbl td { padding: 9px 12px; border-bottom: 1px solid var(--divider); white-space: nowrap; }
+.grid-tbl .n { text-align: right; }
+.tbl-wrap { border: 1px solid var(--divider); border-radius: 8px; overflow: auto; }
+.spk-backdrop { position: absolute; inset: 0; background: rgba(14, 26, 47, .45); z-index: 20; display: flex; align-items: center; justify-content: center; padding: 18px; }
+.spk-backdrop[hidden] { display: none; }
+.spk { width: min(1000px, 100%); height: 100%; background: var(--default); border-radius: 16px; box-shadow: 0 24px 64px rgba(0, 0, 0, .35); display: flex; flex-direction: column; overflow: hidden; }
+.spk-h { display: flex; align-items: center; gap: 8px; padding: 6px 12px 6px 16px; border-bottom: 1px solid var(--divider); min-height: 44px; }
+.spk-h h2 { margin: 0; font-size: 16px; font-weight: 600; flex: 1; }
+.thread { flex: 1; min-height: 0; overflow-y: auto; }
+.msgs { list-style: none; margin: 0 auto; padding: 16px 24px; max-width: 860px; }
+.msg { display: flex; margin-bottom: 12px; animation: enter 200ms ease-out; }
+@keyframes enter { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+.msg.user { justify-content: flex-end; }
+.msg .avatar { width: 30px; height: 30px; border-radius: 30%; margin: 4px 12px 0 0; flex: none; }
+.bubble { min-width: 0; font-size: 14px; line-height: 1.6; word-break: break-word; }
+.bubble.user { max-width: 75%; padding: 10px 16px; border-radius: 18px 18px 6px 18px; background: var(--primary); color: var(--on-primary); box-shadow: 0 1px 2px rgba(0, 0, 0, .08); }
+.att { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
+.att span { display: inline-flex; align-items: center; gap: 4px; height: 22px; padding: 0 8px; border-radius: 11px; background: rgba(255, 255, 255, .18); font-size: 11.5px; }
+.a-wrap { flex: 1; min-width: 0; display: flex; }
+.bubble.asst { width: 92%; padding: 12px 16px; border-radius: 18px 18px 18px 6px; background: var(--paper); border: 1px solid rgba(0, 0, 0, .05); box-shadow: var(--shadow); }
+.bubble.asst.narrow { width: auto; max-width: 90%; }
+.bubble p { margin: 0 0 10px; } .bubble ul, .bubble ol { margin: 0 0 10px; padding-left: 20px; } .bubble li { margin: 2px 0; }
+.bubble h3 { margin: 16px 0 6px; font-size: 14px; font-weight: 700; }
+.bubble .content > :first-child { margin-top: 0; } .bubble .content > :last-child { margin-bottom: 0; }
+.shimmer { width: fit-content; background-image: linear-gradient(90deg, rgba(68, 81, 102, .55) 35%, var(--text) 50%, rgba(68, 81, 102, .55) 65%); background-size: 200% 100%;
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: transparent; animation: wave 2.2s linear infinite; }
+@keyframes wave { from { background-position: 200% center; } to { background-position: -200% center; } }
+.cot { margin-bottom: 8px; }
+.cot-btn { display: inline-flex; align-items: center; gap: 2px; padding: 2px 0; border: 0; background: none; color: var(--text-2); font-size: 14px; }
+.cot-btn svg { transition: transform .15s; } .cot-btn[aria-expanded="true"] svg { transform: rotate(90deg); }
+.cot-steps { margin: 2px 0 0 4px; padding-left: 10px; border-left: 2px solid var(--divider); font-size: 12px; color: var(--text-2); }
+.cot-steps[hidden] { display: none; }
+.cot-steps div { padding: 3px 0; }
+.tbl { position: relative; margin: 12px 0; }
+.tbl .exp { position: absolute; top: -10px; right: -6px; z-index: 3; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 50%; border: 1px solid var(--divider); background: var(--paper); color: var(--text-2); }
+.tbl .exp:hover { color: var(--primary); }
+.tbl .scroll { overflow: auto; max-height: 500px; }
+.tbl table { border-collapse: collapse; min-width: max-content; font-size: 13px; }
+.tbl th { position: sticky; top: 0; z-index: 2; background: #f5f5f5; font-weight: 700; border: 1px solid rgba(0, 0, 0, .12); padding: 8px 12px; text-align: left; white-space: nowrap; }
+:root[data-theme="dark"] .tbl th { background: #2a3448; }
+.tbl td { border: 1px solid var(--line-12); padding: 6px 12px; vertical-align: top; font-variant-numeric: tabular-nums; }
+.tbl td:first-child { position: sticky; left: 0; background: var(--paper); color: var(--primary); font-weight: 600; z-index: 1; }
+.tbl td.best { font-weight: 700; }
+.sugs { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; padding: 10px 24px 0; }
+.sugs:empty { display: none; }
+.sug { height: 36px; padding: 0 16px; border-radius: 18px; border: 1px solid var(--line-12); background: transparent; color: var(--text); font-weight: 500; font-size: 14px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sug:hover { background: rgba(0, 122, 135, .08); border-color: var(--primary); color: var(--primary); }
+.sheetpick { padding: 10px 24px 0; max-width: 908px; width: 100%; margin: 0 auto; }
+.sheetpick[hidden] { display: none; }
+.sheetpick .row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 6px; }
+.composer { margin: 12px auto 14px; width: calc(100% - 48px); max-width: 860px; display: flex; gap: 12px; align-items: center; background: var(--hover); border-radius: 24px; padding: 8px 10px 8px 14px; border: 1px solid var(--line-12); }
+.composer .att-ic { color: var(--text-2); display: flex; }
+.composer .txt { flex: 1; min-width: 0; font-size: 14px; color: var(--text-2); }
+.composer .txt.ready { color: var(--text); }
+.composer .send { width: 40px; height: 40px; border-radius: 12px; border: 0; display: flex; align-items: center; justify-content: center; background: var(--primary); color: #fff; flex: none; }
+.composer .send:disabled { background: rgba(0, 0, 0, .08); color: var(--text-disabled); cursor: default; }
+/* SparkyArtifact card (interactive calculator) */
+.artifact { border: 1px solid var(--divider); border-radius: 12px; padding: 14px; margin: 10px 0; background: var(--default); }
+.artifact h4 { margin: 0 0 2px; font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 6px; }
+.artifact h4 svg { color: var(--primary); }
+.artifact .sub { font-size: 12.5px; color: var(--text-2); margin-bottom: 10px; }
+.sliders { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 18px; margin-bottom: 12px; }
+.sl label { display: flex; justify-content: space-between; font-size: 12.5px; font-weight: 600; color: var(--text-2); }
+.sl label b { color: var(--text); font-variant-numeric: tabular-nums; }
+.sl input { width: 100%; accent-color: var(--primary); }
+.tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-bottom: 12px; }
+.tile { border-radius: 8px; background: var(--section); padding: 8px 10px; }
+.tile span { font-size: 11.5px; color: var(--text-2); display: block; } .tile b { font-size: 15px; font-variant-numeric: tabular-nums; }
+
+@media (max-width: 900px) {
+  .scene.so { flex-direction: column; }
+  .aidrawer { width: auto; border-left: 0; border-top: 1px solid var(--divider); max-height: none; }
+  .scene.so .pane { overflow: visible; }
+  .scene.so { overflow-y: auto; display: block; }
+  .reopen { display: none !important; }
+  .fgrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 600px) {
+  .so-head, .pl-head { padding: 12px 14px; } .so-body, .pl-body { padding: 14px 12px 22px; }
+  .fgrid { grid-template-columns: minmax(0, 1fr); }
+  .spk-backdrop { padding: 0; } .spk { border-radius: 0; }
+  .msgs { padding: 14px 12px; } .bubble.asst { width: 100%; } .msg .avatar { display: none; }
+  .sheetpick { padding: 8px 12px 0; } .sheetpick .row { grid-template-columns: minmax(0, 1fr); }
+  .composer { width: calc(100% - 24px); }
+  .sugs { flex-wrap: nowrap; overflow-x: auto; justify-content: flex-start; padding: 8px 12px 0; scrollbar-width: none; }
+  .sug { flex: none; }
+  .sliders, .tiles { grid-template-columns: minmax(0, 1fr); }
+}
+</style>
+</head>
+<body>
+<div class="demo">
+  <header class="demo-bar" id="demoBar"></header>
+  <section class="app-window" aria-label="Commercial Agent, running on sample data">
+    <div class="nav" role="tablist" aria-label="Commercial Agent tools">
+      <button type="button" role="tab" aria-selected="true" data-scene="so" aria-controls="sceneSo"><span class="crumb">Contracts ›</span> Sales Orders</button>
+      <button type="button" role="tab" aria-selected="false" data-scene="pl" aria-controls="scenePl"><span class="crumb">Commodities ›</span> Price Lists</button>
+    </div>
+    <div class="scene so" id="sceneSo">
+      <div class="pane" id="soPane"></div>
+      <aside class="aidrawer" id="aiDrawer" aria-label="AI Extraction Results" hidden></aside>
+      <button type="button" class="reopen" id="reopen" aria-label="Show AI Extraction Results" title="Show AI Extraction Results" hidden></button>
+      <div class="overlay" id="proc" hidden><div class="proc" role="status"><div class="ring" id="procRing"></div><b id="procStep">Reading your document...</b><span>AI is processing your document...</span></div></div>
+    </div>
+    <div class="scene" id="scenePl" hidden>
+      <div class="pane" id="plPane"></div>
+      <div class="spk-backdrop" id="spkWrap" hidden>
+        <div class="spk" role="dialog" aria-modal="true" aria-labelledby="spkTitle">
+          <div class="spk-h"><h2 id="spkTitle">Sparky</h2><button type="button" class="ibtn" id="spkClose" aria-label="Close Sparky"></button></div>
+          <div class="thread" id="thread" role="log" aria-live="polite" aria-busy="false"><ul class="msgs" id="msgs"></ul></div>
+          <div class="sugs" id="sugs" aria-label="Suggested follow-ups"></div>
+          <div class="sheetpick" id="sheetPick"></div>
+          <div class="composer"><span class="att-ic" id="attIc"></span><span class="txt" id="composerTxt"></span><button type="button" class="send" id="sendBtn" aria-label="Send message" disabled></button></div>
+        </div>
+      </div>
+    </div>
+  </section>
+  <p class="demo-note">Fictional sample documents. In ReSpark, the Commercial Agent works on your own POs, price sheets and customers.</p>
+</div>
+<dialog id="dlg" aria-labelledby="dlgTitle"></dialog>
+
+<script src="../demo-shell/demo-shell.js?v=2"></script>
+<script>
+(() => {
+'use strict';
+const S = DemoShell.create({
+  agent: 'commercial',
+  agentName: 'Commercial Agent',
+  toastTop: true,
+  sample: '<b>Everything here is fictional.</b> The buyers, POs, price sheets and prices are made up for this test drive. Nothing you create here is saved.',
+  onReset: () => reset(),
+  resetMessage: 'Demo reset. Both tools are back to the start.',
+});
+const { icon, esc, track, toast, sleep, REDUCED } = S;
+const $ = id => document.getElementById(id);
+const AVATAR = document.querySelector('.demo-brand img').src;
+
+/* ---------------- dates + formatting ---------------- */
+const NOW = new Date();
+const TODAY = new Date(NOW.getFullYear(), NOW.getMonth(), NOW.getDate());
+const day = n => new Date(TODAY.getFullYear(), TODAY.getMonth(), TODAY.getDate() + n);
+const iso = n => { const d = day(n); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+const fmt = n => day(n).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+const usd = (v, d = 2) => '$' + v.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
+const n0 = v => Math.round(v).toLocaleString('en-US');
+
+/* ---------------- shared sample data (same fictional yard as the other test drives) ---------------- */
+const MATS = [
+  ['BB', 'Bare Bright'], ['CU1', '#1 Copper'], ['CU2', '#2 Copper'], ['ICW1', '#1 Insulated Copper Wire'], ['ICW2', '#2 Insulated Copper Wire'],
+  ['ACR', 'Copper/Aluminum Radiators (ACR)'], ['MOT', 'Electric Motors'], ['YB', 'Yellow Brass'], ['RB', 'Red Brass'], ['BT', 'Brass Turnings'], ['DYB', 'Dirty Yellow Brass'],
+  ['EXT', '6063 Aluminum Extrusion'], ['CAST', 'Cast Aluminum'], ['HMS', 'HMS #1'],
+];
+const MAT = Object.fromEntries(MATS);
+const CUSTOMERS = ['Halverson Brass Foundry', 'Northfield Steel Mill', 'Ridgecrest Copper Refining', 'Silverpine Aluminum Smelting', 'Tri-Port Metals Trading'];
+
+/* =====================================================================
+   Scene 1: customer PO -> draft sales order
+   ===================================================================== */
+const POS = {
+  ridgecrest: {
+    key: 'ridgecrest', file: 'RCR-PO-7731.pdf', kind: 'pdf', size: '184 KB', blurb: 'Copper buyer PO · 4 lines · PDF',
+    customer: 'Ridgecrest Copper Refining', extracted: 'RIDGECREST COPPER REFINING, INC.', match: ['Exact Match (97%)', 'success'],
+    po: 'RCR-PO-7731', date: 0, ship: 30, terms: 'Net 30', currency: 'USD', delivery: 'Delivered to buyer',
+    shipTo: ['Ridgecrest Copper Refining', '2600 Smelter Way', 'Port Ellery', 'OH', '43900'],
+    notes: 'Loads must be dry and free of attachments. Call 24h before shipping.',
+    lines: [
+      { raw: 'Cu Wire, bare 18ga+', qty: 40000, price: 4.15, ai: 'BB', sugg: ['BB', 'CU1', 'ICW1'] },
+      { raw: '#2 Cu', qty: 22000, price: 3.70, ai: 'CU2', sugg: ['CU2', 'CU1', 'ICW2'] },
+      { raw: 'Berry/Candy', qty: 15000, price: 3.98, ai: 'CU1', sugg: ['CU1', 'BB', 'CU2'] },
+      { raw: 'Insulated wire, mixed (60%)', qty: 8000, price: 1.42, ai: null, sugg: ['ICW2', 'ICW1', 'MOT'] },
+    ],
+  },
+  halverson: {
+    key: 'halverson', file: 'halverson-po-photo.jpg', kind: 'jpg', size: '2.1 MB', blurb: 'Brass foundry PO · 3 lines · phone photo',
+    customer: 'Halverson Brass Foundry', extracted: 'Halverson Brass Fdry.', match: ['Most Recent Map', 'success'],
+    po: 'HBF-5521', date: -1, ship: 21, terms: 'Net 15', currency: 'USD', delivery: 'FOB our yard',
+    shipTo: ['Halverson Brass Foundry', '88 Kiln Road', 'Marrowdale', 'PA', '17010'],
+    notes: 'Brass must be free of iron. Weights per our scale.',
+    lines: [
+      { raw: 'Honey', qty: 30000, price: 2.70, ai: 'YB', sugg: ['YB', 'DYB', 'RB'] },
+      { raw: 'Ebony', qty: 12000, price: 3.05, ai: 'RB', sugg: ['RB', 'YB', 'BT'] },
+      { raw: 'Brass shells, clean', qty: 6000, price: 2.55, ai: null, sugg: ['YB', 'BT', 'DYB'] },
+    ],
+  },
+};
+let so;
+function freshSo() { return { stage: 'empty', key: null, po: null, lines: [], customer: '', edited: false, drawer: true, soNo: null }; }
+
+function poDocHtml(p) {
+  return `<div class="doc ${p.kind === 'jpg' ? 'photo' : ''}"><div class="lh"><div><div class="co">${esc(p.customer.toUpperCase())}</div><div>${esc(p.shipTo[1])}, ${esc(p.shipTo[2])}, ${esc(p.shipTo[3])}</div></div><div class="ttl">PURCHASE ORDER<br>${esc(p.po)}</div></div>
+    <div>Vendor: Millbrook Recycling · Date: ${fmt(p.date)} · Ship by: ${fmt(p.ship)} · Terms: ${esc(p.terms)} · ${esc(p.delivery)}</div>
+    <table><thead><tr><th>#</th><th>Description</th><th class="r">Qty (lb)</th><th class="r">Unit price</th><th class="r">Total</th></tr></thead>
+    <tbody>${p.lines.map((l, i) => `<tr><td>${i + 1}</td><td><mark>${esc(l.raw)}</mark></td><td class="r">${n0(l.qty)}</td><td class="r">${l.price.toFixed(2)}</td><td class="r">${n0(l.qty * l.price)}</td></tr>`).join('')}</tbody></table>
+    <div class="note">${esc(p.notes)}</div></div>`;
+}
+
+function renderSo() {
+  const p = so.po, review = so.stage === 'review' || so.stage === 'created';
+  const ai = review ? ' ai' : '';
+  const v = (x) => review ? esc(x) : '';
+  const total = so.lines.reduce((a, l) => a + l.qty * l.price, 0);
+  const needs = so.lines.filter(l => !l.mat).length;
+  const created = so.stage === 'created';
+  $('soPane').innerHTML = `<div class="so-head"><h1>${created ? `Sales Order ${so.soNo}` : 'New Sales Order'}</h1>
+      ${created ? '<span class="chip default">Draft</span>' : `<button type="button" class="ai-btn ${so.stage === 'empty' ? 'nudge' : ''}" id="aiUpload" aria-label="AI Upload Purchase Order" title="AI Upload Purchase Order">${icon('sparkle')}</button>
+      <button type="button" class="mb primary" id="createSo" ${review && !needs ? '' : 'disabled'}>Create Sales Order</button><button type="button" class="mb" id="cancelSo">Cancel</button>`}</div>
+    <div class="so-body">
+      ${so.stage === 'empty' ? S.callout('Click the glowing <b>AI Direct Upload</b> button and pick a sample customer PO. The agent fills in this sales order for you to review.') : ''}
+      ${created ? `<div class="created">${S.callout(`In ReSpark, ${so.soNo} is now saved in <b>Draft</b> with the PO attached ("View AI Source"), and the material names you confirmed teach the agent for next time. This is a test drive, so nothing was saved.`)}
+        <div><button type="button" class="mb" id="tryOther">Try the other sample PO</button> <button type="button" class="mb primary" id="goPl">Next: compare buyer price sheets</button></div></div>` : ''}
+      <section class="sec ${review ? '' : 'empty-form'}"><h2>Order details ${review ? '<span class="aichip">' + icon('sparkle', 's14') + ' Filled by AI</span>' : ''}</h2>
+        <div class="fgrid">
+          <div class="fld${ai}"><label for="fCust">Consumer Name</label><select id="fCust" ${review && !created ? '' : 'disabled'}><option value="">${review ? '' : 'Select customer'}</option>${CUSTOMERS.map(c => `<option${c === so.customer ? ' selected' : ''}>${esc(c)}</option>`).join('')}</select>${review ? `<span class="hint">AI matched "${esc(p.extracted)}" · <span class="chip ${p.match[1]}" style="height:18px;font-size:11px">${p.match[0]}</span></span>` : ''}</div>
+          <div class="fld${ai}"><label for="fPo">Customer PO #</label><input id="fPo" value="${v(p?.po)}" ${review && !created ? '' : 'disabled'}></div>
+          <div class="fld${ai}"><label for="fStatus">Status</label><select id="fStatus" disabled><option>${review ? 'Draft' : 'Open'}</option></select></div>
+          <div class="fld${ai}"><label for="fEff">Effective date</label><input type="date" id="fEff" value="${review ? iso(p.date) : ''}" ${review && !created ? '' : 'disabled'}></div>
+          <div class="fld${ai}"><label for="fExp">Expiration date</label><input type="date" id="fExp" value="${review ? iso(p.ship) : ''}" ${review && !created ? '' : 'disabled'}></div>
+          <div class="fld${ai}"><label for="fTerms">Payment terms</label><select id="fTerms" ${review && !created ? '' : 'disabled'}>${['', 'Net 15', 'Net 30', 'Net 45', 'Due on receipt'].map(t => `<option${review && t === p.terms ? ' selected' : ''}>${t}</option>`).join('')}</select></div>
+          <div class="fld${ai}"><label for="fCur">Currency</label><input id="fCur" value="${v(p?.currency)}" disabled></div>
+          <div class="fld${ai}" style="grid-column: span 2"><label for="fShip">Freight destination</label><input id="fShip" value="${review ? esc(p.shipTo.slice(1).join(', ')) : ''}" ${review && !created ? '' : 'disabled'}></div>
+          <div class="fld wide${ai}"><label for="fNotes">External Notes</label><textarea id="fNotes" ${review && !created ? '' : 'disabled'}>${v(p?.notes)}</textarea></div>
+        </div></section>
+      <section class="sec ${review ? '' : 'empty-form'}"><h2>Materials ${review && needs ? `<span class="chip warning">${needs} to review</span>` : ''}</h2>
+        ${review ? `<div class="scrollx"><table class="mat-tbl"><thead><tr><th style="width:36%">Material</th><th class="n">Target weight</th><th>Unit</th><th class="n">Sell price</th><th class="n">Line total</th></tr></thead>
+          <tbody>${so.lines.map((l, i) => `<tr class="${l.mat ? '' : 'need'}"><td>
+            <select data-line="${i}" aria-label="Material for line ${i + 1}" ${created ? 'disabled' : ''}><option value="">Select a material…</option>
+              <optgroup label="AI suggestions">${l.sugg.map(c => `<option value="${c}"${c === l.mat ? ' selected' : ''}>✦ ${esc(MAT[c])}</option>`).join('')}</optgroup>
+              <optgroup label="All materials">${MATS.filter(([c]) => !l.sugg.includes(c)).map(([c, nm]) => `<option value="${c}"${c === l.mat ? ' selected' : ''}>${esc(nm)}</option>`).join('')}</optgroup></select>
+            <div class="ovr">Name on PO: <b>${esc(l.raw)}</b>${l.mat && l.mat === l.ai ? '<span class="aichip" title="AI Suggested">' + icon('sparkle', 's14') + 'AI</span>' : l.mat ? '<span class="chip default" style="height:18px;font-size:11px">Your pick</span>' : ''}</div>
+            ${l.mat ? '' : `<div class="warn">${icon('warn', 's14')}No confident match. Pick from the AI suggestions.</div>`}</td>
+            <td class="n"><input class="n num" data-qty="${i}" value="${n0(l.qty)}" aria-label="Target weight line ${i + 1}" ${created ? 'disabled' : ''}></td><td>lb</td>
+            <td class="n"><input class="n num" data-price="${i}" value="${l.price.toFixed(2)}" aria-label="Sell price line ${i + 1}" ${created ? 'disabled' : ''}></td><td class="n num">${usd(l.qty * l.price)}</td></tr>`).join('')}</tbody>
+          <tfoot><tr><td colspan="4">Total</td><td class="n num">${usd(total)}</td></tr></tfoot></table></div>`
+          : '<p style="margin:0;font-size:13.5px">No materials yet.</p>'}
+      </section>
+    </div>`;
+  bindSo();
+}
+function bindSo() {
+  $('aiUpload')?.addEventListener('click', uploadDialog);
+  $('cancelSo')?.addEventListener('click', () => {
+    if (so.stage === 'review') { track('draft_rejected', { kind: 'sales_order', po: so.key }); toast('Draft discarded. Nothing was created.'); }
+    so = freshSo(); $('aiDrawer').hidden = true; $('reopen').hidden = true; renderSo();
+  });
+  $('createSo')?.addEventListener('click', createSo);
+  $('tryOther')?.addEventListener('click', () => { const other = so.key === 'ridgecrest' ? 'halverson' : 'ridgecrest'; so = freshSo(); runUpload(other); });
+  $('goPl')?.addEventListener('click', () => showScene('pl'));
+  const markEdit = () => { if (!so.edited) { so.edited = true; track('draft_edited', { kind: 'sales_order', po: so.key }); } };
+  $('soPane').querySelectorAll('select[data-line]').forEach(s => s.addEventListener('change', () => {
+    so.lines[+s.dataset.line].mat = s.value || null; markEdit();
+    if (s.value) track('material_picked', { po: so.key, line: +s.dataset.line, ai_suggested: so.lines[+s.dataset.line].sugg.includes(s.value) });
+    renderSo(); renderDrawer();
+  }));
+  $('soPane').querySelectorAll('input[data-qty], input[data-price]').forEach(inp => inp.addEventListener('change', () => {
+    const i = +(inp.dataset.qty ?? inp.dataset.price), v = parseFloat(inp.value.replace(/[^0-9.]/g, ''));
+    if (!isNaN(v) && v > 0) { if (inp.dataset.qty != null) so.lines[i].qty = v; else so.lines[i].price = v; markEdit(); }
+    renderSo();
+  }));
+  $('fCust')?.addEventListener('change', e => { so.customer = e.target.value; markEdit(); });
+  ['fPo', 'fEff', 'fExp', 'fTerms', 'fShip', 'fNotes'].forEach(id => $(id)?.addEventListener('change', markEdit));
+}
+function renderDrawer() {
+  const d = $('aiDrawer'), p = so.po;
+  if (!p || !so.drawer) { d.hidden = true; $('reopen').hidden = !p; return; }
+  d.hidden = false; $('reopen').hidden = true;
+  d.innerHTML = `<div class="aid-h"><h2>${icon('sparkle')}AI Extraction Results</h2><span class="thumbs"><button type="button" class="ibtn" data-fb="up" aria-label="Good extraction">👍</button><button type="button" class="ibtn" data-fb="down" aria-label="Bad extraction">👎</button></span><button type="button" class="ibtn" id="aidClose" aria-label="Close AI Extraction Results">${icon('x')}</button></div>
+    <div class="aid-b">
+      ${poDocHtml(p)}<div class="meta" style="font-size:11.5px;color:var(--text-2)">${esc(p.file)} (${p.size})</div>
+      <div class="card"><h3>Settings</h3><label style="display:flex;gap:8px;align-items:flex-start;font-size:12.5px"><input type="checkbox" disabled> <span>Do not use override names<br><span style="color:var(--text-2)">Clear all override names from materials</span></span></label></div>
+      <div class="card"><h3>${icon('briefcase', 's16')}Customer Information</h3>
+        <div class="kv"><span>Extracted:</span><b>${esc(p.extracted)}</b></div>
+        <div class="kv"><span>Matched:</span>${icon('check', 's14')}<span class="chip success">${esc(p.customer)}</span><span class="chip out p">${p.match[0]}</span></div>
+        <div class="kv"><span>PO:</span>${esc(p.po)} · <span>Date:</span>${fmt(p.date)} · <span>Terms:</span>${esc(p.terms)} · <span>Currency:</span>${p.currency}</div></div>
+      <div class="card"><h3>${icon('list', 's16')}Materials (${p.lines.length} extracted)</h3>
+        ${so.lines.map(l => `<div class="mline"><div class="top">${esc(l.raw)} ${l.ai ? `<span title="Matched to: ${esc(MAT[l.ai])}" style="color:#2e7d32;display:inline-flex">${icon('checkCircle', 's16')}</span>` : ''}</div>
+          <div class="chips"><span class="chip out p num">${n0(l.qty)} lb</span><span class="chip out i num">${usd(l.price)}</span></div>
+          ${l.ai ? `<div class="to">→ ${esc(MAT[l.ai])} (${l.ai})</div>` : l.mat ? `<div class="to">→ ${esc(MAT[l.mat])} (${l.mat}) · picked by you</div>` : '<div class="to miss">No confident match. 3 suggestions offered.</div>'}</div>`).join('')}</div>
+      <div class="card"><h3>${icon('truck', 's16')}Ship To Address</h3>${p.shipTo.map(esc).slice(0, 2).join('<br>')}<br>${esc(p.shipTo[2])}, ${esc(p.shipTo[3])} ${esc(p.shipTo[4])}</div>
+    </div>`;
+  $('aidClose').addEventListener('click', () => { so.drawer = false; renderDrawer(); });
+  d.querySelectorAll('[data-fb]').forEach(b => b.addEventListener('click', () => { toast('Thanks! In ReSpark, feedback goes to the team that tunes the agent.'); track('extraction_feedback', { value: b.dataset.fb }); }));
+}
+$('reopen').innerHTML = icon('sparkle');
+$('reopen').addEventListener('click', () => { so.drawer = true; renderDrawer(); });
+
+/* upload modal (AIUploadPreviewModal) */
+const dlg = $('dlg');
+let dlgReturn = null;
+function openDialog(html, onReady) {
+  dlgReturn = document.activeElement;
+  dlg.innerHTML = `<div class="dlg">${html}</div>`; dlg.showModal();
+  dlg.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => dlg.close()));
+  onReady && onReady(dlg);
+}
+dlg.addEventListener('close', () => dlgReturn?.focus?.());
+dlg.addEventListener('click', e => { if (e.target === dlg) dlg.close(); });
+function uploadDialog() {
+  track('upload_opened', { tool: 'sales_order' });
+  let pick = null;
+  openDialog(`<div class="dlg-h"><h2 id="dlgTitle">AI Document Upload</h2><button type="button" class="ibtn" data-close aria-label="Close">${icon('x')}</button></div>
+    <div class="dlg-b"><p>Upload a customer's purchase order (PDF, PNG or JPG). The agent fills in a draft sales order for you to review.</p>
+      <div class="caps">Choose a sample customer PO</div>
+      ${Object.values(POS).map(p => `<button type="button" class="pick" data-k="${p.key}" aria-pressed="false"><span class="fi ${p.kind}">${p.kind.toUpperCase()}</span><span><b>${esc(p.file)}</b><small>${esc(p.customer)} · ${esc(p.blurb)} · ${p.size}</small></span></button>`).join('')}
+      <div class="fld"><label for="dirs">Additional Directions (Optional)</label><input id="dirs" readonly placeholder="Not needed for the sample POs"></div></div>
+    <div class="dlg-f"><button type="button" class="mb" data-close>Cancel</button><button type="button" class="mb primary" id="doProc" disabled>${icon('sparkle', 's16')}Process with AI</button></div>`, d => {
+    d.querySelectorAll('.pick').forEach(b => b.addEventListener('click', () => { d.querySelectorAll('.pick').forEach(x => x.setAttribute('aria-pressed', x === b)); pick = b.dataset.k; d.querySelector('#doProc').disabled = false; }));
+    d.querySelector('.pick').focus();
+    d.querySelector('#doProc').addEventListener('click', () => { dlg.close(); runUpload(pick); });
+  });
+}
+async function runUpload(key) {
+  const gen = ++st.gen;
+  so.key = key; so.po = POS[key]; so.stage = 'processing';
+  S.setContext({ tool: 'sales_order', po: key });
+  track('po_uploaded', { po: key });
+  $('procRing').innerHTML = icon('sparkle');
+  $('proc').hidden = false;
+  for (const s of ['Reading your document...', 'Processing with ReSpark AI...', 'Matching customer and materials...']) {
+    $('procStep').textContent = s; await sleep(900); if (gen !== st.gen) return;
+  }
+  $('proc').hidden = true;
+  so.stage = 'review'; so.customer = so.po.customer; so.drawer = true;
+  so.lines = so.po.lines.map(l => ({ ...l, mat: l.ai }));
+  renderSo(); renderDrawer();
+  toast('AI processing complete! Populating sales order form...');
+  track('answer_shown', { tool: 'sales_order', po: key });
+}
+function createSo() {
+  so.stage = 'created'; so.soNo = 'SO-' + (1046 + (so.key === 'halverson' ? 1 : 0));
+  track('draft_approved', { kind: 'sales_order', po: so.key, edited: so.edited });
+  toast(`Sales Order #${so.soNo} created`);
+  renderSo(); renderDrawer();
+  $('soPane').scrollTop = 0;
+}
+
+/* =====================================================================
+   Scene 2: Price Lists -> "Analyze Prices with AI" -> Sparky + analyze_price_sheets
+   ===================================================================== */
+const SHEETS = [
+  { key: 'ridgecrest', buyer: 'Ridgecrest Copper Refining', file: 'Ridgecrest_prices_wk42.pdf', kind: 'pdf', tag: 'Scanned PDF', date: -6, delivered: true, freight: 4, phone: '(555) 010-2210', loc: 'Port Ellery, OH', pay: 'Net 15',
+    prices: { BB: 4.38, CU1: 4.21, CU2: 3.92 }, call: [], raw: { BB: 'BARE BRIGHT', CU1: '#1 COPPER', CU2: '#2 COPPER' }, unit: '$/lb' },
+  { key: 'triport', buyer: 'Tri-Port Metals Trading', file: 'IMG_4471.jpg', kind: 'jpg', tag: 'Phone photo', date: 0, delivered: false, freight: 0, phone: '(555) 010-3388', loc: 'Tri-Port Harbor, OH', pay: 'Net 10',
+    prices: { BB: 4.31, CU1: 4.18, CU2: 3.95, ICW1: 2.96, YB: 2.70, RB: 3.10 }, call: ['BT'], raw: { BB: 'Barley', CU1: 'Berry/Candy', CU2: 'Birch/Cliff', ICW1: 'ICW #1', YB: 'Honey', RB: 'Ebony', BT: 'Brass turnings' }, unit: '$/lb' },
+  { key: 'halverson', buyer: 'Halverson Brass Foundry', file: 'halverson_buy_prices.csv', kind: 'csv', tag: 'Spreadsheet', date: -41, delivered: true, freight: 3, phone: '(555) 010-7714', loc: 'Marrowdale, PA', pay: 'Net 30',
+    prices: { CU1: 4.15, YB: 2.79, RB: 3.22, BT: 2.46 }, call: [], raw: { CU1: 'Copper #1 Heavy', YB: 'Yellow brass solids', RB: 'Red brass', BT: 'Brass turnings' }, unit: '$/cwt' },
+];
+const ORDER = ['BB', 'CU1', 'CU2', 'ICW1', 'YB', 'RB', 'BT'];
+let chat;
+function freshChat() { return { open: false, picked: ['ridgecrest', 'triport', 'halverson'], sent: false, streaming: false, gen: 0 }; }
+
+function renderPl() {
+  $('plPane').innerHTML = `<div class="pl-head"><h1>Price Lists</h1><button type="button" class="mb" id="analyze">${icon('sparkle', 's16')}Analyze Prices with AI</button></div>
+    <div class="pl-body">${S.callout('Your buyers send price sheets as PDFs, phone photos and spreadsheets. Click <b>Analyze Prices with AI</b> and Sparky compares them side by side.')}
+      <h2 style="font-size:14px;margin:16px 0 8px">Commercial buy prices · effective ${fmt(-((TODAY.getDay() + 6) % 7))}</h2>
+      <div class="tbl-wrap"><table class="grid-tbl"><thead><tr><th>Material</th><th>Code</th><th class="n">Buy ($/lb)</th><th class="n">Last sold ($/lb)</th></tr></thead>
+      <tbody>${[['BB', 4.05, 4.36], ['CU1', 3.85, 4.17], ['CU2', 3.55, 3.90], ['ICW1', 2.60, 2.93], ['YB', 2.45, 2.71], ['RB', 2.85, 3.12], ['BT', 2.20, 2.44]].map(([c, b, s]) => `<tr><td>${esc(MAT[c])}</td><td>${c}</td><td class="n num">${b.toFixed(2)}</td><td class="n num">${s.toFixed(2)}</td></tr>`).join('')}</tbody></table></div></div>`;
+  $('analyze').addEventListener('click', openSparky);
+}
+function openSparky() {
+  chat.open = true; $('spkWrap').hidden = false;
+  track('sparky_opened', { tool: 'price_sheets' });
+  S.setContext({ tool: 'price_sheets' });
+  if (!chat.sent) renderPicker();
+  $('spkClose').focus();
+}
+function closeSparky() { chat.open = false; $('spkWrap').hidden = true; $('analyze')?.focus(); }
+$('spkClose').innerHTML = icon('x');
+$('spkClose').addEventListener('click', closeSparky);
+$('spkWrap').addEventListener('keydown', e => { if (e.key === 'Escape') closeSparky(); });
+$('attIc').innerHTML = '<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 11.5l-8.6 8.6a5.5 5.5 0 0 1-7.8-7.8l8.6-8.6a3.7 3.7 0 0 1 5.2 5.2l-8.6 8.6a1.8 1.8 0 0 1-2.6-2.6l7.9-7.9"/></svg>';
+const SEND_SVG = '<svg class="i s18" viewBox="0 0 24 24" aria-hidden="true"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4z"/></svg>';
+const STOP_SVG = '<svg class="i s18" viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="7" width="10" height="10" rx="1.5" fill="currentColor" stroke="none"/></svg>';
+$('sendBtn').innerHTML = SEND_SVG;
+const PROMPT = 'Analyze and compare my price sheets to find the best prices';
+function renderPicker() {
+  const p = $('sheetPick'); p.hidden = false;
+  p.innerHTML = `<div class="caps">Attach sample price sheets (pick at least 2)</div><div class="row">${SHEETS.map(s => `<button type="button" class="pick" data-k="${s.key}" aria-pressed="${chat.picked.includes(s.key)}"><span class="fi ${s.kind}">${s.kind.toUpperCase()}</span><span><b>${esc(s.buyer)}</b><small>${esc(s.tag)} · ${esc(s.file)}</small></span></button>`).join('')}</div>`;
+  p.querySelectorAll('.pick').forEach(b => b.addEventListener('click', () => {
+    const k = b.dataset.k; chat.picked = chat.picked.includes(k) ? chat.picked.filter(x => x !== k) : [...chat.picked, k]; renderPicker();
+  }));
+  $('composerTxt').textContent = PROMPT; $('composerTxt').classList.add('ready');
+  $('sendBtn').disabled = chat.picked.length < 2;
+  $('sendBtn').setAttribute('aria-label', 'Send message');
+}
+$('sendBtn').addEventListener('click', () => {
+  if (chat.streaming) { chat.skip = true; return; }
+  if (!chat.sent && chat.picked.length >= 2) sendCompare();
+});
+
+/* chat rendering */
+const msgs = $('msgs'), thread = $('thread');
+const scrollDown = () => { thread.scrollTop = thread.scrollHeight; };
+const wait = ms => chat.skip || REDUCED ? Promise.resolve() : sleep(ms);
+function md(s) { return esc(s).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>'); }
+function addUser(text, files) {
+  const li = document.createElement('li'); li.className = 'msg user';
+  li.innerHTML = `<div class="bubble user"><span class="sr-only">You said: </span>${esc(text)}${files ? `<div class="att">${files.map(f => `<span>📎 ${esc(f)}</span>`).join('')}</div>` : ''}</div>`;
+  msgs.appendChild(li); scrollDown();
+}
+function tableEl(cols, rows, file) {
+  const w = document.createElement('div'); w.className = 'tbl';
+  w.innerHTML = `<button type="button" class="exp" aria-label="Export to CSV" title="Export to CSV">${icon('download', 's16')}</button><div class="scroll" tabindex="0" role="region" aria-label="${esc(file)}"><table><thead><tr>${cols.map(c => `<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>${rows.map(r => `<tr>${r.map(c => `<td class="${String(c).includes('✓') ? 'best' : ''}">${md(String(c))}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+  w.querySelector('.exp').addEventListener('click', () => {
+    const csv = [cols, ...rows].map(r => r.map(v => `"${String(v).replace(/\*\*/g, '').replace(/"/g, '""')}"`).join(',')).join('\n');
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' })); a.download = `sparky-export-${iso(0)}.csv`; a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    track('table_exported', { table: file });
+  });
+  return w;
+}
+async function play(ans) {
+  chat.streaming = true; chat.skip = false; thread.setAttribute('aria-busy', 'true');
+  $('sendBtn').disabled = false; $('sendBtn').innerHTML = STOP_SVG; $('sendBtn').setAttribute('aria-label', 'Skip to the full answer');
+  $('sugs').innerHTML = '';
+  const li = document.createElement('li'); li.className = 'msg asst';
+  li.innerHTML = `<img class="avatar" src="${AVATAR}" alt="Sparky"><div class="a-wrap"><div class="bubble asst ${ans.narrow ? 'narrow' : ''}"><div class="cot"></div><div class="content"></div></div></div>`;
+  msgs.appendChild(li); scrollDown();
+  const cot = li.querySelector('.cot'), content = li.querySelector('.content');
+  cot.innerHTML = '<span class="shimmer">Thinking</span>';
+  await wait(500);
+  for (const s of ans.steps) { cot.innerHTML = `<span class="shimmer">${esc(s[0])}</span>`; await wait(1300); }
+  cot.innerHTML = ans.steps.length ? `<button type="button" class="cot-btn" aria-expanded="false">Reasoning · ${ans.steps.length} ${ans.steps.length === 1 ? 'step' : 'steps'}${icon('chevR', 's16')}</button><div class="cot-steps" hidden>${ans.steps.map(s => `<div>✓ ${esc(s[1])}</div>`).join('')}</div>` : '';
+  cot.querySelector('.cot-btn')?.addEventListener('click', e => { const b = e.currentTarget, open = b.getAttribute('aria-expanded') !== 'true'; b.setAttribute('aria-expanded', open); cot.querySelector('.cot-steps').hidden = !open; });
+  for (const b of ans.blocks) {
+    let el;
+    if (b.h) { el = document.createElement('h3'); el.textContent = b.h; }
+    else if (b.p) { el = document.createElement('p'); el.innerHTML = md(b.p); }
+    else if (b.ul) { el = document.createElement('ul'); el.innerHTML = b.ul.map(x => `<li>${md(x)}</li>`).join(''); }
+    else if (b.ol) { el = document.createElement('ol'); el.innerHTML = b.ol.map(x => `<li>${md(x)}</li>`).join(''); }
+    else if (b.table) el = tableEl(b.table.cols, b.table.rows, b.table.file);
+    else if (b.artifact) el = artifactEl(b.artifact);
+    content.appendChild(el);
+    if (thread.scrollHeight - thread.scrollTop - thread.clientHeight < 200) scrollDown();
+    await wait(b.table || b.artifact ? 350 : 160);
+  }
+  chat.streaming = false; thread.setAttribute('aria-busy', 'false');
+  $('sendBtn').innerHTML = SEND_SVG; $('sendBtn').disabled = true; $('sendBtn').setAttribute('aria-label', 'Send message');
+  $('sugs').innerHTML = (ans.sugs || []).map(s => `<button type="button" class="sug" title="${esc(s)}">${esc(s)}</button>`).join('');
+  track('answer_shown', { tool: 'price_sheets', prompt_id: ans.id });
+}
+$('sugs').addEventListener('click', e => { const b = e.target.closest('.sug'); if (b && !chat.streaming && b.textContent !== 'Go to Sales Orders') followUp(b.textContent); });
+
+/* price math */
+const sheets = () => SHEETS.filter(s => chat.picked.includes(s.key));
+const net = (s, code, fr = s.freight) => s.prices[code] != null ? s.prices[code] - (s.delivered ? fr / 100 : 0) : null;
+function bestOf(code, list, useNet, fr = {}) {
+  let best = null;
+  for (const s of list) { const v = useNet ? net(s, code, fr[s.key] ?? s.freight) : s.prices[code]; if (v != null && (!best || v > best.v)) best = { s, v }; }
+  return best;
+}
+async function sendCompare() {
+  chat.sent = true; $('sheetPick').hidden = true; $('composerTxt').textContent = 'Pick a follow-up above. In ReSpark, you can ask Sparky anything.'; $('composerTxt').classList.remove('ready');
+  const list = sheets();
+  addUser(PROMPT, list.map(s => s.file));
+  track('prompt_sent', { tool: 'price_sheets', sheets: list.length, prompt_id: 'analyze_price_sheets' });
+  const multi = ORDER.filter(c => list.filter(s => s.prices[c] != null).length >= 2);
+  const single = ORDER.filter(c => list.filter(s => s.prices[c] != null || s.call.includes(c)).length === 1);
+  const cell = (s, c) => s.prices[c] != null ? `$${s.prices[c].toFixed(2)}` : s.call.includes(c) ? 'CALL' : '—';
+  const cmpRows = multi.map(c => {
+    const b = bestOf(c, list, false); const vals = list.filter(s => s.prices[c] != null).map(s => s.prices[c]).sort((x, y) => y - x);
+    return [MAT[c], ...list.map(s => cell(s, c) + (b && b.s === s ? ' ✓' : '')), `${Math.round((vals[0] - vals[1]) * 100)}¢/lb`, `**${b.s.buyer.split(' ')[0]}**`];
+  });
+  const old = list.filter(s => s.date < -30);
+  const optA = multi.map(c => { const b = bestOf(c, list, true); return `${MAT[c]} → **${b.s.buyer}** (${usd(b.v)}/lb net)`; });
+  const allCover = list.find(s => multi.every(c => s.prices[c] != null));
+  const bb = list.find(s => s.key === 'ridgecrest') && list.find(s => s.key === 'triport') ? (net(SHEETS[0], 'BB') - SHEETS[1].prices.BB) * 40000 : null;
+  await play({
+    id: 'analyze_price_sheets',
+    steps: [['Analyzing price sheets', `Analyzed price sheets · ${list.length} documents (${list.map(s => s.tag.toLowerCase()).join(', ')})`]],
+    blocks: [
+      { h: '📄 DOCUMENT OVERVIEW' },
+      { table: { file: 'document-overview', cols: ['Buyer', 'Date', 'Location', 'Phone', 'Delivery Terms', 'Payment Terms'], rows: list.map(s => [s.buyer, fmt(s.date) + (s.date < -30 ? ' ⚠️ outdated' : ''), s.loc, s.phone, s.delivered ? 'DELIVERED (you pay freight)' : 'FOB your yard (they pick up)', s.pay]) } },
+      { h: '⚠️ IMPORTANT CAVEATS' },
+      { ul: [
+        ...old.map(s => `**${s.buyer}**'s sheet is ${-s.date} days old. Confirm prices before you ship.`),
+        ...list.filter(s => s.call.length).map(s => `**${s.buyer}** lists ${s.call.map(c => MAT[c]).join(', ')} as **CALL**, so there's no firm price.`),
+        ...list.filter(s => s.unit !== '$/lb').map(s => `**${s.buyer}** quotes in ${s.unit}. Converted to $/lb (÷100).`),
+        `Different delivery terms: ${list.filter(s => s.delivered).map(s => s.buyer.split(' ')[0]).join(' and ') || 'none'} ${list.filter(s => s.delivered).length === 1 ? 'is' : 'are'} DELIVERED; ${list.filter(s => !s.delivered).map(s => s.buyer.split(' ')[0]).join(', ') || 'none'} picks up at your yard.`,
+      ] },
+      { h: '🤝 MATERIAL COMPARISON' },
+      { p: 'Names matched across sheets ("Barley" = Bare Bright, "Honey" = Yellow Brass, "Copper #1 Heavy" = #1 Copper). Prices in $/lb, best price marked ✓.' },
+      { table: { file: 'material-comparison', cols: ['Material', ...list.map(s => s.buyer.split(' ')[0]), 'Difference', 'Best Price'], rows: cmpRows } },
+      ...(single.length ? [{ h: '📋 MATERIALS ON SINGLE SHEET' }, { ul: single.map(c => { const s = list.find(x => x.prices[c] != null || x.call.includes(c)); return `${MAT[c]}: **${s.buyer}** ${s.prices[c] != null ? `$${s.prices[c].toFixed(2)}/lb` : 'CALL'}`; }) }] : []),
+      { h: '💰 EFFECTIVE PRICE CONSIDERATIONS' },
+      { ul: [
+        ...list.filter(s => s.delivered).map(s => { const c = ORDER.find(x => s.prices[x] != null); return `${s.buyer} is DELIVERED, so factor in ~${s.freight}¢/lb freight. Net ${MAT[c]} ${usd(net(s, c))}/lb.`; }),
+        ...multi.filter(c => bestOf(c, list, false).s !== bestOf(c, list, true).s).map(c => `After freight, **${bestOf(c, list, true).s.buyer.split(' ')[0]}** beats ${bestOf(c, list, false).s.buyer.split(' ')[0]} on ${MAT[c]} (${usd(bestOf(c, list, true).v)} vs ${usd(net(bestOf(c, list, false).s, c))} net).`),
+        ...list.filter(s => !s.delivered).map(s => `${s.buyer} picks up at your yard, so their price is your net price.`),
+        bb != null ? `On a 40,000 lb load of Bare Bright, Ridgecrest still nets about **${usd(bb, 0)} more** than Tri-Port after freight.` : '',
+      ].filter(Boolean) },
+      { h: '🎯 RECOMMENDATIONS' },
+      { p: '**OPTION A: MAXIMIZE PROFIT (Split Between Buyers)**' },
+      { ul: optA },
+      ...(allCover ? [{ p: `**OPTION B: SIMPLICITY (Single Buyer)**\nShip everything to **${allCover.buyer}**. ${allCover.delivered ? '' : 'They pick up, '}one contact, one settlement. You give up the split's extra cents on ${multi.filter(c => bestOf(c, list, true).s !== allCover).map(c => MAT[c]).join(', ') || 'nothing'}.` }] : []),
+      { h: '📞 QUESTIONS TO ASK' },
+      { ol: [
+        ...old.map(s => `${s.buyer}: are these prices still current?`),
+        ...list.filter(s => s.call.length).map(s => `${s.buyer}: what's today's number on ${s.call.map(c => MAT[c]).join(', ')}?`),
+        ...list.filter(s => s.delivered).map(s => `${s.buyer}: minimum load weight, and can they pick up instead?`),
+      ].slice(0, 5) },
+    ],
+    sugs: list.some(s => s.key === 'ridgecrest') ? ['What if freight to Ridgecrest is 8¢/lb?', 'Who should get my #1 Copper?', 'Turn this into a sales order'] : ['Who should get my #1 Copper?', 'Turn this into a sales order'],
+  });
+}
+function artifactEl(a) {
+  const el = document.createElement('div'); el.className = 'artifact';
+  const fr = { ridgecrest: a.init.ridgecrest, halverson: a.init.halverson };
+  el.innerHTML = `<h4>${icon('sparkle', 's16')}Net price after freight</h4><div class="sub">Drag the sliders. Prices are $/lb after freight; best buyer per material is marked ✓.</div>
+    <div class="sliders">${a.sliders.map(s => `<div class="sl"><label for="sl-${s.key}">${esc(s.label)} <b id="slv-${s.key}">${fr[s.key]}¢/lb</b></label><input type="range" id="sl-${s.key}" min="0" max="15" step="1" value="${fr[s.key]}"></div>`).join('')}</div>
+    <div class="tiles" id="artTiles"></div><div id="artTbl"></div>`;
+  const calc = () => {
+    const list = sheets();
+    const rows = ORDER.filter(c => list.filter(s => s.prices[c] != null).length >= 2).map(c => {
+      const b = bestOf(c, list, true, fr);
+      return [MAT[c], ...list.map(s => { const v = net(s, c, fr[s.key] ?? 0); return v == null ? '—' : `$${v.toFixed(2)}${b.s === s ? ' ✓' : ''}`; })];
+    });
+    const bbBest = bestOf('BB', list, true, fr), cu1 = bestOf('CU1', list, true, fr);
+    el.querySelector('#artTiles').innerHTML = `<div class="tile"><span>Best for Bare Bright</span><b>${bbBest ? esc(bbBest.s.buyer.split(' ')[0]) + ' · ' + usd(bbBest.v) : '—'}</b></div><div class="tile"><span>Best for #1 Copper</span><b>${cu1 ? esc(cu1.s.buyer.split(' ')[0]) + ' · ' + usd(cu1.v) : '—'}</b></div>
+      <div class="tile"><span>Ridgecrest vs Tri-Port, 40k lb BB</span><b>${list.find(s => s.key === 'ridgecrest') && list.find(s => s.key === 'triport') ? ((net(SHEETS[0], 'BB', fr.ridgecrest) - SHEETS[1].prices.BB) * 40000 >= 0 ? '+' : '−') + usd(Math.abs((net(SHEETS[0], 'BB', fr.ridgecrest) - SHEETS[1].prices.BB) * 40000), 0) : '—'}</b></div>`;
+    const t = el.querySelector('#artTbl'); t.innerHTML = ''; t.appendChild(tableEl(['Material', ...list.map(s => s.buyer.split(' ')[0])], rows, 'net-after-freight'));
+  };
+  let moved = false;
+  a.sliders.forEach(s => el.querySelector(`#sl-${s.key}`).addEventListener('input', e => {
+    fr[s.key] = +e.target.value; el.querySelector(`#slv-${s.key}`).textContent = fr[s.key] + '¢/lb'; calc();
+    if (!moved) { moved = true; track('whatif_adjusted', { slider: s.key }); }
+  }));
+  calc();
+  return el;
+}
+async function followUp(text) {
+  addUser(text);
+  track('prompt_sent', { tool: 'price_sheets', source: 'suggestion', prompt_id: text.slice(0, 40) });
+  const list = sheets();
+  if (/freight/i.test(text)) {
+    const sliders = list.filter(s => s.delivered).map(s => ({ key: s.key, label: `Freight to ${s.buyer.split(' ')[0]}` }));
+    const at8 = net(SHEETS[0], 'BB', 8), tp = SHEETS[1].prices.BB;
+    await play({ id: 'whatif_freight', steps: [['Recalculating net prices', 'Recalculated net prices with your freight']],
+      blocks: [{ p: `At 8¢/lb, Ridgecrest's Bare Bright nets **${usd(at8)}/lb**, ${at8 < tp ? `below Tri-Port's ${usd(tp)}. **Tri-Port becomes the better buyer for Bare Bright.**` : `still ahead of Tri-Port's ${usd(tp)}.`} I made the comparison interactive so you can try other freight numbers:` },
+        { artifact: { sliders, init: { ridgecrest: 8, halverson: 3 } } }],
+      sugs: ['Who should get my #1 Copper?', 'Turn this into a sales order'] });
+  } else if (/#1 Copper/i.test(text)) {
+    const b = bestOf('CU1', list, true);
+    await play({ id: 'best_cu1', narrow: true, steps: [['Comparing #1 Copper', 'Compared #1 Copper net of freight']],
+      blocks: [{ p: `**${b.s.buyer}** at **${usd(b.v)}/lb** net. ${list.filter(s => s !== b.s && s.prices.CU1 != null).map(s => `${s.buyer.split(' ')[0]} nets ${usd(net(s, 'CU1'))}${s.delivered ? ` after ~${s.freight}¢ freight` : ''}`).join('; ')}.${list.some(s => s.key === 'halverson') ? ' Halverson\'s sheet is outdated, so confirm before counting on it.' : ''}` }],
+      sugs: list.some(s => s.key === 'ridgecrest') ? ['What if freight to Ridgecrest is 8¢/lb?', 'Turn this into a sales order'] : ['Turn this into a sales order'] });
+  } else {
+    await play({ id: 'to_sales_order', narrow: true, steps: [],
+      blocks: [{ p: 'Once a buyer sends their PO, the Commercial Agent turns it into a draft sales order for you to review. Nothing is created until you approve it. Try it on the **Sales Orders** tab.' }],
+      sugs: ['Go to Sales Orders'] });
+  }
+}
+$('sugs').addEventListener('click', e => { const b = e.target.closest('.sug'); if (b && b.textContent === 'Go to Sales Orders') { closeSparky(); showScene('so'); } }, true);
+
+/* ---------------- scenes, reset ---------------- */
+let st = { gen: 0 };
+function showScene(k, silent) {
+  document.querySelectorAll('.nav [data-scene]').forEach(b => b.setAttribute('aria-selected', b.dataset.scene === k));
+  $('sceneSo').hidden = k !== 'so'; $('scenePl').hidden = k !== 'pl';
+  if (!silent) track('tab_clicked', { tab: k === 'so' ? 'sales_orders' : 'price_lists' });
+}
+document.querySelector('.nav').addEventListener('click', e => { const b = e.target.closest('[data-scene]'); if (b) showScene(b.dataset.scene); });
+function reset() {
+  st.gen++;
+  if (dlg.open) dlg.close();
+  so = freshSo(); chat = freshChat();
+  $('proc').hidden = true; $('aiDrawer').hidden = true; $('reopen').hidden = true;
+  msgs.innerHTML = ''; $('sugs').innerHTML = ''; $('spkWrap').hidden = true; $('sheetPick').hidden = false;
+  S.setContext({});
+  renderSo(); renderPl(); showScene('so', true);
+}
+reset();
+if (S.DEBUG) window.__demo = { upload: k => runUpload(k), openSparky, send: () => sendCompare(), follow: followUp, state: () => ({ so, chat }) };
+})();
+</script>
+</body>
+</html>
