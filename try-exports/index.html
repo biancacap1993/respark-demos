@@ -1,0 +1,585 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Export Agent Test Drive</title>
+<meta name="description" content="Try ReSpark's Export Agent: a carrier booking confirmation fills your booking, Sparky prepares booking changes for approval, and export documents are picked by destination, on fictional sample data.">
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="../demo-shell/demo-shell.css?v=2">
+<style>
+/* Export Agent test drive. Standalone recreations of real product screens on fictional data:
+   (1) Logistics > Bookings with "AI Upload Booking Confirmation" (BookingContainer, BookingAiAutofill),
+   (2) Sparky's booking tools with the write approval card (WriteApprovalCard),
+   (3) the Export Documents modal on an export outbound ticket (ExportDocumentsModal).
+   No app code and no network calls. */
+.num { font-variant-numeric: tabular-nums; }
+.caps { font-size: 11px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--text-2); }
+.nav { display: flex; gap: 4px; padding: 0 16px; border-bottom: 1px solid var(--divider); overflow-x: auto; scrollbar-width: none; flex: none; }
+.nav::-webkit-scrollbar { display: none; }
+.nav button { border: 0; background: none; height: 46px; padding: 0 14px; font-size: 14px; font-weight: 600; color: var(--text-2); border-bottom: 2px solid transparent; white-space: nowrap; }
+.nav button:hover { color: var(--text); }
+.nav button[aria-selected="true"] { color: var(--primary); border-bottom-color: var(--primary); }
+.nav .crumb { color: var(--text-disabled); font-weight: 500; }
+.scene { flex: 1; min-height: 0; overflow-y: auto; position: relative; }
+.scene[hidden] { display: none !important; }
+
+.mb { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 34px; padding: 0 14px; border-radius: 6px; font-size: 13.5px; font-weight: 600; border: 1px solid var(--line-12); background: transparent; color: var(--text); white-space: nowrap; }
+.mb:hover:not(:disabled) { background: var(--action-hover); }
+.mb.primary { background: var(--primary); border-color: var(--primary); color: var(--on-primary); }
+.mb.primary:hover:not(:disabled) { background: var(--primary-dark); }
+.mb.sm { height: 30px; padding: 0 10px; font-size: 12.5px; }
+.mb:disabled { opacity: .45; cursor: not-allowed; }
+.ibtn { width: 32px; height: 32px; border-radius: 50%; border: 0; background: none; color: var(--text-2); display: inline-flex; align-items: center; justify-content: center; }
+.ibtn:hover { background: var(--action-hover); color: var(--text); }
+.chip { display: inline-flex; align-items: center; gap: 4px; height: 22px; padding: 0 8px; border-radius: 11px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+.chip.warning { background: rgba(194, 65, 12, .12); color: #9A3412; } .chip.info { background: rgba(2, 132, 199, .12); color: #0369a1; }
+.chip.success { background: rgba(21, 128, 61, .12); color: #166534; } .chip.default { background: rgba(14, 26, 47, .07); color: var(--text-2); }
+.chip.solidwarn { background: var(--warning); color: #fff; }
+.aichip { display: inline-flex; align-items: center; gap: 3px; height: 18px; padding: 0 6px; border-radius: 9px; font-size: 10.5px; font-weight: 700; background: rgba(46, 125, 50, .12); color: #2e7d32; }
+:root[data-theme="dark"] .chip.warning { color: #fdba74; } :root[data-theme="dark"] .chip.info { color: #7dd3fc; } :root[data-theme="dark"] .chip.success, :root[data-theme="dark"] .aichip { color: #86efac; } :root[data-theme="dark"] .chip.default { background: rgba(255, 255, 255, .08); }
+.page { padding: 18px 24px 28px; }
+.page-h { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+.page-h h1 { margin: 0; font-size: 21px; font-weight: 600; }
+.page-h .ref { color: var(--text-2); font-size: 14px; }
+.page-h .sp { flex: 1; }
+.grid-tbl { width: 100%; border-collapse: collapse; font-size: 13.5px; min-width: 900px; }
+.grid-tbl th { text-align: left; font-weight: 600; color: var(--text-2); padding: 9px 12px; border-bottom: 1px solid var(--divider); background: var(--section); white-space: nowrap; }
+.grid-tbl td { padding: 10px 12px; border-bottom: 1px solid var(--divider); white-space: nowrap; }
+.grid-tbl tr.fresh td { background: rgba(0, 201, 212, .07); }
+.grid-tbl tr.click { cursor: pointer; } .grid-tbl tr.click:hover td { background: var(--action-hover); }
+.tbl-wrap { border: 1px solid var(--divider); border-radius: 8px; overflow: auto; }
+
+/* AI upload button (AIActionButton) */
+.ai-btn { position: relative; width: 40px; height: 40px; border-radius: 50%; border: 0; background: var(--paper); color: #2e7d32; display: inline-flex; align-items: center; justify-content: center; isolation: isolate; }
+.ai-btn::before { content: ""; position: absolute; inset: -3px; border-radius: 50%; background: conic-gradient(from 0deg, #22c55e, #00C9D4, #a3e635, #22c55e); z-index: -2; animation: spin 2.4s linear infinite; }
+.ai-btn::after { content: ""; position: absolute; inset: 0; border-radius: 50%; background: var(--paper); z-index: -1; }
+.ai-btn.nudge { box-shadow: 0 0 0 6px rgba(34, 197, 94, .18); }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* booking form */
+.bk { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 18px; align-items: start; }
+.bk.nodoc { grid-template-columns: minmax(0, 1fr); }
+.sec { border-radius: 8px; padding: 14px 16px; background: var(--section); margin-bottom: 14px; }
+.sec h2 { margin: 0 0 12px; font-size: 15px; font-weight: 600; color: var(--text-2); display: flex; align-items: center; gap: 8px; }
+.fgrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 14px; }
+.fld { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.fld label { font-size: 12px; font-weight: 600; color: var(--text-2); }
+.fld input, .fld select, .fld textarea { width: 100%; border: 1px solid #D5D8DE; border-radius: 6px; padding: 8px 10px; background: var(--paper); font-size: 14px; min-height: 38px; }
+:root[data-theme="dark"] .fld input, :root[data-theme="dark"] .fld select, :root[data-theme="dark"] .fld textarea { border-color: var(--line-12); }
+.fld textarea { min-height: 90px; resize: vertical; line-height: 1.5; }
+.fld input:focus, .fld select:focus, .fld textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 2px rgba(0, 122, 135, .15); }
+.fld.ai input, .fld.ai select, .fld.ai textarea { background: rgba(46, 125, 50, .06); border-color: rgba(46, 125, 50, .45); }
+.fld.ai.flash input, .fld.ai.flash select, .fld.ai.flash textarea { animation: aiflash 1s ease-out; }
+@keyframes aiflash { from { box-shadow: 0 0 0 4px rgba(34, 197, 94, .35); } to { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); } }
+.fld .hint { font-size: 11.5px; color: var(--text-2); }
+.fld .hint.miss { color: var(--warning); font-weight: 600; }
+.fld.wide { grid-column: 1 / -1; }
+.fld.ro input, .fld.ro select, .fld.ro textarea { background: transparent; border-color: transparent; padding-left: 0; font-weight: 500; }
+.prog { height: 6px; border-radius: 3px; background: rgba(14, 26, 47, .1); overflow: hidden; margin: 6px 0; } .prog i { display: block; height: 100%; background: var(--primary); }
+.docpanel { position: sticky; top: 12px; }
+.docpanel .caps { margin-bottom: 8px; display: block; }
+.doc { position: relative; background: #fff; color: #1f2937; border: 1px solid #d1d5db; border-radius: 4px; padding: 14px 16px; font-size: 11px; line-height: 1.5; box-shadow: 0 8px 20px rgba(14, 26, 47, .12); overflow: hidden; font-family: var(--mono); }
+.doc.email { font-family: var(--font); background: #fbfbfd; }
+.doc .lh { display: flex; justify-content: space-between; border-bottom: 2px solid #111827; padding-bottom: 6px; margin-bottom: 8px; font-family: var(--font); }
+.doc .co { font-weight: 800; letter-spacing: .05em; font-size: 12px; }
+.doc .ttl { font-weight: 700; text-align: right; }
+.doc dl { display: grid; grid-template-columns: auto 1fr; gap: 1px 10px; margin: 0; }
+.doc dt { color: #6b7280; } .doc dd { margin: 0; font-weight: 600; }
+.doc mark { background: transparent; color: inherit; transition: background-color .4s; border-radius: 2px; }
+.doc mark.on { background: rgba(34, 197, 94, .22); }
+.doc .scan { position: absolute; left: 0; right: 0; height: 30px; top: -36px; background: linear-gradient(180deg, transparent, rgba(0, 201, 212, .22), transparent); pointer-events: none; }
+.doc .scan.go { animation: scan 2s ease-in-out infinite; } @keyframes scan { to { top: 100%; } }
+
+/* dialogs + processing overlay */
+dialog { border: 0; padding: 0; border-radius: 12px; background: var(--paper); color: var(--text); box-shadow: 0 24px 64px rgba(0, 0, 0, .3); width: min(600px, calc(100vw - 24px)); max-height: calc(100dvh - 32px); }
+dialog::backdrop { background: rgba(14, 26, 47, .45); }
+.dlg { display: flex; flex-direction: column; max-height: calc(100dvh - 32px); }
+.dlg-h { display: flex; align-items: center; gap: 8px; padding: 16px 20px; border-bottom: 1px solid var(--divider); flex-wrap: wrap; }
+.dlg-h h2 { margin: 0; font-size: 17px; font-weight: 600; flex: 1; }
+.dlg-b { padding: 16px 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; font-size: 14px; }
+.dlg-b p { margin: 0; color: var(--text-2); }
+.dlg-f { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 20px; border-top: 1px solid var(--divider); align-items: center; flex-wrap: wrap; }
+.dlg-f .sp { flex: 1; }
+.pick { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; border: 1px solid var(--line-12); border-radius: 8px; background: none; padding: 10px 12px; }
+.pick:hover { border-color: var(--primary); }
+.pick[aria-pressed="true"] { border-color: var(--primary); background: rgba(0, 122, 135, .06); box-shadow: inset 0 0 0 1px var(--primary); }
+.fi { width: 30px; height: 36px; border-radius: 4px; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 3px; font-size: 8.5px; font-weight: 800; color: #fff; flex: none; }
+.fi.pdf { background: #DC2626; } .fi.png { background: #0284C7; }
+.pick b { display: block; font-size: 14px; } .pick small { color: var(--text-2); font-size: 12.5px; }
+.overlay { position: absolute; inset: 0; background: rgba(0, 0, 0, .5); display: flex; align-items: center; justify-content: center; z-index: 30; padding: 16px; }
+.overlay[hidden] { display: none; }
+.proc { background: var(--paper); border-radius: 16px; padding: 28px 32px; width: min(380px, 100%); text-align: center; box-shadow: 0 24px 64px rgba(0, 0, 0, .35); }
+.ring { position: relative; width: 80px; height: 80px; margin: 0 auto 16px; display: flex; align-items: center; justify-content: center; color: #2e7d32; isolation: isolate; }
+.ring::before { content: ""; position: absolute; inset: 0; border-radius: 50%; background: conic-gradient(from 0deg, #22c55e, #00C9D4, transparent 70%, #22c55e); animation: spin 1.4s linear infinite; z-index: -2; }
+.ring::after { content: ""; position: absolute; inset: 6px; border-radius: 50%; background: var(--paper); z-index: -1; }
+.ring svg { width: 32px; height: 32px; }
+.proc b { display: block; font-size: 15px; margin-bottom: 4px; } .proc span { color: var(--text-2); font-size: 13px; }
+
+/* Sparky (scene 2) */
+.spk { max-width: 900px; margin: 0 auto; display: flex; flex-direction: column; min-height: 100%; }
+.spk-h { display: flex; align-items: center; padding: 8px 16px; border-bottom: 1px solid var(--divider); }
+.spk-h h2 { margin: 0; font-size: 16px; font-weight: 600; flex: 1; }
+.msgs { list-style: none; margin: 0; padding: 16px 24px; flex: 1; }
+.msg { display: flex; margin-bottom: 12px; animation: enter 200ms ease-out; }
+@keyframes enter { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+.msg.user { justify-content: flex-end; }
+.msg .avatar { width: 30px; height: 30px; border-radius: 30%; margin: 4px 12px 0 0; flex: none; }
+.bubble { min-width: 0; font-size: 14px; line-height: 1.6; }
+.bubble.user { max-width: 75%; padding: 10px 16px; border-radius: 18px 18px 6px 18px; background: var(--primary); color: var(--on-primary); }
+.a-wrap { flex: 1; min-width: 0; display: flex; }
+.bubble.asst { max-width: 90%; padding: 12px 16px; border-radius: 18px 18px 18px 6px; background: var(--paper); border: 1px solid rgba(0, 0, 0, .05); box-shadow: var(--shadow); }
+.bubble.asst.wide { width: 90%; }
+.bubble p { margin: 0 0 10px; } .bubble p:last-child { margin-bottom: 0; }
+.bubble a { color: var(--primary); font-weight: 600; }
+.cotline { color: var(--text-2); font-size: 14px; margin-bottom: 6px; }
+.shimmer { width: fit-content; background-image: linear-gradient(90deg, rgba(68, 81, 102, .55) 35%, var(--text) 50%, rgba(68, 81, 102, .55) 65%); background-size: 200% 100%;
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: transparent; animation: wave 2.2s linear infinite; }
+@keyframes wave { from { background-position: 200% center; } to { background-position: -200% center; } }
+.tbl { overflow-x: auto; margin: 10px 0; }
+.tbl table { border-collapse: collapse; font-size: 13px; min-width: max-content; }
+.tbl th { background: #f5f5f5; font-weight: 700; border: 1px solid rgba(0, 0, 0, .12); padding: 7px 12px; text-align: left; white-space: nowrap; }
+:root[data-theme="dark"] .tbl th { background: #2a3448; }
+.tbl td { border: 1px solid var(--line-12); padding: 6px 12px; white-space: nowrap; }
+.approval { border: 1px solid var(--warning); border-radius: 12px; background: var(--paper); padding: 16px; display: flex; flex-direction: column; gap: 12px; margin: 0 24px 12px 66px; }
+.approval .hd { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 14px; font-weight: 500; }
+.approval .kv { display: flex; gap: 12px; font-size: 13px; } .approval .kv span:first-child { min-width: 110px; font-weight: 700; }
+.approval .acts { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; } .approval .acts .sp { flex: 1; }
+.approval pre { margin: 0; padding: 12px; border-radius: 8px; background: var(--action-hover); font-family: var(--mono); font-size: 12px; overflow-x: auto; max-height: 220px; }
+.approval pre[hidden] { display: none; }
+.chg-old { text-decoration: line-through; color: var(--text-2); margin-right: 6px; }
+.sugs { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; padding: 6px 24px 0; }
+.sugs:empty { display: none; }
+.sug { height: 36px; padding: 0 16px; border-radius: 18px; border: 1px solid var(--line-12); background: transparent; color: var(--text); font-weight: 500; font-size: 14px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sug:hover { background: rgba(0, 122, 135, .08); border-color: var(--primary); color: var(--primary); }
+.composer { margin: 10px 24px 14px; display: flex; gap: 12px; align-items: center; background: var(--hover); border-radius: 24px; padding: 8px 10px 8px 18px; border: 1px solid var(--line-12); font-size: 14px; color: var(--text-2); }
+.composer > span:first-child { flex: 1; }
+.composer .send { flex: none; }
+.composer .send { width: 40px; height: 40px; border-radius: 12px; border: 0; display: flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, .08); color: var(--text-disabled); }
+.spk-hello { padding: 28px 24px 8px; }
+.spk-hello h3 { margin: 0 0 4px; font-size: 1.9rem; font-weight: 700; }
+.spk-hello h3 span { background: linear-gradient(135deg, #00C9D4 0%, #0090A0 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; font-weight: 800; }
+.spk-hello p { margin: 0; color: var(--text-2); }
+
+/* Export Documents (scene 3) */
+.obt-card { border: 1px solid var(--divider); border-radius: 8px; padding: 14px 16px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px 16px; font-size: 13.5px; margin-bottom: 14px; }
+.obt-card span { display: block; font-size: 12px; color: var(--text-2); }
+.shipments { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+.docs { display: flex; flex-direction: column; gap: 8px; }
+.dcard { display: flex; align-items: center; gap: 12px; border: 1px solid var(--divider); border-radius: 8px; padding: 10px 12px; }
+.dcard.on { border-color: var(--primary); background: rgba(0, 122, 135, .04); }
+.dcard input { width: 18px; height: 18px; accent-color: var(--primary); flex: none; }
+.dcard .t { flex: 1; min-width: 0; }
+.dcard b { display: block; font-size: 14px; }
+.dcard .st { font-size: 12.5px; display: flex; align-items: center; gap: 4px; }
+.dcard .st.ok { color: #15803d; } .dcard .st.bad { color: var(--warning); }
+:root[data-theme="dark"] .dcard .st.ok { color: #4ade80; }
+.alert { padding: 10px 12px; border-radius: 8px; font-size: 13px; background: rgba(2, 132, 199, .08); color: #075985; display: flex; gap: 8px; }
+:root[data-theme="dark"] .alert { color: #7dd3fc; }
+.paper-prev { border: 1px solid #d1d5db; background: #fff; color: #1f2937; border-radius: 4px; padding: 16px; font-size: 11.5px; box-shadow: 0 8px 20px rgba(0, 0, 0, .1); }
+.paper-prev h4 { margin: 0 0 8px; text-align: center; letter-spacing: .08em; }
+.paper-prev table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+.paper-prev td, .paper-prev th { border: 1px solid #d1d5db; padding: 4px 6px; text-align: left; }
+
+@media (max-width: 960px) { .bk { grid-template-columns: minmax(0, 1fr); } .docpanel { position: static; order: -1; } }
+@media (max-width: 600px) {
+  .page { padding: 14px 12px 22px; } .fgrid { grid-template-columns: minmax(0, 1fr); }
+  .msgs { padding: 14px 12px; } .msg .avatar { display: none; } .bubble.asst, .bubble.asst.wide { width: 100%; max-width: 100%; }
+  .approval { margin: 0 12px 12px; } .approval .kv span:first-child { min-width: 92px; }
+  .sugs { flex-wrap: nowrap; overflow-x: auto; justify-content: flex-start; padding: 6px 12px 0; scrollbar-width: none; } .sug { flex: none; }
+  .composer { margin: 10px 12px 12px; }
+  .obt-card { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+</style>
+</head>
+<body>
+<div class="demo">
+  <header class="demo-bar" id="demoBar"></header>
+  <section class="app-window" aria-label="Export Agent, running on sample data">
+    <div class="nav" role="tablist" aria-label="Export Agent tools">
+      <button type="button" role="tab" aria-selected="true" data-scene="bk"><span class="crumb">Logistics ›</span> Bookings</button>
+      <button type="button" role="tab" aria-selected="false" data-scene="spk">Ask Sparky</button>
+      <button type="button" role="tab" aria-selected="false" data-scene="docs"><span class="crumb">Outbound Tickets ›</span> Export Documents</button>
+    </div>
+    <div class="scene" id="sceneBk"></div>
+    <div class="scene" id="sceneSpk" hidden></div>
+    <div class="scene" id="sceneDocs" hidden></div>
+    <div class="overlay" id="proc" hidden><div class="proc" role="status"><div class="ring" id="procRing"></div><b id="procStep">Converting file...</b><span>AI is processing your document...</span></div></div>
+  </section>
+  <p class="demo-note">Fictional carriers, vessels and buyers. In ReSpark, the Export Agent works on your own bookings and shipments.</p>
+</div>
+<dialog id="dlg" aria-labelledby="dlgTitle"></dialog>
+
+<script src="../demo-shell/demo-shell.js?v=2"></script>
+<script>
+(() => {
+'use strict';
+const S = DemoShell.create({
+  agent: 'exports',
+  agentName: 'Export Agent',
+  toastTop: true,
+  sample: '<b>Everything here is fictional.</b> The carriers, vessels, buyers and booking numbers are made up for this test drive (the ports are real). Nothing you create is saved.',
+  onReset: () => reset(),
+  resetMessage: 'Demo reset. Everything is back to the start.',
+});
+const { icon, esc, track, toast, sleep, REDUCED } = S;
+const $ = id => document.getElementById(id);
+const AVATAR = document.querySelector('.demo-brand img').src;
+
+/* ---------------- dates ---------------- */
+const NOW = new Date();
+const TODAY = new Date(NOW.getFullYear(), NOW.getMonth(), NOW.getDate());
+const day = n => new Date(TODAY.getFullYear(), TODAY.getMonth(), TODAY.getDate() + n);
+const iso = n => { const d = day(n); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+const fmt = n => day(n).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+const fmtS = n => day(n).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+const docDate = n => day(n).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }).toUpperCase().replace(' ', '-');
+
+/* ---------------- sample data (fictional carriers/vessels/buyers; real ports) ---------------- */
+const BOOKINGS0 = () => [
+  { no: 1043, status: 'Sailed', ref: 'NLCL-4402118', line: 'Northline Container Lines', vessel: 'Northline Aurelia', voy: '209E', pol: 'Houston, US (USHOU)', pod: 'Nhava Sheva, IN (INNSA)', etd: -12, type: "40' HC", cont: [8, 8], so: 'SO-1031' },
+  { no: 1045, status: 'Confirmed', ref: 'SOLX-88016', line: 'Saltire Ocean Line', vessel: 'Saltire Wren', voy: '088W', pol: 'Houston, US (USHOU)', pod: 'Busan, KR (KRPUS)', etd: 6, type: "40' HC", cont: [3, 5], so: 'SO-1040', doc: 2, cy: 3 },
+  { no: 1046, status: 'Pending', ref: 'NLCL-4407730', line: 'Northline Container Lines', vessel: 'Northline Vesta', voy: '211E', pol: 'Savannah, US (USSAV)', pod: 'Shekou, CN (CNSHK)', etd: 15, type: "20' GP", cont: [0, 4], so: 'SO-1044', doc: 11, cy: 12 },
+];
+const CONFIRMS = {
+  northline: {
+    key: 'northline', file: 'Booking confirmation · Northline Container Lines.pdf', kind: 'pdf', size: '212 KB', blurb: 'Carrier PDF · 8 × 40′ HC · Houston → Nhava Sheva',
+    fields: { bookingNumber: 'NLCL-4471902', reference: 'MRB-EX-2047', shippingLine: 'Northline Container Lines', forwarder: 'Bluewake Logistics', vessel: 'Northline Aurelia', voyage: '214E',
+      pol: 'Houston, US (USHOU)', pod: 'Nhava Sheva, IN (INNSA)', erd: 3, cy: 9, si: null, etd: 12, eta: 41, vgm: 9, empty: 2, contract: 'NLCL-SC-26-118', count: 8, ctype: "40' HC", freeO: '7 days', freeD: '14 days' },
+    notes: ['Commodity: Copper scrap (Bare Bright, #1, #2), HS 7404.00', 'AES Cut-off: ' + fmtS(8) + ' 12:00', 'Empty pickup: Northline depot, 8900 Clinton Dr', 'Return to: Barbours Cut Terminal'],
+    missing: { si: 'SI cut-off isn\'t in this confirmation. Ask the carrier or add it when it arrives.' },
+    podRaw: 'NHAVA SHEVA (JNPT)',
+  },
+  saltire: {
+    key: 'saltire', file: 'Fwd: Booking confirmed SOLX-88544.png', kind: 'png', size: '1.4 MB', blurb: 'Email screenshot · 4 × 20′ GP · Savannah → Busan',
+    fields: { bookingNumber: 'SOLX-88544', reference: 'MRB-EX-2051', shippingLine: 'Saltire Ocean Line', forwarder: '', vessel: 'Saltire Wren', voyage: '091W',
+      pol: 'Savannah, US (USSAV)', pod: 'Busan, KR (KRPUS)', erd: 5, cy: 11, si: 10, etd: 14, eta: 44, vgm: 10, empty: 4, contract: '', count: 4, ctype: "20' GP", freeO: '5 days', freeD: '10 days' },
+    notes: ['Commodity: Aluminum scrap (6063 extrusion, cast), HS 7602.00', 'Empty pickup: Garden City depot'],
+    missing: { forwarder: 'No forwarder named. This looks like a direct carrier booking.', contract: 'No service contract number in the email.' },
+    podRaw: 'BUSAN NEW PORT',
+  },
+};
+const LINES = ['Northline Container Lines', 'Saltire Ocean Line'];
+const PORTS = ['Houston, US (USHOU)', 'Savannah, US (USSAV)', 'Nhava Sheva, IN (INNSA)', 'Busan, KR (KRPUS)', 'Shekou, CN (CNSHK)', 'Rotterdam, NL (NLRTM)'];
+const STATUS_COLOR = { Pending: 'warning', Confirmed: 'info', 'In Progress': 'info', 'At Port': 'info', Sailed: 'info', Closed: 'success', Rolled: 'warning', Void: 'default' };
+
+let st;
+function fresh() { return { bookings: BOOKINGS0(), bk: { view: 'list', key: null, filled: false, fields: {}, edited: false, created: null }, chat: { msgs: [], pending: null, used: new Set() }, docs: { ship: 'india', sel: null }, gen: 0 }; }
+
+/* =====================================================================
+   Scene 1: Bookings + AI Upload Booking Confirmation
+   ===================================================================== */
+const statusChip = s => `<span class="chip ${STATUS_COLOR[s]}">${s}</span>`;
+function renderBk() {
+  const v = st.bk.view;
+  if (v === 'list') return renderBkList();
+  if (v === 'form') return renderBkForm();
+  return renderBkDetail();
+}
+function renderBkList() {
+  $('sceneBk').innerHTML = `<div class="page"><div class="page-h"><h1>Bookings</h1><span class="sp"></span><button type="button" class="mb primary" id="newBk">+ New Booking</button></div>
+    ${st.bk.created ? '' : `<div style="margin-bottom:14px">${S.callout('Click <b>New Booking</b>, then the glowing AI button, and pick a sample carrier booking confirmation. The agent fills in the booking for you to check.')}</div>`}
+    <div class="tbl-wrap"><table class="grid-tbl"><thead><tr><th>Booking #</th><th>Status</th><th>Booking Number</th><th>Shipping Line</th><th>Vessel</th><th>POL</th><th>POD</th><th>ETD</th><th>Container Type</th><th># Containers</th><th>SO #</th></tr></thead>
+    <tbody>${st.bookings.slice().sort((a, b) => b.no - a.no).map(b => `<tr class="${b.fresh ? 'fresh click' : ''}" ${b.fresh ? `data-open="${b.no}" tabindex="0"` : ''}><td><b>${b.no}</b></td><td>${statusChip(b.status)}</td><td>${esc(b.ref)}</td><td>${esc(b.line)}</td><td>${esc(b.vessel)}</td><td>${esc(b.pol)}</td><td>${esc(b.pod)}</td><td>${fmt(b.etd)}</td><td>${b.type}</td><td class="num">${b.cont[0]}/${b.cont[1]}</td><td>${b.so || '—'}</td></tr>`).join('')}</tbody></table></div></div>`;
+  $('newBk').addEventListener('click', () => { st.bk = { view: 'form', key: null, filled: false, fields: {}, edited: false, created: st.bk.created }; renderBk(); track('new_booking_clicked'); });
+  $('sceneBk').querySelectorAll('[data-open]').forEach(r => { const go = () => { st.bk.view = 'detail'; renderBk(); }; r.addEventListener('click', go); r.addEventListener('keydown', e => { if (e.key === 'Enter') go(); }); });
+}
+const F = (id, label, value, { type = 'text', opts, ai, hint, miss, wide } = {}) => {
+  const cls = `fld${ai ? ' ai' : ''}${wide ? ' wide' : ''}`;
+  const control = type === 'select' ? `<select id="${id}"><option value=""></option>${opts.map(o => `<option${o === value ? ' selected' : ''}>${esc(o)}</option>`).join('')}</select>`
+    : type === 'textarea' ? `<textarea id="${id}">${esc(value || '')}</textarea>`
+    : `<input id="${id}" type="${type}" value="${esc(value ?? '')}">`;
+  return `<div class="${cls}" data-f="${id}"><label for="${id}">${label}</label>${control}${miss ? `<span class="hint miss">${esc(miss)}</span>` : hint ? `<span class="hint">${hint}</span>` : ''}</div>`;
+};
+function bkDocHtml(c, scanning) {
+  const f = c.fields, m = (k, txt) => `<mark data-m="${k}">${esc(txt)}</mark>`;
+  if (c.kind === 'png') return `<div class="doc email">${scanning ? '<span class="scan go"></span>' : ''}<div style="font-size:11px;color:#6b7280;border-bottom:1px solid #e5e7eb;padding-bottom:6px;margin-bottom:8px"><b style="color:#111">Fwd: Booking confirmed ${m('bookingNumber', f.bookingNumber)}</b><br>From: bookings@saltireocean.example · To: exports@millbrookrecycling.example</div>
+    Hi team, your booking is confirmed:<br><br>Vessel/Voy: ${m('vessel', f.vessel.toUpperCase())} / ${m('voyage', f.voyage)}<br>POL ${m('pol', 'SAVANNAH')} → POD ${m('pod', c.podRaw)}<br>Equip: ${m('count', f.count + 'x20GP')}<br>ERD ${m('erd', docDate(f.erd))} · SI cut ${m('si', docDate(f.si) + ' 1200')} · VGM ${m('vgm', docDate(f.vgm) + ' 1200')} · CY cut ${m('cy', docDate(f.cy) + ' 1700')}<br>ETD ${m('etd', docDate(f.etd))} / ETA ${m('eta', docDate(f.eta))}<br>Free time: ${m('freeO', f.freeO)} origin / ${m('freeD', f.freeD)} dest.<br>Empty pickup ${m('empty', docDate(f.empty))} at ${m('n1', 'Garden City depot')}<br>Your ref: ${m('reference', f.reference)}<br><br>Commodity: ${m('n0', 'ALUMINUM SCRAP 7602')}<br><br>– Saltire Ocean Line, Savannah</div>`;
+  return `<div class="doc">${scanning ? '<span class="scan go"></span>' : ''}<div class="lh"><div class="co">NORTHLINE CONTAINER LINES</div><div class="ttl">BOOKING CONFIRMATION</div></div>
+    <dl><dt>BKG NO</dt><dd>${m('bookingNumber', f.bookingNumber)}</dd><dt>SHIPPER REF</dt><dd>${m('reference', f.reference)}</dd><dt>FWD</dt><dd>${m('forwarder', f.forwarder.toUpperCase())}</dd><dt>VSL/VOY</dt><dd>${m('vessel', f.vessel.toUpperCase())} ${m('voyage', f.voyage)}</dd>
+    <dt>POL</dt><dd>${m('pol', 'HOUSTON, TX')}</dd><dt>POD</dt><dd>${m('pod', c.podRaw)}</dd><dt>EQUIP</dt><dd>${m('count', f.count + 'X40HC')}</dd><dt>ERD</dt><dd>${m('erd', docDate(f.erd))}</dd><dt>CY CUT</dt><dd>${m('cy', docDate(f.cy) + ' 1700')}</dd><dt>VGM CUT</dt><dd>${m('vgm', docDate(f.vgm) + ' 1200')}</dd>
+    <dt>ETD/ETA</dt><dd>${m('etd', docDate(f.etd))} / ${m('eta', docDate(f.eta))}</dd><dt>EMPTY REL</dt><dd>${m('empty', docDate(f.empty))}</dd><dt>SVC CONTRACT</dt><dd>${m('contract', f.contract)}</dd><dt>FREE TIME</dt><dd>${m('freeO', f.freeO.toUpperCase())} ORIG / ${m('freeD', f.freeD.toUpperCase())} DEST</dd>
+    <dt>COMMODITY</dt><dd>${m('n0', 'COPPER SCRAP 7404.00')}</dd><dt>AES CUT</dt><dd>${m('n1', docDate(8) + ' 1200')}</dd><dt>PICKUP</dt><dd>${m('n2', '8900 CLINTON DR')}</dd><dt>RETURN</dt><dd>${m('n3', 'BARBOURS CUT')}</dd></dl></div>`;
+}
+function renderBkForm() {
+  const b = st.bk, c = b.key ? CONFIRMS[b.key] : null, f = b.fields, ai = k => b.filled && c.fields[k] != null && c.fields[k] !== '';
+  const miss = k => b.filled && c.missing[k] ? c.missing[k] : null;
+  const dv = k => f[k] == null || f[k] === '' ? '' : (typeof f[k] === 'number' && ['erd', 'cy', 'si', 'etd', 'eta', 'vgm', 'empty'].includes(k) ? iso(f[k]) : f[k]);
+  $('sceneBk').innerHTML = `<div class="page"><div class="page-h"><h1>New Booking</h1><span class="sp"></span>
+      <button type="button" class="ai-btn ${b.filled ? '' : 'nudge'}" id="aiUp" aria-label="AI Upload Booking Confirmation" title="AI Upload Booking Confirmation">${icon('sparkle')}</button>
+      <button type="button" class="mb primary" id="createBk" ${b.filled ? '' : 'disabled'}>Create Booking</button><button type="button" class="mb" id="cancelBk">Cancel</button></div>
+    <div class="bk ${c ? '' : 'nodoc'}"><div>
+      <section class="sec"><h2>Booking Information ${b.filled ? `<span class="aichip">${icon('sparkle', 's14')} Filled from document</span>` : ''}</h2><div class="fgrid">
+        ${F('bookingNumber', 'Booking Number (Carrier)', dv('bookingNumber'), { ai: ai('bookingNumber') })}
+        ${F('reference', 'Reference Number', dv('reference'), { ai: ai('reference') })}
+        ${F('shippingLine', 'Shipping Line', dv('shippingLine'), { type: 'select', opts: LINES, ai: ai('shippingLine'), hint: b.filled ? 'Matched to SCAC ' + (f.shippingLine === 'Saltire Ocean Line' ? 'SOLX' : 'NLCL') : '' })}
+        ${F('forwarder', 'Forwarder / NVOCC', dv('forwarder'), { ai: ai('forwarder'), miss: miss('forwarder') })}
+        ${F('incoterm', 'Incoterm', 'CFR', { type: 'select', opts: ['CFR', 'CIF', 'FOB', 'FAS'], hint: b.filled ? 'Kept your value. AI only fills empty fields.' : '' })}
+        ${F('terminal', 'Yard / Terminal', f.terminal ?? 'Millbrook North Yard', { type: 'select', opts: ['Millbrook North Yard'] })}
+      </div></section>
+      <section class="sec"><h2>Vessel &amp; Ports</h2><div class="fgrid">
+        ${F('vessel', 'Vessel', dv('vessel'), { ai: ai('vessel') })}${F('voyage', 'Voyage', dv('voyage'), { ai: ai('voyage') })}
+        ${F('pol', 'Port of Loading (POL)', dv('pol'), { type: 'select', opts: PORTS, ai: ai('pol') })}
+        ${F('pod', 'Port of Discharge (POD)', dv('pod'), { type: 'select', opts: PORTS, ai: ai('pod'), hint: b.filled ? `Document said "${esc(c.podRaw)}"` : '' })}
+      </div></section>
+      <section class="sec"><h2>Dates &amp; Cutoffs</h2><div class="fgrid">
+        ${['erd:ERD', 'cy:CY Cut-off', 'si:SI Cut-off', 'etd:ETD', 'eta:ETA', 'vgm:VGM Cut-off', 'empty:Empty Release Date'].map(x => { const [k, l] = x.split(':'); return F(k, l, dv(k), { type: 'date', ai: ai(k), miss: miss(k) }); }).join('')}
+      </div></section>
+      <section class="sec"><h2>Export Details</h2><div class="fgrid">
+        ${F('contract', 'Service Contract #', dv('contract'), { ai: ai('contract'), miss: miss('contract') })}${F('aes', 'AES ITN', '', {})}
+        ${F('freeO', 'Free Time at Origin (demurrage)', dv('freeO'), { ai: ai('freeO') })}${F('freeD', 'Free Time at Destination (detention)', dv('freeD'), { ai: ai('freeD') })}
+        ${F('count', 'Number of Containers', dv('count'), { type: 'number', ai: ai('count') })}${F('ctype', 'Container Type', dv('ctype'), { type: 'select', opts: ["20' GP", "40' GP", "40' HC"], ai: ai('ctype') })}
+      </div></section>
+      <section class="sec"><h2>Notes &amp; Attachments</h2>${F('notes', 'Notes', (f.notes || []).join('\n'), { type: 'textarea', ai: b.filled, wide: true, hint: b.filled ? 'Details without their own field go into Notes.' : '' })}
+        ${c ? `<div class="hint" style="margin-top:8px;font-size:12.5px">📎 ${esc(c.file)} (${c.size})</div>` : ''}</section>
+    </div>
+    ${c ? `<aside class="docpanel"><span class="caps">Uploaded document</span><div id="bkDoc">${bkDocHtml(c, !b.filled)}</div></aside>` : ''}</div></div>`;
+  $('aiUp').addEventListener('click', uploadDialog);
+  $('cancelBk').addEventListener('click', () => { if (b.filled) track('draft_rejected', { kind: 'booking', doc: b.key }); st.bk.view = 'list'; renderBk(); });
+  $('createBk').addEventListener('click', createBooking);
+  $('sceneBk').querySelectorAll('.fld input, .fld select, .fld textarea').forEach(el => el.addEventListener('change', () => {
+    const k = el.id; st.bk.fields[k] = el.type === 'date' ? Math.round((new Date(el.value + 'T00:00') - TODAY) / 86400000) : k === 'notes' ? el.value.split('\n') : el.value;
+    if (b.filled && !b.edited) { b.edited = true; track('draft_edited', { kind: 'booking', doc: b.key, field: k }); }
+  }));
+}
+const dlg = $('dlg');
+let dlgReturn = null;
+function openDialog(html, onReady) {
+  dlgReturn = document.activeElement;
+  dlg.innerHTML = `<div class="dlg">${html}</div>`; dlg.showModal();
+  dlg.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => dlg.close()));
+  onReady && onReady(dlg);
+}
+dlg.addEventListener('close', () => dlgReturn?.focus?.());
+dlg.addEventListener('click', e => { if (e.target === dlg) dlg.close(); });
+const head = (t, extra = '') => `<div class="dlg-h"><h2 id="dlgTitle">${t}</h2>${extra}<button type="button" class="ibtn" data-close aria-label="Close">${icon('x')}</button></div>`;
+function uploadDialog() {
+  let pick = null;
+  track('upload_opened', { tool: 'booking' });
+  openDialog(`${head('AI Document Upload')}<div class="dlg-b"><p>Upload the carrier's booking confirmation (PDF or image). The agent fills in the empty booking fields for you to check.</p>
+    <div class="caps">Choose a sample booking confirmation</div>
+    ${Object.values(CONFIRMS).map(c => `<button type="button" class="pick" data-k="${c.key}" aria-pressed="false"><span class="fi ${c.kind}">${c.kind.toUpperCase()}</span><span><b>${esc(c.file)}</b><small>${esc(c.blurb)} · ${c.size}</small></span></button>`).join('')}
+    <div class="fld"><label for="dirs">Additional Directions (Optional)</label><input id="dirs" readonly placeholder="Not needed for the samples"></div></div>
+    <div class="dlg-f"><button type="button" class="mb" data-close>Cancel</button><button type="button" class="mb primary" id="doProc" disabled>${icon('sparkle', 's16')}Process with AI</button></div>`, d => {
+    d.querySelectorAll('.pick').forEach(b => b.addEventListener('click', () => { d.querySelectorAll('.pick').forEach(x => x.setAttribute('aria-pressed', x === b)); pick = b.dataset.k; d.querySelector('#doProc').disabled = false; }));
+    d.querySelector('.pick').focus();
+    d.querySelector('#doProc').addEventListener('click', () => { dlg.close(); processConfirm(pick); });
+  });
+}
+async function processConfirm(key) {
+  const gen = ++st.gen;
+  st.bk.key = key; st.bk.filled = false; st.bk.fields = {};
+  S.setContext({ tool: 'booking', doc: key });
+  track('document_uploaded', { tool: 'booking', doc: key });
+  renderBkForm();
+  $('procRing').innerHTML = icon('sparkle'); $('proc').hidden = false;
+  for (const s of ['Converting file...', 'Processing with ReSpark AI...']) { $('procStep').textContent = s; await sleep(1100); if (gen !== st.gen) return; }
+  $('proc').hidden = true;
+  const c = CONFIRMS[key];
+  st.bk.fields = { ...Object.fromEntries(Object.entries(c.fields).filter(([, v]) => v != null && v !== '')), notes: c.notes };
+  st.bk.filled = true;
+  renderBkForm();
+  toast('Booking fields filled from document');
+  track('answer_shown', { tool: 'booking', doc: key });
+  // light up each source value and its field together
+  const doc = $('bkDoc');
+  for (const mk of doc.querySelectorAll('mark[data-m]')) {
+    if (gen !== st.gen) return;
+    mk.classList.add('on');
+    const f = $('sceneBk').querySelector(`.fld[data-f="${mk.dataset.m}"]`) || (mk.dataset.m.startsWith('n') ? $('sceneBk').querySelector('.fld[data-f="notes"]') : null);
+    f?.classList.add('flash');
+    await sleep(110);
+  }
+}
+function createBooking() {
+  const f = st.bk.fields, no = 1047 + st.bookings.filter(b => b.fresh).length;
+  const b = { no, status: 'Pending', ref: f.bookingNumber || '—', line: f.shippingLine || '—', vessel: f.vessel || '—', voy: f.voyage, pol: f.pol || '—', pod: f.pod || '—', etd: f.etd ?? 0, type: f.ctype || '—', cont: [0, +f.count || 0], so: '', doc: f.si, cy: f.cy, fresh: true, src: st.bk.key };
+  st.bookings.push(b); st.bk.created = no; st.bk.view = 'detail';
+  track('draft_approved', { kind: 'booking', doc: st.bk.key, edited: st.bk.edited });
+  toast(`Booking ${no} created`);
+  renderBk();
+}
+function renderBkDetail() {
+  const b = st.bookings.find(x => x.no === st.bk.created);
+  $('sceneBk').innerHTML = `<div class="page"><div class="page-h"><h1>Booking ${b.no}</h1><span class="ref">${esc(b.ref)}</span>${statusChip(b.status)}<span class="sp"></span>
+      <button type="button" class="mb" data-a="print">Print</button>${b.status === 'Pending' ? '<button type="button" class="mb primary" data-a="confirm">Confirm Booking</button>' : '<button type="button" class="mb" data-a="progress">Mark as In Progress</button>'}<button type="button" class="mb" data-a="list">All bookings</button></div>
+    <div style="margin-bottom:14px">${S.callout(b.status === 'Pending'
+      ? `The booking is saved in <b>Pending</b>. Nothing goes to the carrier on its own: your team reviews it, then clicks <b>Confirm Booking</b>. In ReSpark the confirmation PDF stays attached to the booking. This is a test drive, so nothing was saved.`
+      : `Confirmed. Next, your team assigns containers as they're loaded. In ReSpark, Sparky can also roll or update this booking when the carrier changes the sailing, with your approval. Try <button type="button" class="mb sm" data-a="spk">Ask Sparky</button>`)}</div>
+    <section class="sec"><h2>Vessel &amp; Ports</h2><div class="fgrid">${[['Vessel', b.vessel], ['Voyage', b.voy], ['Port of Loading (POL)', b.pol], ['Port of Discharge (POD)', b.pod], ['ETD', fmt(b.etd)], ['CY Cut-off', b.cy != null ? fmt(b.cy) : '—']].map(([l, v]) => `<div class="fld ro"><label>${l}</label><input value="${esc(v)}" readonly></div>`).join('')}</div></section>
+    <section class="sec"><h2>Containers</h2><div class="prog"><i style="width:0%"></i></div><div class="hint" style="font-size:13px;color:var(--text-2)">${b.cont[0]} of ${b.cont[1]} containers assigned</div>
+      <p style="margin:10px 0;color:var(--text-2);font-size:13.5px">No containers assigned yet.</p><button type="button" class="mb sm" data-a="addc">+ Add Container</button></section></div>`;
+  $('sceneBk').querySelectorAll('[data-a]').forEach(x => x.addEventListener('click', () => {
+    const a = x.dataset.a;
+    if (a === 'confirm') { b.status = 'Confirmed'; track('booking_confirmed', { booking: b.no }); toast(`Booking ${b.no} confirmed`); renderBkDetail(); }
+    if (a === 'list') { st.bk.view = 'list'; renderBk(); }
+    if (a === 'print') toast('In ReSpark, this prints the booking sheet for your team and the trucker.');
+    if (a === 'progress') toast('In ReSpark, statuses move from Confirmed to In Progress, At Port and Sailed as containers load.');
+    if (a === 'addc') toast('In ReSpark, you add containers as they\'re loaded, with seal number, tare, net and VGM.');
+    if (a === 'spk') showScene('spk');
+  }));
+}
+
+/* =====================================================================
+   Scene 2: Sparky booking tools (get_bookings / create_booking / update_booking)
+   ===================================================================== */
+const CHIPS = [
+  { id: 'cutoffs', q: 'Which bookings have a cutoff this week?' },
+  { id: 'roll', q: 'Saltire rolled booking 1045 to the next sailing. Update it.' },
+  { id: 'create', q: 'Book 4 × 40HC Houston to Busan on Northline for SO-1052.' },
+];
+function renderSpk() {
+  const c = st.chat;
+  $('sceneSpk').innerHTML = `<div class="spk"><div class="spk-h"><h2>Sparky</h2><span class="caps">Bookings</span></div>
+    ${c.msgs.length ? '' : `<div class="spk-hello"><h3>Hello! I'm <span>Sparky</span></h3><p>I can look up, create and update your bookings. Every change waits for your approval.</p></div>`}
+    <ul class="msgs" id="msgs" role="log" aria-live="polite">${c.msgs.map(m => m.html).join('')}</ul>
+    <div id="apSlot"></div>
+    <div class="sugs" id="sugs">${c.pending || c.busy ? '' : CHIPS.filter(x => !c.used.has(x.id)).map(x => `<button type="button" class="sug" data-id="${x.id}">${esc(x.q)}</button>`).join('')}</div>
+    <div class="composer"><span>${c.pending ? 'Approve or reject the change above.' : 'Pick a question above. In ReSpark, you can ask Sparky anything.'}</span><span class="send" aria-hidden="true"><svg class="i s18" viewBox="0 0 24 24"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4z"/></svg></span></div></div>`;
+  if (c.pending) $('apSlot').appendChild(approvalCard(c.pending));
+  $('sugs').querySelectorAll('.sug').forEach(b => b.addEventListener('click', () => ask(b.dataset.id)));
+  $('sceneSpk').scrollTop = $('sceneSpk').scrollHeight;
+}
+const userMsg = t => ({ html: `<li class="msg user"><div class="bubble user"><span class="sr-only">You said: </span>${esc(t)}</div></li>` });
+const asstMsg = (html, wide) => ({ html: `<li class="msg"><img class="avatar" src="${AVATAR}" alt="Sparky"><div class="a-wrap"><div class="bubble asst ${wide ? 'wide' : ''}">${html}</div></div></li>` });
+async function thinking(label) {
+  st.chat.busy = true;
+  st.chat.msgs.push(asstMsg(`<div class="cotline"><span class="shimmer">${esc(label)}</span></div>`)); renderSpk();
+  await sleep(1300);
+  st.chat.msgs.pop(); st.chat.busy = false;
+}
+async function ask(id) {
+  const c = st.chat, chip = CHIPS.find(x => x.id === id);
+  c.used.add(id); c.msgs.push(userMsg(chip.q)); renderSpk();
+  S.setContext({ tool: 'sparky' });
+  track('prompt_sent', { tool: 'sparky', prompt_id: id });
+  if (id === 'cutoffs') {
+    await thinking('Checking bookings');
+    const rows = st.bookings.filter(b => b.cy != null && b.cy >= 0 && b.cy <= 7 && b.status !== 'Void');
+    c.msgs.push(asstMsg(`<div class="cotline">Reasoning · 1 step</div><p><b>${rows.length} booking${rows.length === 1 ? '' : 's'}</b> ${rows.length === 1 ? 'has' : 'have'} a cutoff in the next 7 days:</p>
+      <div class="tbl"><table><thead><tr><th>Booking #</th><th>Shipping Line</th><th>Vessel</th><th>CY Cut-off</th><th>ETD</th><th>Containers</th></tr></thead><tbody>${rows.map(b => `<tr><td><a href="#" data-goto="${b.no}">${b.no}</a></td><td>${esc(b.line)}</td><td>${esc(b.vessel)} ${esc(b.voy || '')}</td><td>${fmtS(b.cy)}</td><td>${fmtS(b.etd)}</td><td>${b.cont[0]}/${b.cont[1]}${b.cont[0] < b.cont[1] ? ' ⚠️' : ''}</td></tr>`).join('')}</tbody></table></div>
+      <p>${rows.some(b => b.cont[0] < b.cont[1]) ? 'Booking 1045 still has 2 of 5 containers unassigned before its CY cutoff.' : ''}</p><p style="font-size:12.5px;color:var(--text-2)"><b>Filters applied:</b> CY cut-off ${fmtS(0)} – ${fmtS(7)} · excludes void bookings</p>`, true));
+    renderSpk(); track('answer_shown', { tool: 'sparky', prompt_id: id });
+  } else if (id === 'roll') {
+    await thinking('Preparing booking update');
+    c.msgs.push(asstMsg(`<div class="cotline">Reasoning · 2 steps</div><p>Booking 1045 is on the <b>Saltire Wren 088W</b>. The next Saltire sailing from Houston to Busan is the <b>Saltire Petrel 090W</b>, a week later. I've prepared the change. Review it below. Nothing changes until you approve.</p>`));
+    c.pending = { tool: 'update_booking', title: 'Sparky wants to update booking', rows: [['Booking', 'Booking #1045 — Saltire Ocean Line (Saltire Wren)'], ['Current status', 'Confirmed'], ['New status', 'Rolled'], ['Vessel', ['Saltire Wren / 088W', 'Saltire Petrel / 090W']], ['ETD', [fmt(6), fmt(13)]], ['Doc cutoff', [fmt(2), fmt(9)]], ['Cargo cutoff', [fmt(3), fmt(10)]]],
+      args: { bookingNumber: 1045, status: 'ROLLED', vessel: 'Saltire Petrel', voyage: '090W', etd: iso(13), docCutoff: iso(9), cutoff: iso(10) } };
+    renderSpk(); track('answer_shown', { tool: 'sparky', prompt_id: id });
+  } else {
+    await thinking('Preparing booking');
+    c.msgs.push(asstMsg(`<div class="cotline">Reasoning · 2 steps</div><p>I found the next Northline sailing from Houston to Busan and prepared a booking for <b>SO-1052</b>. Review it below. Nothing is created until you approve, and containers get assigned later.</p>`));
+    c.pending = { tool: 'create_booking', title: 'Sparky wants to create booking', rows: [['Carrier', 'Northline Container Lines'], ['Booking ref', 'SO-1052'], ['Load port', 'Houston, US (USHOU)'], ['Discharge port', 'Busan, KR (KRPUS)'], ['Containers', '4 × 40HC'], ['Vessel', 'Northline Vesta / 212E'], ['ETD', fmt(18)], ['ETA', fmt(42)], ['Notes', 'Aluminum scrap for Pearl Delta Metals Co.']],
+      args: { carrierName: 'Northline Container Lines', bookingReferenceNumber: 'SO-1052', portOfLoading: 'Houston', portOfDischarge: 'Busan', numberOfContainers: 4, containerType: '40HC', vessel: 'Northline Vesta', voyage: '212E', etd: iso(18), eta: iso(42) } };
+    renderSpk(); track('answer_shown', { tool: 'sparky', prompt_id: id });
+  }
+}
+function approvalCard(p) {
+  const el = document.createElement('div'); el.className = 'approval'; el.setAttribute('role', 'group'); el.setAttribute('aria-label', 'Approval needed');
+  el.innerHTML = `<div class="hd"><span class="chip solidwarn">Approval needed</span><span>${p.title}</span></div>
+    <div>${p.rows.map(([k, v]) => `<div class="kv"><span>${k}</span><span>${Array.isArray(v) ? `<span class="chg-old">${esc(v[0])}</span>${esc(v[1])}` : esc(v)}</span></div>`).join('')}</div>
+    <div class="acts"><button type="button" class="mb primary" data-d="approve">${icon('check', 's16')}Approve</button><button type="button" class="mb" data-d="reject">${icon('x', 's16')}Reject</button><span class="sp"></span><button type="button" class="mb sm" data-d="raw" style="border-color:transparent;color:var(--text-2)" aria-expanded="false">Technical details</button></div>
+    <pre hidden>${esc(JSON.stringify([{ tool: p.tool, arguments: p.args }], null, 2))}</pre>`;
+  el.addEventListener('click', e => {
+    const b = e.target.closest('[data-d]'); if (!b) return;
+    if (b.dataset.d === 'raw') { const pre = el.querySelector('pre'); pre.hidden = !pre.hidden; b.setAttribute('aria-expanded', !pre.hidden); return; }
+    decide(p, b.dataset.d === 'approve');
+  });
+  return el;
+}
+async function decide(p, ok) {
+  const c = st.chat; c.pending = null;
+  track(ok ? 'action_approved' : 'action_rejected', { action: p.tool });
+  await thinking(ok ? (p.tool === 'create_booking' ? 'Creating booking' : 'Updating booking') : 'Cancelling');
+  if (!ok) c.msgs.push(asstMsg('<p>No problem, I didn\'t change anything.</p>'));
+  else if (p.tool === 'update_booking') {
+    const b = st.bookings.find(x => x.no === 1045); Object.assign(b, { status: 'Rolled', vessel: 'Saltire Petrel', voy: '090W', etd: 13, doc: 9, cy: 10 });
+    c.msgs.push(asstMsg(`${S.callout('In ReSpark, booking 1045 is now updated and rolled, with the change in its activity log. This is a test drive, so nothing changed for real.')}<p style="margin-top:10px">Booking 1045 is now on the <b>Saltire Petrel 090W</b>, ETD ${fmt(13)}.</p>`));
+  } else {
+    const no = 1047 + st.bookings.filter(b => b.fresh).length;
+    st.bookings.push({ no, status: 'Pending', ref: 'SO-1052', line: 'Northline Container Lines', vessel: 'Northline Vesta', voy: '212E', pol: 'Houston, US (USHOU)', pod: 'Busan, KR (KRPUS)', etd: 18, type: "40' HC", cont: [0, 4], so: 'SO-1052', fresh: true, cy: 14 });
+    c.msgs.push(asstMsg(`${S.callout('In ReSpark, approving creates the booking in Pending and links it to SO-1052. This is a test drive, so nothing was created.')}<p style="margin-top:10px">Booking #${no} created. It's on the <b>Bookings</b> tab.</p>`));
+  }
+  renderSpk();
+}
+$('sceneSpk').addEventListener('click', e => { const a = e.target.closest('[data-goto]'); if (a) { e.preventDefault(); toast(`In ReSpark, this opens booking ${a.dataset.goto}.`); } });
+
+/* =====================================================================
+   Scene 3: Export Documents modal (rule-based, by destination country)
+   ===================================================================== */
+const SHIPS = {
+  india: { label: 'India', obt: 'OBT-31160', so: 'SO-1049', buyer: 'Kaveri Reclaim Metals Pvt. Ltd.', material: 'Copper scrap, 8 × 40′ HC', booking: 'NLCL-4471902',
+    docs: [['Provisional Invoice', 0], ['Packing List', 0], ['Certificate of Origin', 0], ['Freight Certificate', 0], ['Non-Radioactivity Certificate', 0], ['Form 6', 2, true], ['Form 9', 0, true], ['No War Certificate', 0], ['Analysis Certificate', 1]] },
+  china: { label: 'China', obt: 'OBT-31166', so: 'SO-1044', buyer: 'Pearl Delta Metals Co.', material: 'Aluminum scrap, 4 × 20′ GP', booking: 'NLCL-4407730',
+    docs: [['Provisional Invoice', 0], ['Packing List', 0], ['Certificate of Origin', 0], ['No Wood Declaration', 0]] },
+  netherlands: { label: 'Netherlands', obt: 'OBT-31171', so: 'SO-1050', buyer: 'Saltmere Metaal B.V.', material: 'Brass scrap, 2 × 20′ GP', booking: 'SOLX-88602',
+    docs: [['Provisional Invoice', 0], ['Packing List', 0], ['Certificate of Origin', 1], ['Annex VII', 3, true]] },
+};
+const ALL_DOCS = ['Provisional Invoice', 'Packing List', 'Certificate of Origin', 'No Wood Declaration', 'Freight Certificate', 'Non-Radioactivity Certificate', 'Form 6', 'Form 9', 'No War Certificate', 'Analysis Certificate', 'Annex VII'];
+function renderDocs() {
+  const s = SHIPS[st.docs.ship];
+  $('sceneDocs').innerHTML = `<div class="page"><div class="page-h"><h1>Outbound Ticket ${s.obt}</h1><span class="chip info">Export</span><span class="sp"></span><button type="button" class="mb primary" id="openDocs">${icon('receipt', 's16')}Export Documents</button></div>
+    <div class="caps" style="margin-bottom:6px">Sample export shipments</div>
+    <div class="shipments" role="group" aria-label="Sample export shipments">${Object.entries(SHIPS).map(([k, v]) => `<button type="button" class="mb sm ${k === st.docs.ship ? 'primary' : ''}" data-ship="${k}" aria-pressed="${k === st.docs.ship}">To ${v.label}</button>`).join('')}</div>
+    <div class="obt-card"><div><span>Sales order</span><b>${s.so}</b></div><div><span>Buyer</span><b>${esc(s.buyer)}</b></div><div><span>Material</span><b>${esc(s.material)}</b></div><div><span>Booking</span><b>${s.booking}</b></div></div>
+    ${S.callout(`Click <b>Export Documents</b>. ReSpark picks the documents this destination needs and checks which ones are missing data. This part is rule-based, not AI, and every document is printed by a person.`)}</div>`;
+  $('sceneDocs').querySelectorAll('[data-ship]').forEach(b => b.addEventListener('click', () => { st.docs.ship = b.dataset.ship; st.docs.sel = null; renderDocs(); track('shipment_picked', { destination: b.dataset.ship }); }));
+  $('openDocs').addEventListener('click', docsDialog);
+}
+function docsDialog() {
+  const s = SHIPS[st.docs.ship];
+  const auto = new Set(s.docs.map(d => d[0]));
+  const sel = st.docs.sel || new Set(auto);
+  const info = Object.fromEntries(s.docs.map(d => [d[0], d]));
+  track('export_documents_opened', { destination: st.docs.ship });
+  const render = d => {
+    d.querySelector('#cnt').textContent = `${sel.size} of ${ALL_DOCS.length} documents selected`;
+    d.querySelector('#printBtn').textContent = `Print Selected (${sel.size})`; d.querySelector('#printBtn').disabled = !sel.size;
+    d.querySelectorAll('.dcard').forEach(c => c.classList.toggle('on', sel.has(c.dataset.doc)));
+  };
+  openDialog(`${head('Export Documents', `<span class="chip info">Destination: ${s.label}</span>`)}
+    <div class="dlg-b"><div class="alert">${icon('info', 's18')}<span>Select the documents you want to print. Documents auto-selected based on destination country (${s.label}).</span></div>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><b id="cnt" style="font-size:13.5px;flex:1"></b><button type="button" class="mb sm" id="selAll">Select All</button><button type="button" class="mb sm" id="selNone">Deselect All</button></div>
+      <div class="docs">${ALL_DOCS.map(nm => { const d = info[nm]; const miss = d ? d[1] : 0; return `<label class="dcard" data-doc="${esc(nm)}"><input type="checkbox" ${sel.has(nm) ? 'checked' : ''}><span class="t"><b>${esc(nm)}</b>${d ? `<span class="st ${miss ? 'bad' : 'ok'}">${icon(miss ? 'warn' : 'checkCircle', 's14')}${miss ? `Incomplete (${miss} field${miss > 1 ? 's' : ''} missing)` : 'Complete'}</span>` : '<span class="st" style="color:var(--text-2)">Not required for this destination</span>'}</span>${d && d[2] ? '<span class="chip default">Multi-page</span>' : ''}</label>`; }).join('')}</div>
+    </div>
+    <div class="dlg-f"><button type="button" class="mb" data-close>Cancel</button><button type="button" class="mb primary" id="printBtn"></button></div>`, d => {
+    render(d);
+    d.querySelectorAll('.dcard input').forEach(cb => cb.addEventListener('change', () => { const nm = cb.closest('.dcard').dataset.doc; cb.checked ? sel.add(nm) : sel.delete(nm); st.docs.sel = sel; render(d); }));
+    d.querySelector('#selAll').addEventListener('click', () => { ALL_DOCS.forEach(n => sel.add(n)); d.querySelectorAll('.dcard input').forEach(c => c.checked = true); render(d); });
+    d.querySelector('#selNone').addEventListener('click', () => { sel.clear(); d.querySelectorAll('.dcard input').forEach(c => c.checked = false); render(d); });
+    d.querySelector('#printBtn').addEventListener('click', () => {
+      const incomplete = [...sel].filter(n => info[n] && info[n][1]);
+      track('documents_printed', { destination: st.docs.ship, count: sel.size, incomplete: incomplete.length });
+      openDialog(`${head('Print preview')}<div class="dlg-b">${S.callout(`In ReSpark, this opens ${sel.size} print-ready document${sel.size > 1 ? 's' : ''} filled from the sales order, ticket and booking.${incomplete.length ? ` ${incomplete.length > 1 ? incomplete.slice(0, -1).join(', ') + ' and ' + incomplete.at(-1) : incomplete[0]} ${incomplete.length > 1 ? 'have' : 'has'} missing fields to fill first.` : ''} This is a test drive, so nothing is printed.`)}
+        <div class="paper-prev"><h4>PROVISIONAL INVOICE</h4><div>Seller: Millbrook Recycling · Buyer: ${esc(s.buyer)}</div><div>Sales order ${s.so} · Booking ${s.booking} · Destination ${s.label}</div>
+        <table><tr><th>Description</th><th>Quantity</th><th>Terms</th></tr><tr><td>${esc(s.material)}</td><td>Per packing list</td><td>CFR</td></tr></table></div></div>
+        <div class="dlg-f"><button type="button" class="mb primary" data-close>Done</button></div>`);
+    });
+  });
+}
+
+/* ---------------- tabs, reset ---------------- */
+function showScene(k, silent) {
+  document.querySelectorAll('.nav [data-scene]').forEach(b => b.setAttribute('aria-selected', b.dataset.scene === k));
+  $('sceneBk').hidden = k !== 'bk'; $('sceneSpk').hidden = k !== 'spk'; $('sceneDocs').hidden = k !== 'docs';
+  if (k === 'spk') renderSpk(); if (k === 'bk') renderBk();
+  if (!silent) track('tab_clicked', { tab: k });
+}
+document.querySelector('.nav').addEventListener('click', e => { const b = e.target.closest('[data-scene]'); if (b) showScene(b.dataset.scene); });
+function reset() {
+  if (st) st.gen++;
+  if (dlg.open) dlg.close();
+  $('proc').hidden = true;
+  st = fresh();
+  S.setContext({});
+  renderBk(); renderSpk(); renderDocs(); showScene('bk', true);
+}
+reset();
+if (S.DEBUG) window.__demo = { process: k => { st.bk = { view: 'form', key: null, filled: false, fields: {}, edited: false, created: null }; renderBk(); return processConfirm(k); }, create: createBooking, ask, decide: ok => decide(st.chat.pending, ok), state: () => st };
+})();
+</script>
+</body>
+</html>
