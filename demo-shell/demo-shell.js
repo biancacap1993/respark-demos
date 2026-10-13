@@ -6,7 +6,8 @@
  *     sample: '<b>Everything here is fictional.</b> …', onReset: () => { … } });
  *   shell.track('draft_approved', { … }); shell.toast('…'); shell.icon('check', 's16');
  *
- * Query params: ?embed=1 (inside an iframe), ?theme=dark|light|auto, ?debug=1 (console + window.__demo),
+ * Query params: ?embed=1 (inside an iframe), ?bg=dark (embedded on a dark host section: light top-bar
+ *   text and the white ReSpark mark), ?theme=dark|light|auto, ?debug=1 (console + window.__demo),
  * ?motion=off (skip animations, for screenshots/tests).
  * Analytics: every event is { event: 'demo_<name>', demo_agent, demo_session, demo_embedded, ... }.
  * It is pushed to window.dataLayer when present and posted to the parent window when embedded;
@@ -22,6 +23,8 @@
   document.documentElement.dataset.theme = theme === 'dark' ? 'dark'
     : theme === 'auto' && matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
   if (EMBED) document.documentElement.classList.add('embed');
+  var ON_DARK = params.get('bg') === 'dark';
+  if (ON_DARK) document.documentElement.classList.add('on-dark');
 
   var SHELL_BASE = (document.currentScript && document.currentScript.src) ? document.currentScript.src.replace(/[^/]*$/, '') : '../demo-shell/';
 
@@ -91,7 +94,7 @@
     // Top bar: brand, sample-data badge, reset, CTA
     var bar = document.getElementById('demoBar');
     bar.innerHTML =
-      '<div class="demo-brand"><img src="' + SHELL_BASE + 'respark-mark.png" alt="" width="28" height="28">' +
+      '<div class="demo-brand"><img src="' + SHELL_BASE + (ON_DARK ? 'respark-mark-white.svg' : 'respark-mark.png') + '" alt="" width="28" height="28">' +
       '<div class="t">' + esc(opts.agentName) + ' <span>test drive</span></div>' +
       '<div class="badge-wrap"><button type="button" class="badge" id="badgeBtn" aria-expanded="false" aria-controls="badgePop"><span class="dot" aria-hidden="true"></span>Sample data</button>' +
       '<div class="pop" id="badgePop" hidden>' + opts.sample + '</div></div></div>' +

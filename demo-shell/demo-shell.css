@@ -90,6 +90,13 @@ html.embed .demo { padding: 0; gap: 8px; max-width: none; }
   background: var(--callout); color: var(--primary-dark); font-size: 12px; font-weight: 600; white-space: nowrap; }
 :root[data-theme="dark"] .badge { color: var(--primary); }
 .badge .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--primary-light); }
+/* ?bg=dark — embedded on a dark host section (e.g. respark.com's Meet Sparky band):
+   the bar sits on the host's dark background, so its text and badge go light. */
+html.on-dark .demo-brand .t { color: #FFFFFF; }
+html.on-dark .demo-brand .t span { color: rgba(255, 255, 255, .72); }
+html.on-dark .demo-brand img { border-radius: 0; }
+html.on-dark .badge { background: rgba(255, 255, 255, .08); border-color: rgba(174, 239, 246, .5); color: #AEEFF6; }
+html.on-dark .badge .dot { background: #00C9D4; }
 .pop { position: absolute; top: calc(100% + 8px); left: 0; z-index: 60; width: min(300px, calc(100vw - 32px)); background: var(--paper); border: 1px solid var(--divider);
   border-radius: 12px; box-shadow: var(--window-shadow); padding: 12px 14px; font-size: 13px; color: var(--text-2); }
 .pop b { color: var(--text); }
