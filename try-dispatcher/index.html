@@ -271,7 +271,6 @@ dialog::backdrop { background: rgba(14, 26, 47, .45); }
   <header class="demo-bar" id="demoBar"></header>
   <section class="app-window" aria-label="Dispatch Agent, running on sample emails">
     <div class="lb-tabs" role="tablist" aria-label="Load Board">
-      <button type="button" class="lb-tab" role="tab" aria-selected="false" data-tab="board">Load Board</button>
       <button type="button" class="lb-tab" role="tab" aria-selected="false" data-tab="tickets" aria-controls="ticketsView">Dispatch Tickets<span class="n" id="newCount" hidden></span></button>
       <button type="button" class="lb-tab" role="tab" aria-selected="true" data-tab="agent" aria-controls="inboxView">Dispatch Agent</button>
     </div>
@@ -812,7 +811,6 @@ $('syncBtn').addEventListener('click', async () => {
 
 /* ---------------- tabs + dispatch tickets ---------------- */
 function showTab(tab) {
-  if (tab === 'board') { toast('In ReSpark, the Load Board is where your dispatcher schedules approved tickets and assigns drivers.'); track('tab_clicked', { tab }); return; }
   document.querySelectorAll('.lb-tab').forEach(x => x.setAttribute('aria-selected', x.dataset.tab === tab));
   $('ticketsView').hidden = tab !== 'tickets';
   $('inboxView').hidden = tab !== 'agent';
