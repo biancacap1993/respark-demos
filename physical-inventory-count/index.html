@@ -1,0 +1,743 @@
+<meta charset="utf-8">
+<title>ReSpark Physical Count</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+<style>
+/* Layout: an Arcade-style player. One framed browser window holds a scaled
+   1440×820 mock of ReSpark Inventory (based on the Inventory Overview
+   screen) for Physical Inventory Count; a pulsing hotspot + tooltip guides each step; step controls sit
+   under the frame. The app mock keeps ReSpark's light theme (it stands in
+   for a screenshot); the page around it follows the viewer's theme. */
+:root {
+  --bg: #f3f5f8;
+  --glow: rgba(0, 168, 176, 0.10);
+  --fg: #12233e;
+  --fg-muted: rgba(18, 35, 62, 0.62);
+  --frame: #ffffff;
+  --frame-bar: #eef1f5;
+  --frame-line: rgba(18, 35, 62, 0.12);
+  --ctl: #ffffff;
+  --ctl-line: rgba(18, 35, 62, 0.16);
+  --teal: #00a3a8;
+  --teal-strong: #008a8f;
+  --tip-bg: #12233e;
+  --tip-fg: #ffffff;
+
+  /* ReSpark app tokens (frontend/client/src/global.css, light mode) */
+  --a-fg: hsl(217 55% 16%);
+  --a-surface: #ffffff;
+  --a-muted: hsla(217, 55%, 16%, 0.03);
+  --a-muted-solid: #f8f9fa;
+  --a-hover: hsla(217, 55%, 16%, 0.06);
+  --a-border: hsla(217, 55%, 16%, 0.14);
+  --a-border-subtle: hsla(217, 55%, 16%, 0.08);
+  --a-text-2: hsla(217, 55%, 16%, 0.75);
+  --a-text-3: hsla(217, 55%, 16%, 0.52);
+  --a-icon-2: hsla(217, 55%, 16%, 0.42);
+  --a-primary: hsl(183 100% 33%);
+  --a-primary-hover: hsl(183 100% 27%);
+  --a-primary-subtle: hsla(183, 100%, 33%, 0.10);
+  --a-success: hsl(162 73% 37%);
+  --a-success-strong: hsl(162 73% 30%);
+  --a-error: hsl(348 81% 48%);
+  --a-error-strong: hsl(348 81% 38%);
+  --a-accent: hsl(252 89% 65%);
+  --a-accent-strong: hsl(252 60% 50%);
+  --a-accent-subtle: hsla(252, 89%, 65%, 0.10);
+  --a-dark: hsl(217 45% 14%);
+  --a-nav-selected: hsl(217 55% 16%);
+
+  --font: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0c1422; --glow: rgba(0, 201, 212, 0.10); --fg: #e8eef7; --fg-muted: rgba(232, 238, 247, 0.62);
+    --frame: #17202f; --frame-bar: #1c2738; --frame-line: rgba(232, 238, 247, 0.12);
+    --ctl: #17202f; --ctl-line: rgba(232, 238, 247, 0.18); --teal: #19c3cb; --teal-strong: #4fd6dc;
+    --tip-bg: #00a3a8; --tip-fg: #ffffff; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0c1422; --glow: rgba(0, 201, 212, 0.10); --fg: #e8eef7; --fg-muted: rgba(232, 238, 247, 0.62);
+  --frame: #17202f; --frame-bar: #1c2738; --frame-line: rgba(232, 238, 247, 0.12);
+  --ctl: #17202f; --ctl-line: rgba(232, 238, 247, 0.18); --teal: #19c3cb; --teal-strong: #4fd6dc;
+  --tip-bg: #00a3a8; --tip-fg: #ffffff; color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--fg); font-family: var(--font);
+  background-image: radial-gradient(60% 50% at 50% 38%, var(--glow), transparent 70%);
+  min-height: 100vh; padding-inline: 16px; padding-block: 28px 40px;
+}
+.wrap { max-width: 1180px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
+.head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 15px; letter-spacing: -0.01em; }
+.brand svg { width: 28px; height: 28px; color: var(--fg); }
+.head .tag { font-size: 12px; color: var(--fg-muted); font-weight: 500; }
+
+.frame { background: var(--frame); border: 1px solid var(--frame-line); border-radius: 12px; overflow: hidden;
+  box-shadow: 0 30px 60px -20px rgba(18, 35, 62, 0.28), 0 8px 18px -8px rgba(18, 35, 62, 0.18); }
+.bar { height: 38px; background: var(--frame-bar); border-bottom: 1px solid var(--frame-line); display: flex; align-items: center; gap: 12px; padding-inline: 14px; position: relative; }
+.dots { display: flex; gap: 6px; }
+.dots i { width: 10px; height: 10px; border-radius: 50%; background: var(--frame-line); display: block; }
+.url { flex: 1; max-width: 460px; margin-inline: auto; height: 24px; border-radius: 6px; background: var(--frame); border: 1px solid var(--frame-line);
+  display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 12px; color: var(--fg-muted); padding-inline: 10px; min-width: 0; overflow: hidden; white-space: nowrap; }
+.url span { overflow: hidden; text-overflow: ellipsis; }
+.url svg { width: 12px; height: 12px; flex-shrink: 0; }
+.progress { position: absolute; left: 0; bottom: -1px; height: 2px; background: var(--teal); transition: width .35s ease; }
+
+.stage { position: relative; width: 100%; aspect-ratio: 1440 / 820; max-width: 100%; overflow: hidden; background: #fff; }
+.canvas { position: absolute; left: 0; top: 0; width: 1440px; height: 820px; transform-origin: 0 0; }
+.overlay { position: absolute; inset: 0; pointer-events: none; }
+
+.ring { position: absolute; border-radius: 6px; box-shadow: 0 0 0 2px var(--a-primary), 0 0 0 6px hsla(183, 100%, 33%, 0.18); transition: all .3s ease; pointer-events: none; }
+.hot { position: absolute; width: 26px; height: 26px; margin: -13px 0 0 -13px; border-radius: 50%; pointer-events: auto; cursor: pointer;
+  background: hsla(183, 100%, 33%, 0.28); border: 0; padding: 0; transition: left .3s ease, top .3s ease; }
+.hot::before { content: ""; position: absolute; inset: 7px; border-radius: 50%; background: var(--a-primary); box-shadow: 0 0 0 2px #fff; }
+.hot::after { content: ""; position: absolute; inset: 0; border-radius: 50%; border: 2px solid var(--a-primary); animation: pulse 1.6s ease-out infinite; }
+.hot:focus-visible { outline: 3px solid var(--teal-strong); outline-offset: 3px; }
+@keyframes pulse { 0% { transform: scale(.7); opacity: .9; } 100% { transform: scale(2.1); opacity: 0; } }
+
+.tip { position: absolute; max-width: 310px; background: var(--tip-bg); color: var(--tip-fg); border-radius: 10px; padding: 12px 14px;
+  font-size: 14px; line-height: 1.45; box-shadow: 0 12px 28px -8px rgba(12, 20, 34, 0.45); pointer-events: auto; animation: tipIn .25s ease; }
+.tip b { font-weight: 600; }
+.tip code, .caption code { font-family: var(--mono); font-size: 12.5px; background: rgba(255, 255, 255, 0.16); padding: 1px 5px; border-radius: 4px; }
+.caption code { background: var(--frame-bar); }
+.tip .n, .caption .n { display: block; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; opacity: .7; margin-bottom: 4px; }
+@keyframes tipIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+.caption { display: none; background: var(--frame); border: 1px solid var(--frame-line); border-radius: 10px; padding: 12px 14px; font-size: 14px; line-height: 1.5; }
+body.narrow .caption { display: block; }
+body.narrow .tip { display: none; }
+
+.controls { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.btn { font: inherit; font-size: 13px; font-weight: 600; height: 36px; padding-inline: 14px; border-radius: 8px; border: 1px solid var(--ctl-line);
+  background: var(--ctl); color: var(--fg); cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+.btn:hover { border-color: var(--teal); }
+.btn:disabled { opacity: .4; cursor: default; border-color: var(--ctl-line); }
+.btn:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+.btn.primary { background: var(--teal); border-color: var(--teal); color: #fff; }
+.btn svg { width: 16px; height: 16px; }
+.count { font-size: 13px; color: var(--fg-muted); font-variant-numeric: tabular-nums; min-width: 48px; text-align: right; }
+.pips { display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; flex: 1; min-width: 0; }
+.pips button { width: 22px; height: 6px; border-radius: 3px; border: 0; padding: 0; background: var(--ctl-line); cursor: pointer; }
+.pips button.on { background: var(--teal); }
+.pips button.done { background: color-mix(in srgb, var(--teal) 45%, transparent); }
+.hint { font-size: 12px; color: var(--fg-muted); text-align: center; }
+kbd { font: inherit; font-size: 11px; border: 1px solid var(--ctl-line); border-radius: 4px; padding: 1px 5px; }
+
+/* ================= ReSpark app mock (fixed light theme) ================= */
+.app { width: 1440px; height: 820px; display: flex; font-family: var(--font); color: var(--a-fg); font-size: 13px; background: var(--a-surface); position: relative; overflow: hidden; }
+.app svg.lucide { width: 16px; height: 16px; stroke-width: 1.75; flex-shrink: 0; }
+.side { width: 236px; flex-shrink: 0; background: var(--a-muted-solid); border-right: 1px solid var(--a-border-subtle); display: flex; flex-direction: column; padding: 12px 10px; gap: 10px; }
+.side .top { display: flex; align-items: center; gap: 8px; padding: 2px 4px; }
+.side .top svg.mark { width: 28px; height: 28px; color: #12233e; }
+.yard { flex: 1; display: flex; align-items: center; justify-content: space-between; border: 1px solid var(--a-border); border-radius: 6px; height: 30px; padding-inline: 8px; background: var(--a-surface); font-weight: 500; font-size: 12.5px; }
+.yard svg.lucide { width: 14px; height: 14px; color: var(--a-icon-2); }
+.cmd { display: flex; align-items: center; gap: 8px; height: 30px; border: 1px solid var(--a-border); border-radius: 6px; padding-inline: 8px; color: var(--a-text-3); background: var(--a-surface); font-size: 12.5px; }
+.cmd kbd { margin-left: auto; font-size: 10.5px; border-color: var(--a-border); color: var(--a-text-3); }
+.nav { display: flex; flex-direction: column; gap: 1px; }
+.nrow { display: flex; align-items: center; gap: 8px; padding: 5px 8px; border-radius: 6px; font-weight: 500; color: hsla(217, 55%, 16%, 0.88); }
+.nrow .chev { margin-left: auto; width: 14px; height: 14px; color: var(--a-icon-2); }
+.nrow.sub { padding-left: 30px; font-weight: 450; font-size: 12.5px; color: var(--a-text-2); }
+.nrow.sub svg.lucide { width: 14px; height: 14px; color: var(--a-icon-2); }
+.nrow.active { background: var(--a-nav-selected); color: #fff; }
+.nrow.active svg.lucide { color: #fff; }
+.pill { margin-left: auto; font-size: 10px; font-weight: 600; color: var(--a-text-2); background: var(--a-hover); padding: 1px 6px; border-radius: 999px; }
+.nsep { height: 1px; background: var(--a-border-subtle); margin: 4px 6px; }
+.foot { margin-top: auto; display: flex; align-items: center; gap: 8px; padding: 8px 4px 0; border-top: 1px solid var(--a-border-subtle); }
+.av { width: 28px; height: 28px; border-radius: 50%; background: var(--a-primary-subtle); color: var(--a-primary-hover); display: grid; place-items: center; font-weight: 600; font-size: 11px; }
+.foot .who { display: flex; flex-direction: column; line-height: 1.25; }
+.foot .who small { color: var(--a-text-3); font-size: 11px; }
+.foot .ico { margin-left: auto; display: flex; gap: 4px; }
+.foot .ico span { width: 28px; height: 28px; border: 1px solid var(--a-border-subtle); border-radius: 6px; display: grid; place-items: center; }
+
+.main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.phead { display: flex; align-items: center; gap: 12px; padding: 14px 22px 12px; border-bottom: 1px solid var(--a-border-subtle); }
+.crumbs { font-size: 12px; color: var(--a-text-3); display: flex; align-items: center; gap: 4px; }
+.crumbs svg.lucide { width: 12px; height: 12px; }
+.phead h1 { font-size: 20px; font-weight: 600; margin: 0; letter-spacing: -0.015em; }
+.phead .left { display: flex; flex-direction: column; gap: 4px; }
+.phead .acts { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+
+.rb { font: inherit; font-size: 13px; font-weight: 500; height: 32px; padding-inline: 12px; border-radius: 6px; display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--a-border); background: var(--a-surface); color: var(--a-fg); cursor: default; white-space: nowrap; }
+.rb.pri { background: var(--a-primary); border-color: var(--a-primary); color: #fff; }
+.rb.icon { width: 32px; padding: 0; justify-content: center; }
+.badge { display: inline-flex; align-items: center; height: 20px; padding-inline: 8px; border-radius: 999px; font-size: 11.5px; font-weight: 500; white-space: nowrap; }
+.b-success { background: hsla(162, 73%, 37%, 0.14); color: var(--a-success-strong); }
+.b-accent { background: hsla(252, 89%, 65%, 0.14); color: var(--a-accent-strong); }
+.b-neutral { background: hsla(217, 55%, 16%, 0.07); color: var(--a-text-2); }
+
+/* inventory pages */
+.phead { padding: 14px 24px 12px; border-bottom: 0; align-items: flex-start; }
+.ibody { flex: 1; min-height: 0; padding: 0 24px 20px; display: flex; flex-direction: column; gap: 14px; position: relative; }
+.kpis { display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid var(--a-border-subtle); border-radius: 10px; }
+.kpis > div { padding: 12px 16px; display: flex; flex-direction: column; gap: 2px; }
+.kpis > div + div { border-left: 1px solid var(--a-border-subtle); }
+.kpis small { font-size: 10.5px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--a-text-3); }
+.kpis b { font-size: 20px; font-weight: 700; letter-spacing: -.01em; }
+.kpis span { font-size: 12px; color: var(--a-text-3); }
+.tcard { border: 1px solid var(--a-border-subtle); border-radius: 10px; overflow: hidden; flex: 1; min-height: 0; }
+.tcard .tt { display: flex; align-items: center; gap: 8px; padding: 10px 12px; }
+.tcard .tt .inp { width: 240px; }
+.tcard .tt .cnt { margin-left: auto; font-size: 12px; color: var(--a-text-3); }
+.inp { height: 32px; border: 1px solid var(--a-border); border-radius: 6px; display: flex; align-items: center; gap: 6px; padding-inline: 9px; color: var(--a-text-3); font-size: 12.5px; background: var(--a-surface); white-space: nowrap; }
+.inp svg.lucide { width: 14px; height: 14px; color: var(--a-icon-2); }
+table { width: 100%; border-collapse: separate; border-spacing: 0; font-variant-numeric: tabular-nums; table-layout: fixed; }
+th { text-align: left; font-weight: 500; font-size: 12.5px; padding: 0 12px; height: 38px; background: var(--a-muted-solid); border-bottom: 1px solid var(--a-border-subtle); white-space: nowrap; }
+td { padding: 0 12px; height: 44px; border-bottom: 1px solid var(--a-border-subtle); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.itab td, .itab th { border-right: 0; }
+.itab th { color: var(--a-text-2); }
+.itab td.num, .itab th.num { text-align: right; }
+.itab tr.new td { background: hsla(183, 100%, 33%, 0.07); }
+.itab .mono { font-family: var(--mono); font-size: 12px; }
+.b-teal { background: hsla(183, 100%, 33%, 0.12); color: var(--a-primary-hover); }
+
+.drawer { position: absolute; top: 0; right: 0; bottom: 0; width: 470px; background: var(--a-surface); border-left: 1px solid var(--a-border); box-shadow: -12px 0 32px rgba(15, 23, 42, 0.12); display: flex; flex-direction: column; z-index: 6; animation: slide .25s ease; }
+.drawer.still { animation: none; }
+@keyframes slide { from { transform: translateX(30px); opacity: 0; } to { transform: none; opacity: 1; } }
+.drawer .dh { display: flex; align-items: center; gap: 10px; padding: 16px 18px 12px; border-bottom: 1px solid var(--a-border-subtle); }
+.drawer .dh h3 { margin: 0; font-size: 16px; font-weight: 600; }
+.drawer .dh .x { margin-left: auto; color: var(--a-text-3); }
+.drawer .db { flex: 1; min-height: 0; padding: 16px 18px; display: flex; flex-direction: column; gap: 14px; position: relative; overflow: hidden; }
+.drawer .df { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 18px; border-top: 1px solid var(--a-border-subtle); }
+.fld { display: flex; flex-direction: column; gap: 5px; }
+.fld label { font-size: 12px; font-weight: 500; color: var(--a-text-2); }
+.fld .in { height: 34px; border: 1px solid var(--a-border); border-radius: 6px; display: flex; align-items: center; gap: 6px; padding-inline: 10px; font-size: 13px; font-variant-numeric: tabular-nums; }
+.fld .in.ph { color: var(--a-text-3); }
+.fld .in.open { border-color: var(--a-primary); box-shadow: 0 0 0 3px hsla(183, 100%, 33%, 0.15); }
+.fld .in .u { margin-left: auto; color: var(--a-text-3); }
+.fld .in svg.lucide { margin-left: auto; width: 14px; height: 14px; color: var(--a-icon-2); }
+.fld .in.ro { background: var(--a-muted-solid); font-weight: 600; }
+.fld .hint { font-size: 12px; color: var(--a-text-3); }
+.fld .hint b { color: var(--a-primary-hover); font-weight: 600; }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+.note { display: flex; gap: 8px; align-items: flex-start; font-size: 12.5px; line-height: 1.45; background: hsla(183, 100%, 33%, 0.07); border: 1px solid hsla(183, 100%, 33%, 0.22); border-radius: 8px; padding: 10px 12px; color: var(--a-text-2); }
+.note svg.lucide { width: 15px; height: 15px; color: var(--a-primary-hover); margin-top: 1px; }
+.note b { color: var(--a-fg); }
+.dd { position: absolute; left: 18px; right: 18px; top: 82px; background: var(--a-surface); border: 1px solid var(--a-border); border-radius: 8px; box-shadow: 0 6px 22px rgba(15, 23, 42, 0.16); padding: 4px; z-index: 5; animation: pop .18s ease; }
+.dd .mh { font-size: 11px; color: var(--a-text-3); padding: 6px 9px 4px; }
+.dd .o { display: flex; align-items: center; gap: 8px; padding: 8px 9px; border-radius: 5px; font-size: 13px; }
+.dd .o span { margin-left: auto; font-size: 12px; color: var(--a-text-3); font-variant-numeric: tabular-nums; }
+.dd .o.hv { background: var(--a-hover); }
+@keyframes pop { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; transform: none; } }
+
+.stepper { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--a-text-3); }
+.stepper span { display: inline-flex; align-items: center; gap: 6px; }
+.stepper i.n { font-style: normal; width: 20px; height: 20px; border-radius: 50%; border: 1px solid var(--a-border); display: grid; place-items: center; font-size: 11px; font-weight: 600; }
+.stepper .on { color: var(--a-fg); font-weight: 600; }
+.stepper .on i.n { background: var(--a-dark); border-color: var(--a-dark); color: #fff; }
+.stepper .done i.n { background: var(--a-primary-subtle); border-color: transparent; color: var(--a-primary-hover); }
+.stepper .ln { flex: 1; height: 1px; background: var(--a-border-subtle); }
+.choice { border: 1px solid var(--a-border); border-radius: 10px; padding: 14px; display: flex; gap: 12px; align-items: flex-start; }
+.choice .ci { width: 34px; height: 34px; border-radius: 8px; display: grid; place-items: center; background: var(--a-hover); flex-shrink: 0; }
+.choice .ci svg.lucide { width: 18px; height: 18px; }
+.choice b { display: block; font-size: 13.5px; font-weight: 600; margin-bottom: 2px; }
+.choice small { font-size: 12.5px; color: var(--a-text-3); line-height: 1.4; }
+.choice.on { border-color: var(--a-primary); box-shadow: 0 0 0 3px hsla(183, 100%, 33%, 0.12); }
+.choice.on .ci { background: var(--a-primary-subtle); color: var(--a-primary-hover); }
+.pkl { border: 1px solid var(--a-border-subtle); border-radius: 8px; overflow: hidden; }
+.pkl .pr { display: flex; align-items: center; gap: 10px; padding: 10px 12px; font-size: 13px; }
+.pkl .pr + .pr { border-top: 1px solid var(--a-border-subtle); }
+.pkl .pr .rd { width: 15px; height: 15px; border-radius: 50%; border: 1.5px solid var(--a-border); flex-shrink: 0; }
+.pkl .pr.on { background: hsla(183, 100%, 33%, 0.06); }
+.pkl .pr.on .rd { border: 5px solid var(--a-primary); }
+.pkl .pr .tx { display: flex; flex-direction: column; }
+.pkl .pr .tx small { color: var(--a-text-3); font-size: 12px; }
+.pkl .pr .w { margin-left: auto; text-align: right; font-variant-numeric: tabular-nums; }
+.pkl .pr .w small { display: block; color: var(--a-text-3); font-size: 12px; }
+.sum { display: grid; grid-template-columns: repeat(3, 1fr); background: var(--a-muted-solid); border-radius: 8px; padding: 10px 12px; font-size: 12px; color: var(--a-text-3); gap: 6px; }
+.sum b { display: block; font-size: 14px; color: var(--a-fg); font-variant-numeric: tabular-nums; }
+.alloc { width: 100%; font-size: 12.5px; }
+.alloc th { height: 32px; font-size: 11.5px; color: var(--a-text-3); background: transparent; border-right: 0; padding: 0 6px; }
+.alloc td { height: 40px; border-right: 0; padding: 0 6px; }
+.alloc td.num, .alloc th.num { text-align: right; }
+.alloc .cell { border: 1px solid var(--a-border); border-radius: 6px; height: 30px; display: flex; align-items: center; justify-content: flex-end; padding: 0 8px; gap: 4px; }
+.alloc .cell .u { color: var(--a-text-3); }
+.alloc tr.waste td { color: var(--a-text-2); background: hsla(38, 92%, 50%, 0.07); }
+.alloc tr.waste .tagw { font-size: 11px; font-weight: 600; color: hsl(32 80% 38%); background: hsla(38, 92%, 50%, 0.16); border-radius: 4px; padding: 1px 6px; }
+.alloc tr.tot td { font-weight: 600; border-bottom: 0; }
+.link { color: var(--a-primary-hover); font-weight: 500; }
+.became .br { display: flex; align-items: center; gap: 10px; padding: 9px 12px; font-size: 13px; border: 1px solid var(--a-border-subtle); border-radius: 8px; }
+.became .br + .br { margin-top: 6px; }
+.became .br span:last-child { margin-left: auto; color: var(--a-text-3); font-variant-numeric: tabular-nums; }
+.became .br svg.lucide { width: 15px; height: 15px; color: var(--a-icon-2); }
+.sec { font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--a-text-3); }
+.kv2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px; font-size: 12.5px; }
+.kv2 small { display: block; color: var(--a-text-3); font-size: 11.5px; }
+.kv2 b { font-weight: 500; font-variant-numeric: tabular-nums; }
+.toast { position: absolute; left: 50%; bottom: 22px; transform: translateX(-50%); background: var(--a-fg); color: #fff; border-radius: 8px; padding: 10px 14px; display: flex; align-items: center; gap: 8px; font-weight: 500; box-shadow: 0 10px 24px rgba(18,35,62,.3); animation: pop2 .3s ease; z-index: 7; }
+.toast svg.lucide { color: hsl(162 73% 55%); }
+@keyframes pop2 { from { opacity: 0; transform: translate(-50%, 8px); } to { opacity: 1; transform: translateX(-50%); } }
+
+/* physical count pages */
+.ptitle { display: flex; align-items: center; gap: 10px; }
+.b-warn { background: hsla(38, 92%, 50%, 0.16); color: hsl(32 80% 34%); }
+.meta { display: flex; gap: 28px; font-size: 12.5px; border: 1px solid var(--a-border-subtle); border-radius: 10px; padding: 10px 16px; align-items: center; }
+.meta small { display: block; color: var(--a-text-3); font-size: 11.5px; }
+.meta b { font-weight: 500; }
+.meta .note { margin-left: auto; padding: 6px 10px; }
+.addbar { display: flex; align-items: center; gap: 8px; position: relative; }
+.seg { display: inline-flex; border: 1px solid var(--a-border); border-radius: 6px; overflow: hidden; height: 32px; }
+.seg span { display: inline-flex; align-items: center; padding-inline: 12px; font-size: 12.5px; font-weight: 500; color: var(--a-text-2); }
+.seg span + span { border-left: 1px solid var(--a-border); }
+.seg span.on { background: var(--a-primary-subtle); color: var(--a-primary-hover); }
+.addbar .pick { width: 260px; justify-content: space-between; }
+.addbar .pick.open { border-color: var(--a-primary); box-shadow: 0 0 0 3px hsla(183, 100%, 33%, 0.15); }
+.addbar .dd { left: 196px; right: auto; width: 300px; top: 38px; }
+.empty { flex: 1; border: 1px dashed var(--a-border); border-radius: 10px; display: grid; place-items: center; color: var(--a-text-3); font-size: 13px; text-align: center; }
+.empty svg.lucide { width: 22px; height: 22px; margin-bottom: 6px; }
+.itab tr.grp td { background: var(--a-muted-solid); font-weight: 600; font-size: 12px; height: 34px; color: var(--a-text-2); }
+.wcell { display: inline-flex; align-items: center; justify-content: flex-end; gap: 4px; border: 1px solid var(--a-border); border-radius: 6px; height: 30px; min-width: 96px; padding: 0 8px; }
+.wcell .u { color: var(--a-text-3); }
+.scb { display: inline-grid; place-items: center; width: 30px; height: 30px; border: 1px solid var(--a-border); border-radius: 6px; color: var(--a-icon-2); vertical-align: middle; }
+.neg { color: var(--a-error); }
+.pos { color: var(--a-success-strong); }
+.sel { display: inline-flex; align-items: center; justify-content: space-between; gap: 6px; border: 1px solid var(--a-border); border-radius: 6px; height: 30px; width: 190px; padding: 0 8px; font-size: 12.5px; }
+.sel svg.lucide { width: 14px; height: 14px; color: var(--a-icon-2); }
+.sel.post { border-color: var(--a-primary); background: var(--a-primary-subtle); color: var(--a-primary-hover); font-weight: 600; }
+.sel.defer { color: hsl(32 80% 34%); background: hsla(38, 92%, 50%, 0.10); }
+.scrim { position: absolute; inset: 0; background: rgba(18, 35, 62, 0.28); z-index: 8; display: grid; place-items: center; }
+.modal { width: 500px; background: var(--a-surface); border-radius: 12px; box-shadow: 0 24px 60px rgba(15, 23, 42, 0.3); animation: pop .18s ease; display: flex; flex-direction: column; }
+.modal .mh2 { padding: 18px 20px 6px; font-size: 16px; font-weight: 600; }
+.modal .mb { padding: 8px 20px 16px; display: flex; flex-direction: column; gap: 12px; font-size: 13px; color: var(--a-text-2); }
+.modal .mf { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 20px; border-top: 1px solid var(--a-border-subtle); }
+.finsum { border: 1px solid var(--a-border-subtle); border-radius: 8px; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; }
+.finsum > b { color: var(--a-fg); font-size: 14px; }
+.tgl { display: flex; gap: 12px; align-items: flex-start; border: 1px solid var(--a-border); border-radius: 8px; padding: 12px; }
+.tgl .sw { width: 34px; height: 20px; border-radius: 999px; background: hsla(217, 55%, 16%, 0.18); position: relative; flex-shrink: 0; margin-top: 1px; }
+.tgl .sw::after { content: ""; position: absolute; left: 2px; top: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.2); }
+.tgl b { display: block; font-size: 13px; font-weight: 600; margin-bottom: 2px; }
+.tgl small { font-size: 12px; color: var(--a-text-3); line-height: 1.4; }
+
+/* intro / outro */
+.cover { position: absolute; inset: 0; background: rgba(248, 250, 252, 0.88); backdrop-filter: blur(3px); display: grid; place-items: center; z-index: 10; }
+.cover .card { width: 700px; display: flex; flex-direction: column; gap: 14px; align-items: flex-start; }
+.cover .eyebrow { font-size: 13px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--a-primary-hover); display: flex; align-items: center; gap: 8px; }
+.cover h2 { margin: 0; font-size: 40px; line-height: 1.12; letter-spacing: -0.025em; font-weight: 700; text-wrap: balance; }
+.cover p { margin: 0; font-size: 17px; line-height: 1.55; color: var(--a-text-2); max-width: 620px; }
+.cover .chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.cover .chips code { font-family: var(--mono); font-size: 14px; padding: 5px 10px; border-radius: 6px; background: var(--a-surface); border: 1px solid var(--a-border); }
+.cover .cta { display: flex; gap: 10px; margin-top: 8px; }
+.cover .go { font: inherit; font-size: 15px; font-weight: 600; height: 44px; padding-inline: 20px; border-radius: 8px; border: 0; background: var(--a-primary); color: #fff; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; text-decoration: none; }
+.cover .go.sec { background: var(--a-surface); color: var(--a-fg); border: 1px solid var(--a-border); }
+.cover .go:hover { background: var(--a-primary-hover); }
+.cover .go.sec:hover { background: var(--a-muted-solid); }
+.cover .go svg.lucide { width: 18px; height: 18px; }
+.cover .go:focus-visible { outline: 3px solid var(--a-primary); outline-offset: 2px; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+</style>
+
+<div class="wrap">
+  <div class="head">
+    <div class="brand" id="brand"></div>
+    <div class="tag">Interactive demo · Web console</div>
+  </div>
+
+  <div class="frame">
+    <div class="bar">
+      <div class="dots"><i></i><i></i><i></i></div>
+      <div class="url"><i data-lucide="lock"></i><span id="url">app.respark.com</span></div>
+      <div style="width:42px"></div>
+      <div class="progress" id="progress"></div>
+    </div>
+    <div class="stage" id="stage">
+      <div class="canvas" id="canvas"></div>
+      <div class="overlay" id="overlay"></div>
+    </div>
+  </div>
+
+  <div class="caption" id="caption" aria-live="polite"></div>
+
+  <div class="controls">
+    <button class="btn" id="back" type="button"><i data-lucide="arrow-left"></i>Back</button>
+    <div class="pips" id="pips" role="tablist" aria-label="Demo steps"></div>
+    <span class="count" id="count"></span>
+    <button class="btn primary" id="next" type="button">Next<i data-lucide="arrow-right"></i></button>
+  </div>
+  <div class="hint">Click the pulsing dot, or use <kbd>←</kbd> <kbd>→</kbd></div>
+</div>
+
+<script>
+(() => {
+  const W = 1440, H = 820;
+  const MARK = '<svg class="mark" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M152.38 13.33C171.29 13.33 186.67 28.71 186.67 47.62V152.38C186.67 171.29 171.29 186.67 152.38 186.67H47.62C28.71 186.67 13.33 171.29 13.33 152.38V47.62C13.33 28.71 28.71 13.33 47.62 13.33H152.38ZM152.38 0H47.62C21.32 0 0 21.32 0 47.62V152.38C0 178.68 21.32 200 47.62 200H152.38C178.68 200 200 178.68 200 152.38V47.62C200 21.32 178.68 0 152.38 0Z" fill="#00C9D4"/><path d="M93.39 62.1C89.98 59.66 84.7 58.7 80.99 58.69L26.11 58.74L44.28 71.71H82.53C83.21 71.71 83.79 71.96 84.24 72.29C85.21 72.98 85.5 74.27 84.5 75.67L72.84 92.1L84.25 100.24L96.2 83.46C101.27 76.35 101.05 67.54 93.42 62.1L93.4 62.08Z" fill="currentColor"/><path d="M49.21 102.91C53.53 102.91 58.53 105.26 61.64 107.48L107.62 140.38H84.65L52.58 117.49C52.03 117.05 51.38 116.94 50.8 116.94C49.57 116.94 48.56 117.84 48.56 119.62L48.53 140.38H34.11V119.16C34.11 110.16 39.55 102.91 49.19 102.91Z" fill="currentColor"/><path d="M166.27 115.45V103.76C166.27 96.91 164.14 91.42 159.86 87.3C155.58 83.18 149.91 81.1 142.82 81.1H133.49C128.74 81.1 124.57 82.06 120.95 83.97C117.32 85.88 114.54 88.56 112.55 92.02C110.56 95.49 109.58 99.5 109.58 104.01V119.65C109.58 123.94 110.56 127.7 112.55 130.98C114.54 134.26 117.3 136.82 120.92 138.62C124.55 140.39 128.72 141.3 133.46 141.3H142.32C149.41 141.3 155.11 139.5 159.47 135.92C163.83 132.34 166.02 127.59 166.02 121.67H152.85C152.85 124.15 151.9 126.15 149.99 127.68C148.08 129.18 145.57 129.95 142.46 129.95H133.49C130.3 129.95 127.76 128.99 125.85 127.14C123.94 125.26 122.99 122.77 122.99 119.66V115.46H166.27ZM122.72 105.4V104.34C122.72 100.76 123.7 97.84 125.69 95.63C127.65 93.42 130.24 92.3 133.43 92.3H142.89C145.94 92.3 148.37 93.36 150.25 95.47C152.13 97.57 153.06 100.36 153.06 103.77V105.41H122.71Z" fill="currentColor"/></svg>';
+  document.getElementById('brand').innerHTML = MARK + '<span>ReSpark</span>';
+
+  const ic = (n, extra = '') => `<i data-lucide="${n}" ${extra}></i>`;
+
+  // Sample data (illustrative). A blind count of the Aluminum commodity at
+  // North Yard. Costs are the current average cost per lb, pre-filled at review.
+  const lb = v => v.toLocaleString('en-US') + ' lb';
+  const sgn = v => (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v).toLocaleString('en-US');
+  const ROWS = [
+    { id: 'ubc', mat: 'Aluminum Cans (UBC)', code: 'AL-UBC', book: 4820, gross: 5240, tare: 660, cost: 0.52, dec: 'Post' },
+    { id: 'osh', mat: 'Old Sheet', code: 'AL-OSH', book: 6190, gross: 6840, tare: 430, cost: 0.61, dec: 'Post' },
+    { id: 'cst', mat: 'Cast Aluminum', code: 'AL-CST', book: 3930, gross: 4360, tare: 430, cost: 0.66, dec: 'No Adjustment needed' },
+    { id: '6063', mat: '6063 Extrusion', code: 'AL-6063', book: 2250, gross: 2680, tare: 440, cost: 1.06, dec: 'No Adjustment needed' },
+    { id: 'sid', mat: 'Painted Siding', code: 'AL-SID', book: 1490, gross: 1920, tare: 430, cost: 0.78, dec: 'No Adjustment needed' },
+    { id: 'whl', mat: 'Clean Aluminum Wheels', code: 'AL-WHL', book: 960, gross: 1390, tare: 440, cost: 1.02, dec: 'No Adjustment needed' },
+    { id: 'lth', mat: 'Litho Plates', code: 'AL-LTH', book: 620, gross: 1050, tare: 430, cost: 0.94, dec: 'No Adjustment needed' },
+  ].map(r => ({ ...r, net: r.gross - r.tare, v: r.gross - r.tare - r.book }));
+  const COUNTS = [
+    { n: 13, date: 'Oct 9, 2026 4:30 PM', st: 'Open', cls: 'b-teal', mats: 12, by: 'Sam Ortiz' },
+    { n: 12, date: 'Sep 30, 2026 5:00 PM', st: 'Closed · Posted', cls: 'b-success', mats: 31, by: 'Jordan Pike' },
+    { n: 11, date: 'Sep 12, 2026 3:15 PM', st: 'Closed · Record Only', cls: 'b-neutral', mats: 8, by: 'Sam Ortiz' },
+    { n: 10, date: 'Aug 29, 2026 5:00 PM', st: 'Closed · Posted', cls: 'b-success', mats: 29, by: 'Jordan Pike' },
+    { n: 9, date: 'Jul 31, 2026 5:00 PM', st: 'Closed · Posted', cls: 'b-success', mats: 30, by: 'Jordan Pike' },
+  ];
+  const ADJS = [
+    { date: 'Oct 8, 2026', mats: 'Irony Aluminum', w: -380, val: -110.20, note: 'Moisture correction' },
+    { date: 'Oct 2, 2026', mats: 'Aluminum Breakage', w: 1240, val: 595.20, note: 'Missed inbound ticket' },
+    { date: 'Sep 30, 2026', mats: '9 materials', w: -1460, val: -812.40, note: 'Physical inventory count #12' },
+    { date: 'Sep 24, 2026', mats: 'Aluminum Turnings', w: -210, val: -90.30, note: 'Spill' },
+  ];
+  const EFF = 'Oct 14, 2026 9:00 AM';
+
+  // ---------- steps ----------
+  const STEPS = [
+    { view: 'list', cover: 'intro', url: '/app/inventory/physical-count' },
+    { view: 'list', t: '#btn-new', place: 'bottom', url: '/app/inventory/physical-count',
+      tip: 'Go to <b>Inventory → Physical Inventory Count</b> and click <b>New Count</b>.' },
+    { view: 'list', drawer: 'new', t: '#blind', place: 'left', url: '/app/inventory/physical-count',
+      tip: 'Set the <b>Effective date</b>. Leave <b>Show book weight and variance while counting</b> off for a blind count, then click <b>Start count</b>.' },
+    { view: 'cnt', phase: 'empty', t: '#opt-al', place: 'right', url: '/app/inventory/physical-count/14',
+      tip: 'Add what you’re counting. Pick <b>By commodity</b> to add every active material under it, or use <b>By material</b> or <b>Add All Materials</b>.' },
+    { view: 'cnt', phase: 'weighed', t: '#row-w', place: 'bottom', url: '/app/inventory/physical-count/14',
+      tip: 'Enter <b>Gross</b> and <b>Tare</b> for each row, from the scale button or by hand. <b>Net</b> is the counted weight. Click <b>Save weights</b> as you go.' },
+    { view: 'cnt', phase: 'weighed', t: '#btn-ready', place: 'bottom', url: '/app/inventory/physical-count/14',
+      tip: 'When counting is done, click <b>Mark ready for review</b>.' },
+    { view: 'cnt', phase: 'review', t: '#row-r', place: 'bottom', url: '/app/inventory/physical-count/14',
+      tip: 'In review, every counted row shows <b>Book</b> against the <b>Net</b> you weighed, with <b>Variance</b> and <b>Cost</b> filled in.' },
+    { view: 'cnt', phase: 'decided', t: '#dec-ubc', place: 'left', url: '/app/inventory/physical-count/14',
+      tip: 'Choose a <b>Decision</b> for each row: <b>Post</b> to correct the book, or <b>No Adjustment needed</b> to leave it as is.' },
+    { view: 'cnt', phase: 'decided', modal: true, t: '#fin-sum', place: 'right', url: '/app/inventory/physical-count/14',
+      tip: 'Click <b>Finish Review</b> and confirm. The rows marked <b>Post</b> go in as one inventory adjustment, and the count closes in the same step.' },
+    { view: 'adj', drawer: 'adj', t: '#adj-link', place: 'left', url: '/app/inventory/adjustments',
+      tip: 'Open the new adjustment in <b>Adjustments</b>. Its note links back to the count it came from.' },
+    { view: 'adj', drawer: 'adj', cover: 'outro', url: '/app/inventory/adjustments' },
+  ];
+
+  // ---------- chrome ----------
+  function sidebar(active) {
+    const row = (i, l, extra = '') => `<div class="nrow">${ic(i)}<span>${l}</span>${extra || ic('chevron-right', 'class="chev"')}</div>`;
+    const sub = (id, l) => `<div class="nrow sub${active === id ? ' active' : ''}" id="nav-${id}"><span>${l}</span></div>`;
+    return `<aside class="side">
+      <div class="top">${MARK}<div class="yard"><span>North Yard</span>${ic('chevrons-up-down')}</div></div>
+      <div class="nav">
+        ${row('inbox', 'Inbox', '<span class="pill">4</span>')}
+        ${row('messages-square', 'ScrapChat', ' ')}
+        <div class="cmd" style="margin:2px 0">${ic('search')}<span>Search &amp; actions</span><kbd>⌘K</kbd></div>
+        <div class="nsep"></div>
+        ${row('shopping-cart', 'Purchases')}${row('tag', 'Sales')}${row('file-text', 'Contracts')}
+        <div class="nrow">${ic('boxes')}<span>Inventory</span>${ic('chevron-down', 'class="chev"')}</div>
+        ${sub('ov', 'Inventory Overview')}${sub('hl', 'Holding Lots')}${sub('pk', 'Packages')}${sub('rg', 'Regrades')}${sub('fg', 'Finished Goods')}${sub('adj', 'Adjustments')}${sub('pic', 'Physical Inventory Count')}
+        ${row('users', 'Customers')}${row('layers', 'Commodities')}${row('truck', 'Logistics')}${row('clipboard-list', 'Load Board')}${row('warehouse', 'Assets')}${row('chart-column', 'Reports')}${row('landmark', 'Ledger')}
+      </div>
+      <div class="foot"><div class="av">JP</div><div class="who"><span>Jordan Pike</span><small>General Manager</small></div>
+        <div class="ico"><span>${ic('settings')}</span><span>${ic('circle-help')}</span></div></div>
+    </aside>`;
+  }
+
+  const head = (crumbs, title, acts) => `<div class="phead"><div class="left"><div class="crumbs">${crumbs.map(c => `<span>${c}</span>`).join(ic('chevron-right'))}</div><h1>${title}</h1></div><div class="acts">${acts}</div></div>`;
+
+  function countList(s) {
+    const rows = COUNTS.map(c => `<tr><td><span class="link">#${c.n}</span></td><td>${c.date}</td><td><span class="badge ${c.cls}">${c.st}</span></td><td class="num">${c.mats}</td><td>${c.by}</td></tr>`).join('');
+    return `<main class="main">${head(['Inventory', 'Physical Inventory Count'], 'Physical Inventory Count', `<span class="rb pri" id="btn-new">${ic('plus')}New Count</span>`)}
+      <div class="ibody">
+        <div class="tcard"><div class="tt"><div class="inp">${ic('search')}Search counts</div><span class="cnt">${COUNTS.length} counts · North Yard</span></div>
+          <table class="itab"><thead><tr><th style="width:12%">Count</th><th style="width:24%">Effective date</th><th style="width:24%">Status</th><th class="num" style="width:14%">Materials</th><th>Created by</th></tr></thead><tbody>${rows}</tbody></table></div>
+      </div>${drawer(s)}</main>`;
+  }
+
+  function countPage(s) {
+    const ph = s.phase;
+    const open = ph === 'empty' || ph === 'weighed';
+    const status = open ? '<span class="badge b-teal">Open</span>' : '<span class="badge b-accent">Ready for Review</span>';
+    const acts = open
+      ? `<span class="rb">${ic('upload')}Import CSV</span><span class="rb">${ic('save')}Save weights</span><span class="rb pri" id="btn-ready">${ic('check')}Mark ready for review</span><span class="rb icon">${ic('ellipsis-vertical')}</span>`
+      : `<span class="rb">${ic('save')}Save Changes</span><span class="rb pri" id="btn-finish">${ic('check-check')}Finish Review</span>`;
+    const meta = `<div class="meta"><div><small>Effective date</small><b>${EFF}</b></div><div><small>Yard</small><b>North Yard</b></div><div><small>Counted</small><b>${ph === 'empty' ? '0 of 0' : '7 of 7'} materials</b></div>
+      ${open ? `<div class="note">${ic('eye-off')}<span><b>Blind count.</b> Book weight, variance and cost are hidden while counting.</span></div>` : ''}</div>`;
+    let body;
+    if (ph === 'empty') {
+      body = `<div class="addbar">
+          <div class="seg"><span>By material</span><span class="on">By commodity</span></div>
+          <div class="inp pick open">Select a commodity${ic('chevron-down')}</div>
+          <span class="rb">${ic('list-plus')}Add All Materials</span>
+          <div class="dd"><div class="mh">Adds every active material under the commodity</div>
+            <div class="o hv" id="opt-al">Aluminum<span>7 materials</span></div>
+            <div class="o">Copper<span>9 materials</span></div>
+            <div class="o">Brass<span>5 materials</span></div>
+            <div class="o">Stainless Steel<span>6 materials</span></div>
+            <div class="o">Ferrous<span>11 materials</span></div></div>
+        </div>
+        <div class="empty"><div>${ic('scale')}<div>No materials on this count yet.</div></div></div>`;
+    } else if (open) {
+      const rows = ROWS.map((r, i) => `<tr${i === 0 ? ' id="row-w"' : ''}><td>${r.mat}</td><td class="mono">${r.code}</td>
+          <td class="num"><span class="wcell">${r.gross.toLocaleString()}<span class="u">lb</span></span></td>
+          <td class="num"><span class="wcell">${r.tare.toLocaleString()}<span class="u">lb</span></span></td>
+          <td class="num"><b>${lb(r.net)}</b></td><td class="num"><span class="scb">${ic('scale')}</span></td><td><span class="badge b-success">Counted</span></td></tr>`).join('');
+      body = `<div class="tcard"><table class="itab"><thead><tr><th style="width:24%">Material</th><th style="width:12%">Material Code</th><th class="num">Gross</th><th class="num">Tare</th><th class="num">Net</th><th class="num" style="width:7%"></th><th style="width:12%">State</th></tr></thead>
+          <tbody><tr class="grp"><td colspan="7">Aluminum</td></tr>${rows}</tbody></table></div>`;
+    } else {
+      const decided = ph === 'decided';
+      const rows = ROWS.map((r, i) => {
+        const d = decided ? r.dec : (r.v === 0 ? 'No Adjustment needed' : 'Defer');
+        const cls = d === 'Post' ? ' post' : d === 'Defer' ? ' defer' : '';
+        const cost = d === 'Post' ? `<span class="wcell" style="min-width:84px">$${r.cost.toFixed(4)}</span>` : `$${r.cost.toFixed(4)}`;
+        return `<tr${i === 0 ? ' id="row-r"' : ''}><td>${r.mat}</td><td class="num">${lb(r.book)}</td><td class="num"><b>${lb(r.net)}</b></td>
+          <td class="num ${r.v < 0 ? 'neg' : r.v > 0 ? 'pos' : ''}">${r.v === 0 ? '0 lb' : sgn(r.v) + ' lb'}</td><td class="num">${cost}</td>
+          <td><span class="sel${cls}"${i === 0 && decided ? ' id="dec-ubc"' : ''}>${d}${ic('chevron-down')}</span></td></tr>`;
+      }).join('');
+      body = `<div class="tcard"><table class="itab"><thead><tr><th style="width:24%">Material</th><th class="num">Book</th><th class="num">Net</th><th class="num">Variance</th><th class="num">Cost</th><th style="width:230px">Decision</th></tr></thead>
+          <tbody><tr class="grp"><td colspan="6">Aluminum</td></tr>${rows}</tbody></table></div>`;
+    }
+    return `<main class="main">${head(['Inventory', 'Physical Inventory Count', 'Count #14'], `<span class="ptitle">Count #14 ${status}</span>`, acts)}
+      <div class="ibody">${meta}${body}</div>${s.modal ? finishModal() : ''}</main>`;
+  }
+
+  function finishModal() {
+    return `<div class="scrim"><div class="modal">
+      <div class="mh2">Finish Review</div>
+      <div class="mb">
+        <div class="finsum" id="fin-sum"><b>2 materials will be posted in an inventory adjustment</b>
+          <div class="kv2"><div><small>Effective date</small><b>${EFF}</b></div><div><small>Materials</small><b>Aluminum Cans (UBC), Old Sheet</b></div>
+            <div><small>Est. WIP change</small><b>−20 lb</b></div><div><small>Est. value change</small><b>+$9.40</b></div></div></div>
+        <span>The count closes when you confirm and can’t be reopened.</span>
+      </div>
+      <div class="mf"><span class="rb">Cancel</span><span class="rb pri">Confirm</span></div>
+    </div></div>`;
+  }
+
+  function adjustments(s) {
+    const NEWA = { date: 'Oct 14, 2026', mats: '2 materials', w: -20, val: 9.40, note: 'Physical inventory count #14', isNew: true };
+    const money = v => (v < 0 ? '−$' : '+$') + Math.abs(v).toFixed(2);
+    const rows = [NEWA, ...ADJS].map(a => `<tr${a.isNew ? ' class="new"' : ''}><td>${a.date}</td><td>${a.mats}</td><td class="num">${sgn(a.w)} lb</td><td class="num">${money(a.val)}</td><td>${a.note}</td></tr>`).join('');
+    return `<main class="main">${head(['Inventory', 'Adjustments'], 'Adjustments', `<span class="rb pri">${ic('plus')}Add Adjustment</span>`)}
+      <div class="ibody">
+        <div class="tcard"><div class="tt"><div class="inp">${ic('search')}Search adjustments</div><span class="cnt">${ADJS.length + 1} adjustments</span></div>
+          <table class="itab"><thead><tr><th style="width:14%">Effective date</th><th style="width:20%">Materials</th><th class="num">WIP change</th><th class="num">Value change</th><th style="width:30%">Note</th></tr></thead><tbody>${rows}</tbody></table></div>
+      </div>${drawer(s)}</main>`;
+  }
+
+  function drawer(s) {
+    if (!s.drawer) return '';
+    const prev = STEPS[step - 1];
+    const still = prev && prev.drawer && prev.view === s.view ? ' still' : '';
+    const shell = (title, body, foot) => `<div class="drawer${still}"><div class="dh"><h3>${title}</h3><span class="x">${ic('x')}</span></div><div class="db">${body}</div>${foot ? `<div class="df">${foot}</div>` : ''}</div>`;
+    if (s.drawer === 'new') {
+      return shell('New Count', `
+        <div class="fld"><label>Yard</label><div class="in ro">North Yard</div></div>
+        <div class="fld"><label>Effective date</label><div class="in">${EFF}${ic('calendar')}</div>
+          <div class="hint">Any adjustment from this count posts on this date.</div></div>
+        <div class="tgl" id="blind"><span class="sw"></span><div><b>Show book weight and variance while counting</b><small>Leave this off for a blind count. Whoever is weighing won’t see book weight, variance or cost.</small></div></div>`,
+        `<span class="rb">Cancel</span><span class="rb pri">Start count</span>`);
+    }
+    if (s.drawer === 'adj') {
+      const lines = ROWS.filter(r => r.dec === 'Post').map(r => `<tr><td>${r.mat}</td><td class="num">${sgn(r.v)} lb</td><td class="num">$${r.cost.toFixed(4)}</td><td class="num">${(r.v * r.cost < 0 ? '−$' : '+$') + Math.abs(r.v * r.cost).toFixed(2)}</td></tr>`).join('');
+      return shell('Inventory adjustment', `
+        <div class="kv2"><div><small>Effective date</small><b>${EFF}</b></div><div><small>Yard</small><b>North Yard</b></div>
+          <div><small>WIP change</small><b>−20 lb</b></div><div><small>Value change</small><b>+$9.40</b></div></div>
+        <div class="sec">Materials</div>
+        <table class="alloc"><thead><tr><th style="width:42%">Material</th><th class="num">Change</th><th class="num">Cost</th><th class="num">Value</th></tr></thead><tbody>${lines}</tbody></table>
+        <div class="sec">Note</div>
+        <div class="became"><div class="br" id="adj-link">${ic('clipboard-check')}<span class="link">Physical inventory count #14</span><span>Closed · Posted</span></div></div>`, '');
+    }
+    return '';
+  }
+
+  function cover(kind) {
+    if (kind === 'intro') {
+      return `<div class="cover"><div class="card">
+        <div class="eyebrow">${ic('clipboard-check')}Inventory · Now live for everyone</div>
+        <h2>Count your yard’s loose material without keying adjustments one at a time</h2>
+        <p>Run a physical count of loose material for a whole yard, compare what you weighed against what your books say, and decide row by row what to correct.</p>
+        <div class="cta"><button class="go" type="button" data-go="next">Get started${ic('arrow-right')}</button></div>
+      </div></div>`;
+    }
+    return `<div class="cover"><div class="card">
+      <div class="eyebrow">${ic('circle-check')}Physical Inventory Count</div>
+      <h2>One count, one review, one adjustment</h2>
+      <p>Weigh blind or with the book showing, review counted against book for every row, and post only what needs correcting. If nothing is marked Post, the count is kept as a record. A finished count can’t be reopened, so run a new count if you need to correct something later.</p>
+      <div class="cta"><button class="go sec" type="button" data-go="restart">${ic('rotate-ccw')}Replay</button></div>
+    </div></div>`;
+  }
+
+  function renderApp(s) {
+    const view = s.view === 'adj' ? adjustments(s) : s.view === 'cnt' ? countPage(s) : countList(s);
+    return `<div class="app">${sidebar(s.view === 'adj' ? 'adj' : 'pic')}${view}${s.cover ? cover(s.cover) : ''}</div>`;
+  }
+  function anchorMenus() {}
+
+  // ---------- player ----------
+  const stage = document.getElementById('stage');
+  const canvas = document.getElementById('canvas');
+  const overlay = document.getElementById('overlay');
+  const caption = document.getElementById('caption');
+  const pips = document.getElementById('pips');
+  const backBtn = document.getElementById('back');
+  const nextBtn = document.getElementById('next');
+  let step = 0;
+  const guided = STEPS.map((s, i) => (s.tip ? i : null)).filter(i => i !== null);
+
+  pips.innerHTML = STEPS.map((_, i) => `<button type="button" role="tab" aria-label="Step ${i + 1}" data-i="${i}"></button>`).join('');
+  pips.addEventListener('click', e => { const b = e.target.closest('button'); if (b) go(+b.dataset.i); });
+
+  function scale() {
+    const k = stage.clientWidth / W;
+    canvas.style.transform = `scale(${k})`;
+    document.body.classList.toggle('narrow', stage.clientWidth < 700);
+    return k;
+  }
+
+  function place() {
+    overlay.innerHTML = '';
+    const s = STEPS[step];
+    anchorMenus(s);
+    if (!s.t) return;
+    const el = canvas.querySelector(s.t);
+    if (!el) return;
+    const sr = stage.getBoundingClientRect();
+    const r = el.getBoundingClientRect();
+    const x = r.left - sr.left, y = r.top - sr.top, w = r.width, h = r.height;
+    const n = guided.indexOf(step) + 1;
+    const label = `<span class="n">Step ${n} of ${guided.length}</span>`;
+
+    const ring = document.createElement('div');
+    ring.className = 'ring';
+    Object.assign(ring.style, { left: x - 3 + 'px', top: y - 3 + 'px', width: w + 6 + 'px', height: h + 6 + 'px' });
+    const hot = document.createElement('button');
+    hot.className = 'hot';
+    hot.type = 'button';
+    hot.setAttribute('aria-label', 'Continue to next step');
+    hot.style.left = x + w / 2 + 'px';
+    hot.style.top = y + h / 2 + 'px';
+    hot.addEventListener('click', () => go(step + 1));
+    overlay.append(ring, hot);
+
+    caption.innerHTML = label + s.tip;
+    if (document.body.classList.contains('narrow')) return;
+
+    const tip = document.createElement('div');
+    tip.className = 'tip';
+    tip.innerHTML = label + s.tip;
+    overlay.append(tip);
+    const tw = tip.offsetWidth, th = tip.offsetHeight, gap = 18;
+    const SW = stage.clientWidth, SH = stage.clientHeight;
+    let tx, ty;
+    const side = s.place || 'right';
+    if (side === 'right') { tx = x + w + gap; ty = y + h / 2 - th / 2; }
+    if (side === 'left') { tx = x - tw - gap; ty = y + h / 2 - th / 2; }
+    if (side === 'bottom') { tx = x + w / 2 - tw / 2; ty = y + h + gap; }
+    if (side === 'top') { tx = x + w / 2 - tw / 2; ty = y - th - gap; }
+    if (side === 'right' && tx + tw > SW - 8) { tx = x - tw - gap; }
+    if (side === 'left' && tx < 8) { tx = x + w + gap; }
+    tx = Math.max(10, Math.min(SW - tw - 10, tx));
+    ty = Math.max(10, Math.min(SH - th - 10, ty));
+    tip.style.left = tx + 'px';
+    tip.style.top = ty + 'px';
+  }
+
+  function render() {
+    const s = STEPS[step];
+    canvas.innerHTML = renderApp(s);
+    if (window.lucide) lucide.createIcons({ attrs: { 'aria-hidden': 'true' } });
+    document.getElementById('url').textContent = 'app.respark.com' + s.url;
+    document.getElementById('progress').style.width = (step / (STEPS.length - 1)) * 100 + '%';
+    [...pips.children].forEach((b, i) => { b.className = i === step ? 'on' : i < step ? 'done' : ''; b.setAttribute('aria-selected', i === step); });
+    const n = guided.indexOf(step);
+    document.getElementById('count').textContent = s.cover === 'intro' ? 'Intro' : s.cover === 'outro' ? 'Done' : `${n + 1} / ${guided.length}`;
+    backBtn.disabled = step === 0;
+    nextBtn.disabled = step === STEPS.length - 1;
+    if (s.cover) caption.innerHTML = s.cover === 'intro'
+      ? '<span class="n">Intro</span>Run a physical count of loose material for a whole yard, compare what you weighed against your books, and decide row by row what to correct.'
+      : '<span class="n">Done</span>Rows marked Post go in as one adjustment tied to the count. A finished count can’t be reopened, so run a new count to correct something later.';
+    scale();
+    // Measure only after entrance animations (panels sliding in, menus
+    // popping, pins dropping) finish, or the ring lands where the element
+    // was mid-animation instead of where it ends up.
+    const token = ++renderToken;
+    settle().then(() => { if (token === renderToken) place(); });
+  }
+
+  let renderToken = 0;
+  function settle() {
+    const finite = (canvas.getAnimations ? canvas.getAnimations({ subtree: true }) : [])
+      .filter(a => a.effect && a.effect.getComputedTiming().iterations !== Infinity);
+    const done = Promise.all(finite.map(a => a.finished.catch(() => {})));
+    const timeout = new Promise(r => setTimeout(r, 1200));
+    // If the timeline is throttled (background tab), snap leftovers to their
+    // end state so the measurement still matches the final layout.
+    return Promise.race([done, timeout]).then(() => {
+      finite.forEach(a => { if (a.playState !== 'finished') try { a.finish(); } catch (e) {} });
+      return new Promise(r => setTimeout(r, 30));
+    });
+  }
+
+  // Self-check used before publishing: walks every step and reports any
+  // highlight that doesn't sit on its target, targets that are missing or
+  // clipped, and tooltips that cover the thing they point at.
+  function checkStep() {
+    const s = STEPS[step];
+    if (!s.t) return { step, ok: true };
+    const el = canvas.querySelector(s.t), ring = overlay.querySelector('.ring'), tip = overlay.querySelector('.tip');
+    if (!el) return { step, ok: false, why: `target ${s.t} not found` };
+    if (!ring) return { step, ok: false, why: 'highlight not drawn' };
+    const a = el.getBoundingClientRect(), b = ring.getBoundingClientRect(), st = stage.getBoundingClientRect();
+    const off = Math.max(Math.abs(a.left - 3 - b.left), Math.abs(a.top - 3 - b.top), Math.abs(a.width + 6 - b.width), Math.abs(a.height + 6 - b.height));
+    const issues = [];
+    if (off > 2) issues.push(`highlight off by ${Math.round(off)}px`);
+    if (a.width < 4 || a.height < 4) issues.push('target has no size');
+    if (a.left < st.left - 1 || a.top < st.top - 1 || a.right > st.right + 1 || a.bottom > st.bottom + 1) issues.push('target clipped by frame');
+    if (tip) {
+      const t = tip.getBoundingClientRect();
+      const ix = Math.max(0, Math.min(a.right, t.right) - Math.max(a.left, t.left)), iy = Math.max(0, Math.min(a.bottom, t.bottom) - Math.max(a.top, t.top));
+      if (ix * iy > 0.25 * a.width * a.height) issues.push('tooltip covers target');
+    }
+    return { step, target: s.t, ok: issues.length === 0, issues };
+  }
+  window.walkthroughAudit = async () => {
+    const results = [];
+    for (let i = 0; i < STEPS.length; i++) {
+      go(i);
+      await settle();
+      await new Promise(r => setTimeout(r, 60));
+      results.push(checkStep());
+    }
+    go(0);
+    return { ok: results.every(r => r.ok), problems: results.filter(r => !r.ok), steps: results.length };
+  };
+
+  function go(i) {
+    step = Math.max(0, Math.min(STEPS.length - 1, i));
+    render();
+  }
+
+  canvas.addEventListener('click', e => {
+    const g = e.target.closest('[data-go]');
+    if (g) { go(g.dataset.go === 'restart' ? 0 : step + 1); return; }
+    const s = STEPS[step];
+    if (s.t && e.target.closest(s.t)) go(step + 1);
+  });
+  backBtn.addEventListener('click', () => go(step - 1));
+  nextBtn.addEventListener('click', () => go(step + 1));
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight') go(step + 1);
+    if (e.key === 'ArrowLeft') go(step - 1);
+  });
+  new ResizeObserver(() => { scale(); settle().then(place); }).observe(stage);
+  if (document.fonts) document.fonts.ready.then(place);
+
+  if (window.lucide) lucide.createIcons({ attrs: { 'aria-hidden': 'true' } });
+  render();
+})();
+</script>
