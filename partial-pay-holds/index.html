@@ -303,6 +303,7 @@ td { padding: 0 12px; height: 44px; border-bottom: 1px solid var(--a-border-subt
 .held .hr > span:not(.bin) { margin-left: auto; font-variant-numeric: tabular-nums; font-weight: 500; }
 .held .hr .bin { width: 30px; height: 30px; border-radius: 6px; display: grid; place-items: center; color: var(--a-error); border: 1px solid hsla(348, 81%, 48%, 0.3); background: hsla(348, 81%, 48%, 0.06); }
 .held .hr .bin svg.lucide { width: 15px; height: 15px; }
+.paygrid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: start; }
 .pm { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .pm .in { height: 34px; border: 1px solid var(--a-border); border-radius: 6px; display: flex; align-items: center; padding-inline: 10px; font-size: 13px; }
 .pm .in svg.lucide { margin-left: auto; width: 14px; height: 14px; color: var(--a-icon-2); }
@@ -390,17 +391,17 @@ td { padding: 0 12px; height: 44px; border-bottom: 1px solid var(--a-border-subt
       tip: 'Open a purchase ticket that mixes copper with other metals. Here the copper is on a payment hold, and the rest can be paid today.' },
     { view: 'tk', t: '#btn-pay', place: 'bottom', url: '/app/purchases/tickets/48213',
       tip: 'Click <b>PAY</b> to open the payment screen.' },
-    { view: 'tk', drawer: 'pay', t: '#held', place: 'left', url: '/app/purchases/tickets/48213',
+    { view: 'pay', t: '#held', place: 'right', url: '/app/purchases/tickets/48213',
       tip: 'Each held material gets its own row with its <b>Hold through</b> date. Held material can’t be paid until its hold ends.' },
-    { view: 'tk', drawer: 'pay', t: '#pays', place: 'left', url: '/app/purchases/tickets/48213',
+    { view: 'pay', t: '#pays', place: 'right', url: '/app/purchases/tickets/48213',
       tip: 'The amount fills in with what you can pay now. Split it across payment methods if you like. Fees and promotions for those methods are already counted.' },
-    { view: 'tk', drawer: 'pay', t: '#btn-paynow', place: 'top', url: '/app/purchases/tickets/48213',
+    { view: 'pay', t: '#btn-paynow', place: 'bottom', url: '/app/purchases/tickets/48213',
       tip: 'Pay the unheld part of the ticket. You don’t need to build a separate bill first.' },
     { view: 'tk', paid: 'partial', t: '#status', place: 'bottom', url: '/app/purchases/tickets/48213',
       tip: 'The ticket now shows <b>Partially Paid</b>. The copper stays unpaid until its hold ends.' },
-    { view: 'tk', paid: 'partial', drawer: 'paid', t: '#void-cash', place: 'bottom', url: '/app/purchases/tickets/48213',
+    { view: 'pay', paid: 'partial', t: '#void-cash', place: 'bottom', url: '/app/purchases/tickets/48213',
       tip: 'Need to undo one payment? Click the red bin on that payment to void just that one.' },
-    { view: 'tk', paid: 'voided', drawer: 'paid', t: '#rec', place: 'left', url: '/app/purchases/tickets/48213',
+    { view: 'pay', paid: 'voided', t: '#rec', place: 'right', url: '/app/purchases/tickets/48213',
       tip: 'Only that payment is reversed. The check stays recorded, and the ticket stays <b>Partially Paid</b>.' },
     { view: 'rp', t: '#rtp', place: 'bottom', url: '/app/reports/payment-holds',
       tip: 'Open <b>Reports → Payment Holds</b> to see when the held material is <b>Ready to Pay</b>. The dates follow your yard’s own hold days.' },
@@ -437,8 +438,7 @@ td { padding: 0 12px; height: 44px; border-bottom: 1px solid var(--a-border-subt
     const title = `<span style="display:inline-flex;align-items:center;gap:10px">Inbound Ticket #48213 ${status}</span>`;
     const fld = (l, v) => `<div class="fld"><label>${l}</label><div class="in">${v}</div></div>`;
     const rows = MATS.map(m => `<tr${m.id ? ` id="${m.id}"` : ''}><td class="c">${m.n}</td><td>${m.mat}</td><td class="num">${m.g.toLocaleString()}</td><td class="num">${m.t.toLocaleString()}</td><td class="num">${m.adj}</td><td class="num"><b>${m.net.toLocaleString()}</b></td><td class="num">${m.p}</td><td>${m.um}</td><td class="num"><b>${money(m.v)}</b></td></tr>`).join('');
-    const toast = s.paid === 'partial' && !s.drawer ? `<div class="toast">${ic('circle-check')}Payment of ${money(PAYABLE)} recorded</div>`
-      : s.paid === 'voided' ? `<div class="toast">${ic('circle-check')}Cash payment of $553.16 voided</div>` : '';
+    const toast = s.paid === 'partial' ? `<div class="toast">${ic('circle-check')}Payment of ${money(PAYABLE)} recorded</div>` : '';
     return `<main class="main">${head(['Purchases', 'Ticket Library', 'Inbound Ticket #48213'], title,
       `<span class="saved">${ic('check')}Saved</span><span class="rb" id="btn-pay">${ic('wallet')}PAY</span><span class="rb">${ic('printer')}SCALE TICKET</span><span class="rb">${ic('printer')}PURCHASE TICKET</span><span class="rb pri">Done</span><span class="rb icon">${ic('ellipsis-vertical')}</span>`)}
       <div class="ibody">
@@ -450,7 +450,7 @@ td { padding: 0 12px; height: 44px; border-bottom: 1px solid var(--a-border-subt
           <table class="itab tkt"><thead><tr><th style="width:4%">#</th><th style="width:24%">Material</th><th class="num">Gross (lb)</th><th class="num">Tare (lb)</th><th class="num">Adjustments</th><th class="num">Net (lb)</th><th class="num">Price/UM</th><th style="width:6%">UM</th><th class="num">Value</th></tr></thead>
           <tbody>${rows}<tr class="tot"><td></td><td>Truck Total</td><td class="num">43,440</td><td class="num">15,334</td><td class="num">152</td><td class="num">27,954</td><td></td><td></td><td class="num">${money(TOTAL)}</td></tr></tbody></table></div>
         ${toast}
-      </div>${drawer(s)}</main>`;
+      </div></main>`;
   }
 
   function report() {
@@ -472,39 +472,40 @@ td { padding: 0 12px; height: 44px; border-bottom: 1px solid var(--a-border-subt
       </div></main>`;
   }
 
-  function drawer(s) {
-    if (!s.drawer) return '';
-    const prev = STEPS[step - 1];
-    const still = prev && prev.drawer && prev.view === s.view ? ' still' : '';
-    const shell = (title, body, foot) => `<div class="drawer${still}"><div class="dh"><h3>${title}</h3><span class="x">${ic('x')}</span></div><div class="db">${body}</div>${foot ? `<div class="df">${foot}</div>` : ''}</div>`;
+  // The payment screen opens as its own full page (not a drawer).
+  function payPage(s) {
     const held = MATS.filter(m => m.hold).map(m => `<div class="hr">${ic('lock')}<div class="tx"><b>${m.mat}</b><small>Hold through ${HOLD_THRU}</small></div><span>${money(m.v)}</span></div>`).join('');
-    if (s.drawer === 'pay') {
-      return shell('Pay Inbound Ticket #48213', `
-        <div class="sum"><div>Ticket total<b>${money(TOTAL)}</b></div><div>On hold<b>$5,831.40</b></div><div>Payable now<b>${money(PAYABLE)}</b></div></div>
-        <div class="sec">On hold</div>
-        <div class="held" id="held">${held}</div>
-        <div class="sec">Payment</div>
-        <div id="pays" style="display:flex;flex-direction:column;gap:8px">
-          <div class="pm"><div class="in">Check${ic('chevron-down')}</div><div class="in amt">4,000.00</div></div>
-          <div class="pm"><div class="in">Cash${ic('chevron-down')}</div><div class="in amt">553.16</div></div>
-          <span class="link" style="font-size:12.5px">${ic('plus')} Add payment method</span>
-        </div>`,
-        `<span class="rb">Cancel</span><span class="rb pri" id="btn-paynow">${ic('wallet')}PAY ${money(PAYABLE)}</span>`);
+    const crumbs = ['Purchases', 'Ticket Library', 'Inbound Ticket #48213', 'Pay'];
+    if (!s.paid) {
+      return `<main class="main">${head(crumbs, 'Pay Inbound Ticket #48213', `<span class="rb">Cancel</span><span class="rb pri" id="btn-paynow">${ic('wallet')}PAY ${money(PAYABLE)}</span>`)}
+        <div class="ibody"><div class="paygrid">
+          <div class="icard"><div class="ct">Summary</div>
+            <div class="sum"><div>Ticket total<b>${money(TOTAL)}</b></div><div>On hold<b>$5,831.40</b></div><div>Payable now<b>${money(PAYABLE)}</b></div></div>
+            <div class="sec">On hold</div>
+            <div class="held" id="held">${held}</div></div>
+          <div class="icard"><div class="ct">Payment</div>
+            <div id="pays" style="display:flex;flex-direction:column;gap:8px">
+              <div class="pm"><div class="in">Check${ic('chevron-down')}</div><div class="in amt">4,000.00</div></div>
+              <div class="pm"><div class="in">Cash${ic('chevron-down')}</div><div class="in amt">553.16</div></div>
+              <span class="link" style="font-size:12.5px">${ic('plus')} Add payment method</span>
+            </div></div>
+        </div></div></main>`;
     }
-    if (s.drawer === 'paid') {
-      const voided = s.paid === 'voided';
-      const paid = voided ? 4000 : PAYABLE;
-      return shell('Pay Inbound Ticket #48213', `
-        <div class="sum"><div>Paid<b>${money(paid)}</b></div><div>On hold<b>$5,831.40</b></div><div>Payable now<b>${money(PAYABLE - paid)}</b></div></div>
-        <div class="sec">Payments</div>
-        <div class="held" id="rec">
-          <div class="hr">${ic('banknote')}<div class="tx"><b>Check #10482</b><small>Oct 16, 2026 · 10:05 AM</small></div><span>$4,000.00</span><span class="bin">${ic('trash-2')}</span></div>
-          ${voided ? '' : `<div class="hr">${ic('banknote')}<div class="tx"><b>Cash</b><small>Oct 16, 2026 · 10:05 AM</small></div><span>$553.16</span><span class="bin" id="void-cash">${ic('trash-2')}</span></div>`}
-        </div>
-        <div class="sec">On hold</div>
-        <div class="held">${held}</div>`, '');
-    }
-    return '';
+    const voided = s.paid === 'voided';
+    const paid = voided ? 4000 : PAYABLE;
+    const toast = voided ? `<div class="toast">${ic('circle-check')}Cash payment of $553.16 voided</div>` : '';
+    return `<main class="main">${head(crumbs, 'Pay Inbound Ticket #48213', `<span class="rb">Close</span>`)}
+      <div class="ibody"><div class="paygrid">
+        <div class="icard"><div class="ct">Summary</div>
+          <div class="sum"><div>Paid<b>${money(paid)}</b></div><div>On hold<b>$5,831.40</b></div><div>Payable now<b>${money(PAYABLE - paid)}</b></div></div>
+          <div class="sec">On hold</div>
+          <div class="held">${held}</div></div>
+        <div class="icard"><div class="ct">Payments</div>
+          <div class="held" id="rec">
+            <div class="hr">${ic('banknote')}<div class="tx"><b>Check #10482</b><small>Oct 16, 2026 · 10:05 AM</small></div><span>$4,000.00</span><span class="bin">${ic('trash-2')}</span></div>
+            ${voided ? '' : `<div class="hr">${ic('banknote')}<div class="tx"><b>Cash</b><small>Oct 16, 2026 · 10:05 AM</small></div><span>$553.16</span><span class="bin" id="void-cash">${ic('trash-2')}</span></div>`}
+          </div></div>
+      </div>${toast}</div></main>`;
   }
 
   function cover(kind) {
@@ -525,8 +526,8 @@ td { padding: 0 12px; height: 44px; border-bottom: 1px solid var(--a-border-subt
   }
 
   function renderApp(s) {
-    const view = s.view === 'rp' ? report() : ticket(s);
-    return `<div class="app">${sidebar(s.view)}${view}${s.cover ? cover(s.cover) : ''}</div>`;
+    const view = s.view === 'rp' ? report() : s.view === 'pay' ? payPage(s) : ticket(s);
+    return `<div class="app">${sidebar(s.view === 'pay' ? 'tk' : s.view)}${view}${s.cover ? cover(s.cover) : ''}</div>`;
   }
   function anchorMenus() {}
 
