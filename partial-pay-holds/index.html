@@ -368,6 +368,12 @@ td { padding: 0 12px; height: 44px; border-bottom: 1px solid var(--a-border-subt
 .modal .mb2 { padding: 6px 20px 14px; display: flex; flex-direction: column; gap: 8px; font-size: 14px; color: var(--a-text-2); }
 .modal .mb2 b { color: var(--a-fg); font-weight: 500; }
 .modal .mf2 { display: flex; justify-content: flex-end; gap: 8px; padding: 8px 16px 14px; }
+.chip.sel2 { gap: 6px; font-size: 14px; height: 30px; }
+.chip.sel2 svg.lucide { width: 16px; height: 16px; }
+.kb { display: inline-grid; place-items: center; width: 30px; height: 30px; color: var(--a-icon-2); }
+.mb.out { border: 1px solid hsla(183, 100%, 33%, 0.5); }
+.tkt tr.trk td { color: var(--a-text-2); }
+.wbox { display: inline-block; min-width: 80px; border: 1px solid var(--a-border); border-radius: 4px; padding: 3px 8px; }
 .paygrid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: start; }
 .pm { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .pm .in { height: 34px; border: 1px solid var(--a-border); border-radius: 6px; display: flex; align-items: center; padding-inline: 10px; font-size: 13px; }
@@ -450,7 +456,7 @@ td { padding: 0 12px; height: 44px; border-bottom: 1px solid var(--a-border-subt
   const TOTAL = 10384.56, PAYABLE = 4553.16, HOLD_THRU = 'Oct 22, 2026', READY = 'Oct 23, 2026';
 
   // ---------- steps ----------
-  const TK = '/app/purchases/ticket-library/48213', PAYURL = TK + '/payment';
+  const TK = '/app/purchases/ticket-library/3f9c2b7e-58d1-4a6e-9b0f-2c7d41e8a913', PAYURL = TK + '/payment';
   const STEPS = [
     { view: 'tk', cover: 'intro', url: TK },
     { view: 'tk', t: '#r-cu', place: 'bottom', url: TK,
@@ -471,9 +477,7 @@ td { padding: 0 12px; height: 44px; border-bottom: 1px solid var(--a-border-subt
       tip: 'Click <b>Confirm Void Payment</b>. Only that payment is voided, and the ticket’s balance updates.' },
     { view: 'pay', paid: 'voided', t: '#rec', place: 'right', url: PAYURL,
       tip: 'The check stays recorded, and the ticket stays <b>Partial</b>.' },
-    { view: 'rp', t: '#rtp', place: 'bottom', url: '/app/reports/payment-holds',
-      tip: 'Open <b>Reports → Payment Holds</b> to see when the held material is <b>Ready to Pay</b>. The dates follow your yard’s own hold days.' },
-    { view: 'rp', cover: 'outro', url: '/app/reports/payment-holds' },
+    { view: 'pay', paid: 'voided', cover: 'outro', url: PAYURL },
   ];
 
   // ---------- chrome ----------
@@ -488,9 +492,9 @@ td { padding: 0 12px; height: 44px; border-bottom: 1px solid var(--a-border-subt
         <div class="cmd" style="margin:2px 0">${ic('search')}<span>Search &amp; actions</span><kbd>⌘K</kbd></div>
         <div class="nsep"></div>
         <div class="nrow">${ic('shopping-cart')}<span>Purchases</span>${ic('chevron-down', 'class="chev"')}</div>
-        ${sub('tk', 'Ticket Library')}${sub('ap', 'AP Center')}${sub('bl', 'Bills')}${sub('pl', 'Pending Loads')}
+        ${sub('tk', 'Purchase Tickets')}${sub('ap', 'AP Center')}${sub('bl', 'Bills')}${sub('bb', 'Batch Bills')}${sub('pl', 'Pending Loads')}
         ${row('tag', 'Sales')}${row('file-text', 'Contracts')}${row('boxes', 'Inventory')}
-        ${row('users', 'Customers')}${row('layers', 'Commodities')}${row('truck', 'Logistics')}${row('clipboard-list', 'Load Board')}${row('warehouse', 'Assets')}${row('chart-column', 'Reports', '', active === 'rp')}${row('landmark', 'Ledger')}
+        ${row('users', 'Customers')}${row('layers', 'Commodities')}${row('truck', 'Logistics')}${row('clipboard-list', 'Load Board')}${row('warehouse', 'Assets')}${row('chart-column', 'Reports')}${row('landmark', 'Ledger')}
       </div>
       <div class="foot"><div class="av">JP</div><div class="who"><span>Jordan Pike</span><small>General Manager</small></div>
         <div class="ico"><span>${ic('settings')}</span><span>${ic('circle-help')}</span></div></div>
@@ -500,43 +504,21 @@ td { padding: 0 12px; height: 44px; border-bottom: 1px solid var(--a-border-subt
   const head = (crumbs, title, acts) => `<div class="phead"><div class="left"><div class="crumbs">${crumbs.map(c => `<span>${c}</span>`).join(ic('chevron-right'))}</div><h1>${title}</h1></div><div class="acts">${acts}</div></div>`;
 
   function ticket(s) {
-    const status = s.paid
-      ? `<span class="badge b-warn" id="status">Partial</span>`
-      : `<span class="badge b-accent" id="status">Price Complete</span>`;
-    const title = `<span style="display:inline-flex;align-items:center;gap:10px">Inbound Ticket #48213 ${status}</span>`;
     const fld = (l, v) => `<div class="fld"><label>${l}</label><div class="in">${v}</div></div>`;
     const rows = MATS.map(m => `<tr${m.id ? ` id="${m.id}"` : ''}><td class="c">${m.n}</td><td>${m.mat}${m.hold ? ` <span class="hlock">${ic('lock')}</span>` : ''}</td><td class="num">${m.g.toLocaleString()}</td><td class="num">${m.t.toLocaleString()}</td><td class="num">${m.adj}</td><td class="num"><b>${m.net.toLocaleString()}</b></td><td class="num">${m.p}</td><td>${m.um}</td><td class="num"><b>${money(m.v)}</b></td></tr>`).join('');
-    const toast = '';
-    return `<main class="main">${head(['Purchases', 'Ticket Library', 'Inbound Ticket #48213'], title,
-      `<span class="saved">${ic('check')}Saved</span><span class="rb pri" id="btn-pay">${ic('dollar-sign')}PAY</span><span class="rb">${ic('printer')}SCALE TICKET</span><span class="rb">${ic('printer')}PURCHASE TICKET</span><span class="rb pri">Done</span><span class="rb icon">${ic('ellipsis-vertical')}</span>`)}
-      <div class="ibody">
+    return `<main class="main">
+      <div class="crow">${ic('arrow-left')}<span class="link">Ticket Library</span><span>/</span><span>Details</span></div>
+      <div class="phead2"><div class="tl"><h1>Inbound Ticket #48213</h1><span class="chip sel2">${ic('circle-check')}Price Complete${ic('chevron-down')}</span><span class="kb">${ic('ellipsis-vertical')}</span></div>
+        <div class="acts"><span class="mb dis">${ic('save')}Saved</span><span class="mb con" id="btn-pay">${ic('dollar-sign')}Pay</span><span class="mb">${ic('printer')}Scale Ticket</span><span class="mb">${ic('printer')}Purchase Ticket</span><span class="mb out">Done</span><span class="kb">${ic('ellipsis-vertical')}</span></div></div>
+      <div class="ibody" style="padding-top:16px">
         <div class="cards2">
-          <div class="icard"><div class="ct">Customer Information</div><div class="g3">${fld('Supplier Name', '<b>Dana Ruiz</b>')}${fld('Effective Date', '10/16/26 9:42 AM')}${fld('Contact', 'Dana Ruiz')}${fld('Location', 'Gary, IN — Main Lot')}${fld('# Passengers', '1')}${fld('ID Verified', '<span class="badge b-success">Driver license</span>')}</div></div>
-          <div class="icard"><div class="ct">Transportation Info</div><div class="g4">${fld('Carrier', 'Self-delivered')}${fld('Driver Name', 'Luis Ortega')}${fld('Bill of Lading', 'BL-20931')}${fld('Pickup?', 'No')}${fld('Truck #', 'T-114')}${fld('Trailer #', 'TR-22')}${fld('Container #', '40-yd 12')}${fld('Scale', 'Inbound Scale 1')}</div></div>
+          <div class="icard"><div class="ct">Customer Information</div><div class="g3">${fld('Supplier Name', '<b>Dana Ruiz</b>')}${fld('Effective Date', '10/16/26 9:42 AM')}${fld('Contact', 'Dana Ruiz')}${fld('Location', 'Gary, IN — Main Lot')}${fld('# Passengers', '1')}${fld('Vehicle', 'Ford F-250 · IN 7HK 214')}</div></div>
+          <div class="icard"><div class="ct">Transportation Info</div><div class="g4">${fld('Carrier', 'Self-delivered')}${fld('Driver Name', 'Luis Ortega')}${fld('Bill of Lading', 'BL-20931')}${fld('Pickup?', 'No')}${fld('Truck #', 'T-114')}${fld('Trailer #', 'TR-22')}${fld('Container #', '40-yd 12')}</div></div>
         </div>
-        <div class="tcard"><div class="tt"><b style="font-size:14px">Materials (7)</b><span class="cnt"></span><span class="rb">${ic('scale')}Received Weights</span><span class="rb">${ic('plus')}Add Vehicle</span></div>
-          <table class="itab tkt"><thead><tr><th style="width:4%">#</th><th style="width:24%">Material</th><th class="num">Gross (lb)</th><th class="num">Tare (lb)</th><th class="num">Adjustments</th><th class="num">Net (lb)</th><th class="num">Price/UM</th><th style="width:6%">UM</th><th class="num">Value</th></tr></thead>
-          <tbody>${rows}<tr class="tot"><td></td><td>Truck Total</td><td class="num">43,440</td><td class="num">15,334</td><td class="num">152</td><td class="num">27,954</td><td></td><td></td><td class="num">${money(TOTAL)}</td></tr></tbody></table></div>
-        ${toast}
-      </div></main>`;
-  }
-
-  function report() {
-    const R = [
-      ['IBT-48213', 'Dana Ruiz', '#1 Bare Bright Copper', 2143.20, 'Oct 16, 2026', 5, READY, 'On hold'],
-      ['IBT-48213', 'Dana Ruiz', '#2 Copper', 2737.00, 'Oct 16, 2026', 5, READY, 'On hold', 'rtp'],
-      ['IBT-48213', 'Dana Ruiz', 'Insulated Copper Wire', 951.20, 'Oct 16, 2026', 5, READY, 'On hold'],
-      ['IBT-48197', 'Lakeshore Demolition', '#2 Copper', 1314.25, 'Oct 15, 2026', 5, 'Oct 22, 2026', 'On hold'],
-      ['IBT-48164', 'R. Alvarez', '#1 Bare Bright Copper', 486.40, 'Oct 13, 2026', 5, 'Oct 20, 2026', 'On hold'],
-      ['IBT-48122', 'Tri-County Electric', 'Insulated Copper Wire', 1702.60, 'Oct 8, 2026', 5, 'Oct 15, 2026', 'Ready'],
-      ['IBT-48109', 'K. Nguyen', '#2 Copper', 392.00, 'Oct 7, 2026', 5, 'Oct 14, 2026', 'Ready'],
-    ];
-    const rows = R.map(r => `<tr><td class="mono">${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td class="num">${money(r[3])}</td><td>${r[4]}</td><td class="num">${r[5]}</td><td><span${r[8] ? ` id="${r[8]}" class="rtpc"` : ''}>${r[6]}</span></td><td><span class="badge ${r[7] === 'Ready' ? 'b-success' : 'b-warn'}">${r[7]}</span></td></tr>`).join('');
-    return `<main class="main">${head(['Reports', 'Payment Holds'], 'Payment Holds', `<span class="rb">${ic('download')}Export</span>`)}
-      <div class="ibody">
-        <div class="kpis"><div><small>On hold</small><b>$7,632.05</b><span>5 lines · 3 tickets</span></div><div><small>Ready to pay</small><b>$2,094.60</b><span>2 lines</span></div><div><small>Next release</small><b>Oct 20, 2026</b><span>1 line</span></div><div><small>Yard</small><b>North Yard</b><span>5-day copper hold</span></div></div>
-        <div class="tcard"><div class="tt"><div class="inp">${ic('search')}Search tickets</div><div class="inp">Status <b style="color:var(--a-fg);font-weight:500">All</b>${ic('chevron-down')}</div><span class="cnt">7 lines</span></div>
-          <table class="itab"><thead><tr><th style="width:10%">Ticket</th><th style="width:17%">Supplier</th><th style="width:17%">Material</th><th class="num">Value</th><th>Effective date</th><th class="num">Hold days</th><th>Ready to Pay</th><th style="width:9%">Status</th></tr></thead><tbody>${rows}</tbody></table></div>
+        <div class="tcard"><div class="tt"><b style="font-size:14px">Materials (7)</b><span class="cnt"></span><span class="rb">${ic('plus')}Add Vehicle</span></div>
+          <table class="itab tkt"><thead><tr><th style="width:4%">#</th><th style="width:24%">Material</th><th class="num">Gross (lbs)</th><th class="num">Tare (lbs)</th><th class="num">Adjustments</th><th class="num">Net (lbs)</th><th class="num">Price/UM</th><th style="width:6%">UM</th><th class="num">Value</th></tr></thead>
+          <tbody>${rows}<tr class="tot"><td></td><td>Load Total</td><td class="num">43,440</td><td class="num">15,334</td><td class="num">152</td><td class="num">27,954</td><td></td><td></td><td class="num">${money(TOTAL)}</td></tr>
+          <tr class="trk"><td></td><td>Truck Total</td><td class="num"><span class="wbox">43,440</span></td><td class="num"><span class="wbox">15,334</span></td><td></td><td class="num">28,106</td><td></td><td></td><td></td></tr></tbody></table></div>
       </div></main>`;
   }
 
@@ -600,13 +582,13 @@ td { padding: 0 12px; height: 44px; border-bottom: 1px solid var(--a-border-subt
     return `<div class="cover"><div class="card">
       <div class="eyebrow">${ic('circle-check')}Pay what’s free, hold the rest</div>
       <h2>Pay mixed tickets without the calculator</h2>
-      <p>Pay part of a ticket, keep held material unpaid until its hold ends, and void payments one at a time. A partially paid ticket can’t be added to a bill. Fees and promotions now have a <b>Scope</b> setting (per ticket or per bill) in Settings → Purchases → Adjustments. Per-payment fees aren’t included yet.</p>
+      <p>Pay part of a ticket, keep held material unpaid until its hold ends, and void payments one at a time. A partially paid ticket can’t be added to a bill. Fees and promotions now have a <b>Scope</b> setting (per ticket, per bill or per payment) in Settings → Purchases → Adjustments.</p>
       <div class="cta"><button class="go sec" type="button" data-go="restart">${ic('rotate-ccw')}Replay</button></div>
     </div></div>`;
   }
 
   function renderApp(s) {
-    const view = s.view === 'rp' ? report() : s.view === 'pay' ? payPage(s) : ticket(s);
+    const view = s.view === 'pay' ? payPage(s) : ticket(s);
     return `<div class="app">${sidebar(s.view === 'pay' ? 'tk' : s.view)}${view}${s.cover ? cover(s.cover) : ''}</div>`;
   }
   function anchorMenus() {}
