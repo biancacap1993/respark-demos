@@ -6,10 +6,11 @@
 <script src="https://cdn.jsdelivr.net/npm/lucide@0.460.0/dist/umd/lucide.min.js"></script>
 <style>
 /* Layout: an Arcade-style player. One framed browser window holds a scaled
-   1440×820 mock of ReSpark Inventory (based on the Inventory Overview
-   screen) for finished good cost adjustments; a pulsing hotspot + tooltip guides each step; step controls sit
-   under the frame. The app mock keeps ReSpark's light theme (it stands in
-   for a screenshot); the page around it follows the viewer's theme. */
+   1440×820 mock of ReSpark Inventory → Finished Goods (list + Recost History
+   sub-tabs) for finished good cost adjustments; a pulsing hotspot + tooltip
+   guides each step; step controls sit under the frame. The app mock keeps
+   ReSpark's light theme (it stands in for a screenshot); the page around it
+   follows the viewer's theme. */
 :root {
   --bg: #f3f5f8;
   --glow: rgba(0, 168, 176, 0.10);
@@ -157,132 +158,149 @@ kbd { font: inherit; font-size: 11px; border: 1px solid var(--ctl-line); border-
 .foot .ico { margin-left: auto; display: flex; gap: 4px; }
 .foot .ico span { width: 28px; height: 28px; border: 1px solid var(--a-border-subtle); border-radius: 6px; display: grid; place-items: center; }
 
-.main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
-.phead { display: flex; align-items: center; gap: 12px; padding: 14px 22px 12px; border-bottom: 1px solid var(--a-border-subtle); }
-.crumbs { font-size: 12px; color: var(--a-text-3); display: flex; align-items: center; gap: 4px; }
-.crumbs svg.lucide { width: 12px; height: 12px; }
-.phead h1 { font-size: 20px; font-weight: 600; margin: 0; letter-spacing: -0.015em; }
-.phead .left { display: flex; flex-direction: column; gap: 4px; }
-.phead .acts { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+
+/* main column: depth-3 header (breadcrumb row + title row), sub-tabs, content */
+.main { flex: 1; min-width: 0; display: flex; flex-direction: column; position: relative; }
+.thead { padding: 22px 24px 14px; border-bottom: 1px solid var(--a-border-subtle); display: flex; flex-direction: column; gap: 8px; }
+.crow { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--a-text-3); }
+.crow > svg.lucide { width: 20px; height: 20px; color: var(--a-fg); margin-right: 2px; }
+.crow .leaf { color: var(--a-fg); }
+.crow .sep { color: var(--a-text-3); margin-inline: 2px; }
+.qpill { display: inline-flex; gap: 2px; margin-left: 16px; background: var(--a-hover); border-radius: 10px; padding: 3px; }
+.qpill span { width: 32px; height: 32px; border-radius: 8px; display: grid; place-items: center; color: var(--a-text-2); }
+.trow { display: flex; align-items: center; gap: 8px; min-height: 34px; }
+.trow h1 { margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -0.015em; flex: 1; }
+.trow .acts { display: flex; gap: 8px; align-items: center; }
+.tabs { display: flex; gap: 4px; padding: 0 24px; border-bottom: 1px solid var(--a-border-subtle); }
+.tab { height: 44px; display: inline-flex; align-items: center; padding: 0 12px; font-size: 13.5px; font-weight: 500; color: var(--a-text-2); border-bottom: 2px solid transparent; }
+.tab.on { color: var(--a-primary-hover); border-bottom-color: var(--a-primary); font-weight: 600; }
+.ibody { flex: 1; min-height: 0; padding: 0 24px 18px; display: flex; flex-direction: column; position: relative; }
 
 .rb { font: inherit; font-size: 13px; font-weight: 500; height: 32px; padding-inline: 12px; border-radius: 6px; display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--a-border); background: var(--a-surface); color: var(--a-fg); cursor: default; white-space: nowrap; }
 .rb.pri { background: var(--a-primary); border-color: var(--a-primary); color: #fff; }
-.rb.icon { width: 32px; padding: 0; justify-content: center; }
-.badge { display: inline-flex; align-items: center; height: 20px; padding-inline: 8px; border-radius: 999px; font-size: 11.5px; font-weight: 500; white-space: nowrap; }
-.b-success { background: hsla(162, 73%, 37%, 0.14); color: var(--a-success-strong); }
-.b-accent { background: hsla(252, 89%, 65%, 0.14); color: var(--a-accent-strong); }
-.b-neutral { background: hsla(217, 55%, 16%, 0.07); color: var(--a-text-2); }
+.rb.sm { height: 30px; padding-inline: 10px; font-size: 12.5px; }
+.rb.icon { width: 30px; padding: 0; justify-content: center; }
+.rb.danger { color: var(--a-error-strong); border-color: hsla(348, 81%, 48%, 0.4); }
+.rb.ghost { border-color: transparent; background: transparent; color: var(--a-text-3); }
 
-/* inventory pages */
-.phead { padding: 14px 24px 12px; border-bottom: 0; align-items: flex-start; }
-.ibody { flex: 1; min-height: 0; padding: 0 24px 20px; display: flex; flex-direction: column; gap: 14px; position: relative; }
-.kpis { display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid var(--a-border-subtle); border-radius: 10px; }
-.kpis > div { padding: 12px 16px; display: flex; flex-direction: column; gap: 2px; }
-.kpis > div + div { border-left: 1px solid var(--a-border-subtle); }
-.kpis small { font-size: 10.5px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--a-text-3); }
-.kpis b { font-size: 20px; font-weight: 700; letter-spacing: -.01em; }
-.kpis span { font-size: 12px; color: var(--a-text-3); }
-.tcard { border: 1px solid var(--a-border-subtle); border-radius: 10px; overflow: hidden; flex: 1; min-height: 0; }
-.tcard .tt { display: flex; align-items: center; gap: 8px; padding: 10px 12px; }
-.tcard .tt .inp { width: 240px; }
-.tcard .tt .cnt { margin-left: auto; font-size: 12px; color: var(--a-text-3); }
+/* InventorySummaryBar */
+.sumbar { display: flex; border: 1px solid var(--a-border-subtle); border-radius: 6px; margin: 16px 0 8px; overflow: hidden; }
+.sumbar > div { flex: 1; padding: 10px 16px; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.sumbar > div + div { border-left: 1px solid var(--a-border-subtle); }
+.sumbar small { font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--a-text-2); opacity: .85; }
+.sumbar b { font-size: 18px; font-weight: 600; letter-spacing: -.01em; }
+
+/* ResparkGrid */
+.grid { border: 1px solid var(--a-border-subtle); border-radius: 8px; overflow: hidden; flex: 1; min-height: 0; display: flex; flex-direction: column; position: relative; }
+.gtool { display: flex; align-items: center; gap: 8px; padding: 10px 12px; }
 .inp { height: 32px; border: 1px solid var(--a-border); border-radius: 6px; display: flex; align-items: center; gap: 6px; padding-inline: 9px; color: var(--a-text-3); font-size: 12.5px; background: var(--a-surface); white-space: nowrap; }
 .inp svg.lucide { width: 14px; height: 14px; color: var(--a-icon-2); }
-table { width: 100%; border-collapse: separate; border-spacing: 0; font-variant-numeric: tabular-nums; table-layout: fixed; }
-th { text-align: left; font-weight: 500; font-size: 12.5px; padding: 0 12px; height: 38px; background: var(--a-muted-solid); border-bottom: 1px solid var(--a-border-subtle); white-space: nowrap; }
-td { padding: 0 12px; height: 44px; border-bottom: 1px solid var(--a-border-subtle); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.itab td, .itab th { border-right: 0; }
-.itab th { color: var(--a-text-2); }
-.itab td.num, .itab th.num { text-align: right; }
-.itab tr.new td { background: hsla(183, 100%, 33%, 0.07); }
-.itab .mono { font-family: var(--mono); font-size: 12px; }
-.b-teal { background: hsla(183, 100%, 33%, 0.12); color: var(--a-primary-hover); }
-
-.drawer { position: absolute; top: 0; right: 0; bottom: 0; width: 470px; background: var(--a-surface); border-left: 1px solid var(--a-border); box-shadow: -12px 0 32px rgba(15, 23, 42, 0.12); display: flex; flex-direction: column; z-index: 6; animation: slide .25s ease; }
-.drawer.still { animation: none; }
-@keyframes slide { from { transform: translateX(30px); opacity: 0; } to { transform: none; opacity: 1; } }
-.drawer .dh { display: flex; align-items: center; gap: 10px; padding: 16px 18px 12px; border-bottom: 1px solid var(--a-border-subtle); }
-.drawer .dh h3 { margin: 0; font-size: 16px; font-weight: 600; }
-.drawer .dh .x { margin-left: auto; color: var(--a-text-3); }
-.drawer .db { flex: 1; min-height: 0; padding: 16px 18px; display: flex; flex-direction: column; gap: 14px; position: relative; overflow: hidden; }
-.drawer .df { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 18px; border-top: 1px solid var(--a-border-subtle); }
-.fld { display: flex; flex-direction: column; gap: 5px; }
-.fld label { font-size: 12px; font-weight: 500; color: var(--a-text-2); }
-.fld .in { height: 34px; border: 1px solid var(--a-border); border-radius: 6px; display: flex; align-items: center; gap: 6px; padding-inline: 10px; font-size: 13px; font-variant-numeric: tabular-nums; }
-.fld .in.ph { color: var(--a-text-3); }
-.fld .in.open { border-color: var(--a-primary); box-shadow: 0 0 0 3px hsla(183, 100%, 33%, 0.15); }
-.fld .in .u { margin-left: auto; color: var(--a-text-3); }
-.fld .in svg.lucide { margin-left: auto; width: 14px; height: 14px; color: var(--a-icon-2); }
-.fld .in.ro { background: var(--a-muted-solid); font-weight: 600; }
-.fld .hint { font-size: 12px; color: var(--a-text-3); }
-.fld .hint b { color: var(--a-primary-hover); font-weight: 600; }
-.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
-.note { display: flex; gap: 8px; align-items: flex-start; font-size: 12.5px; line-height: 1.45; background: hsla(183, 100%, 33%, 0.07); border: 1px solid hsla(183, 100%, 33%, 0.22); border-radius: 8px; padding: 10px 12px; color: var(--a-text-2); }
-.note svg.lucide { width: 15px; height: 15px; color: var(--a-primary-hover); margin-top: 1px; }
-.note b { color: var(--a-fg); }
-.dd { position: absolute; left: 18px; right: 18px; top: 82px; background: var(--a-surface); border: 1px solid var(--a-border); border-radius: 8px; box-shadow: 0 6px 22px rgba(15, 23, 42, 0.16); padding: 4px; z-index: 5; animation: pop .18s ease; }
-.dd .mh { font-size: 11px; color: var(--a-text-3); padding: 6px 9px 4px; }
-.dd .o { display: flex; align-items: center; gap: 8px; padding: 8px 9px; border-radius: 5px; font-size: 13px; }
-.dd .o span { margin-left: auto; font-size: 12px; color: var(--a-text-3); font-variant-numeric: tabular-nums; }
-.dd .o.hv { background: var(--a-hover); }
-@keyframes pop { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; transform: none; } }
-
-.stepper { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--a-text-3); }
-.stepper span { display: inline-flex; align-items: center; gap: 6px; }
-.stepper i.n { font-style: normal; width: 20px; height: 20px; border-radius: 50%; border: 1px solid var(--a-border); display: grid; place-items: center; font-size: 11px; font-weight: 600; }
-.stepper .on { color: var(--a-fg); font-weight: 600; }
-.stepper .on i.n { background: var(--a-dark); border-color: var(--a-dark); color: #fff; }
-.stepper .done i.n { background: var(--a-primary-subtle); border-color: transparent; color: var(--a-primary-hover); }
-.stepper .ln { flex: 1; height: 1px; background: var(--a-border-subtle); }
-.choice { border: 1px solid var(--a-border); border-radius: 10px; padding: 14px; display: flex; gap: 12px; align-items: flex-start; }
-.choice .ci { width: 34px; height: 34px; border-radius: 8px; display: grid; place-items: center; background: var(--a-hover); flex-shrink: 0; }
-.choice .ci svg.lucide { width: 18px; height: 18px; }
-.choice b { display: block; font-size: 13.5px; font-weight: 600; margin-bottom: 2px; }
-.choice small { font-size: 12.5px; color: var(--a-text-3); line-height: 1.4; }
-.choice.on { border-color: var(--a-primary); box-shadow: 0 0 0 3px hsla(183, 100%, 33%, 0.12); }
-.choice.on .ci { background: var(--a-primary-subtle); color: var(--a-primary-hover); }
-.pkl { border: 1px solid var(--a-border-subtle); border-radius: 8px; overflow: hidden; }
-.pkl .pr { display: flex; align-items: center; gap: 10px; padding: 10px 12px; font-size: 13px; }
-.pkl .pr + .pr { border-top: 1px solid var(--a-border-subtle); }
-.pkl .pr .rd { width: 15px; height: 15px; border-radius: 50%; border: 1.5px solid var(--a-border); flex-shrink: 0; }
-.pkl .pr.on { background: hsla(183, 100%, 33%, 0.06); }
-.pkl .pr.on .rd { border: 5px solid var(--a-primary); }
-.pkl .pr .tx { display: flex; flex-direction: column; }
-.pkl .pr .tx small { color: var(--a-text-3); font-size: 12px; }
-.pkl .pr .w { margin-left: auto; text-align: right; font-variant-numeric: tabular-nums; }
-.pkl .pr .w small { display: block; color: var(--a-text-3); font-size: 12px; }
-.sum { display: grid; grid-template-columns: repeat(3, 1fr); background: var(--a-muted-solid); border-radius: 8px; padding: 10px 12px; font-size: 12px; color: var(--a-text-3); gap: 6px; }
-.sum b { display: block; font-size: 14px; color: var(--a-fg); font-variant-numeric: tabular-nums; }
-.alloc { width: 100%; font-size: 12.5px; }
-.alloc th { height: 32px; font-size: 11.5px; color: var(--a-text-3); background: transparent; border-right: 0; padding: 0 6px; }
-.alloc td { height: 40px; border-right: 0; padding: 0 6px; }
-.alloc td.num, .alloc th.num { text-align: right; }
-.alloc .cell { border: 1px solid var(--a-border); border-radius: 6px; height: 30px; display: flex; align-items: center; justify-content: flex-end; padding: 0 8px; gap: 4px; }
-.alloc .cell .u { color: var(--a-text-3); }
-.alloc tr.waste td { color: var(--a-text-2); background: hsla(38, 92%, 50%, 0.07); }
-.alloc tr.waste .tagw { font-size: 11px; font-weight: 600; color: hsl(32 80% 38%); background: hsla(38, 92%, 50%, 0.16); border-radius: 4px; padding: 1px 6px; }
-.alloc tr.tot td { font-weight: 600; border-bottom: 0; }
+.gtool .search { width: 330px; }
+.gtool .flt { min-width: 150px; justify-content: space-between; color: var(--a-fg); }
+.gtool .flt.ph { color: var(--a-text-3); }
+.chipv { font-size: 11.5px; font-weight: 500; background: var(--a-hover); border-radius: 4px; padding: 1px 6px; }
+table { width: 100%; font-size: 13px; border-collapse: separate; border-spacing: 0; font-variant-numeric: tabular-nums; table-layout: fixed; }
+th { text-align: left; font-weight: 500; font-size: 12.5px; padding: 0 12px; height: 38px; background: var(--a-muted-solid); border-bottom: 1px solid var(--a-border-subtle); white-space: nowrap; color: var(--a-text-2); }
+td { padding: 0 12px; height: 50px; border-bottom: 1px solid var(--a-border-subtle); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+td.num, th.num { text-align: right; }
+.gt tr.on td { background: hsla(183, 100%, 33%, 0.07); }
+.gt td.cbx, .gt th.cbx { padding: 0 0 0 14px; }
 .link { color: var(--a-primary-hover); font-weight: 500; }
-.became .br { display: flex; align-items: center; gap: 10px; padding: 9px 12px; font-size: 13px; border: 1px solid var(--a-border-subtle); border-radius: 8px; }
-.became .br + .br { margin-top: 6px; }
-.became .br span:last-child { margin-left: auto; color: var(--a-text-3); font-variant-numeric: tabular-nums; }
-.became .br svg.lucide { width: 15px; height: 15px; color: var(--a-icon-2); }
-.sec { font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--a-text-3); }
-.kv2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px; font-size: 12.5px; }
-.kv2 small { display: block; color: var(--a-text-3); font-size: 11.5px; }
-.kv2 b { font-weight: 500; font-variant-numeric: tabular-nums; }
-.toast { position: absolute; left: 50%; bottom: 22px; transform: translateX(-50%); background: var(--a-fg); color: #fff; border-radius: 8px; padding: 10px 14px; display: flex; align-items: center; gap: 8px; font-weight: 500; box-shadow: 0 10px 24px rgba(18,35,62,.3); animation: pop2 .3s ease; z-index: 7; }
-.toast svg.lucide { color: hsl(162 73% 55%); }
-@keyframes pop2 { from { opacity: 0; transform: translate(-50%, 8px); } to { opacity: 1; transform: translateX(-50%); } }
-
+.stk { display: flex; flex-direction: column; line-height: 1.3; }
+.stk small { color: var(--a-text-3); font-size: 11.5px; }
+.more { color: var(--a-icon-2); }
+.chip { display: inline-flex; align-items: center; height: 24px; padding-inline: 8px; border-radius: 4px; font-size: 12px; font-weight: 500; border: 1px solid; white-space: nowrap; }
+.c-success { border-color: hsla(162, 73%, 37%, 0.4); background: hsla(162, 73%, 37%, 0.10); color: var(--a-success-strong); }
+.c-error { border-color: hsla(348, 81%, 48%, 0.4); background: hsla(348, 81%, 48%, 0.10); color: var(--a-error-strong); }
 .cb { width: 16px; height: 16px; border-radius: 4px; border: 1.5px solid var(--a-border); display: inline-grid; place-items: center; vertical-align: middle; background: var(--a-surface); }
 .cb.on { background: var(--a-primary); border-color: var(--a-primary); color: #fff; }
 .app .cb svg.lucide { width: 12px; height: 12px; stroke-width: 3; }
-.selc { font-size: 12.5px; font-weight: 600; color: var(--a-primary-hover); margin-left: 6px; }
-.rb.danger { color: var(--a-error-strong); border-color: hsla(348, 81%, 48%, 0.4); }
-#reason .choice { padding: 12px; }
 
+/* floating selection bar (inverted theme) */
+.selbar { position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); display: flex; align-items: center; gap: 20px; background: #1b2638; color: #fff; border: 1px solid rgba(255,255,255,.1); border-radius: 8px; padding: 8px 11px; box-shadow: 0 10px 28px rgba(15, 23, 42, .28); z-index: 3; }
+.selbar .cnt { display: flex; align-items: center; gap: 7px; font-size: 13.5px; }
+.selbar .cnt b { background: var(--a-primary); border-radius: 6px; min-width: 30px; height: 30px; display: grid; place-items: center; font-weight: 600; }
+.selbar .bacts { display: flex; align-items: center; gap: 7px; align-self: stretch; }
+.selbar .rb { background: transparent; color: #fff; border-color: rgba(255,255,255,.22); }
+.selbar .rb.danger { color: hsl(348 90% 72%); border-color: hsla(348, 90%, 72%, .45); }
+.selbar .vr { width: 1px; align-self: stretch; background: rgba(255,255,255,.12); }
+
+/* Drawer primitive: floats 30px in from the edges over a dim overlay */
+.scrim { position: absolute; inset: 0; background: rgba(15, 23, 42, 0.40); z-index: 5; }
+.drawer { position: absolute; top: 30px; right: 30px; bottom: 30px; background: var(--a-surface); border: 1px solid var(--a-border); border-radius: 8px; box-shadow: -12px 0 40px rgba(15, 23, 42, 0.22); display: flex; flex-direction: column; z-index: 6; animation: slide .25s ease; }
+.drawer.still { animation: none; }
+@keyframes slide { from { transform: translateX(30px); opacity: 0; } to { transform: none; opacity: 1; } }
+.drawer .dh { display: flex; align-items: center; gap: 12px; padding: 16px 20px 12px; border-bottom: 1px solid var(--a-border-subtle); }
+.drawer .dh h3 { margin: 0; font-size: 16px; font-weight: 600; flex: 1; }
+.drawer .dh svg.lucide { color: var(--a-text-2); }
+.drawer .db { flex: 1; min-height: 0; padding: 20px; display: flex; flex-direction: column; gap: 20px; position: relative; overflow: hidden; }
+.drawer .df { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 20px; border-top: 1px solid var(--a-border-subtle); background: hsla(217, 55%, 16%, 0.02); border-radius: 0 0 8px 8px; }
+.drawer .df .rb { height: 36px; padding-inline: 14px; }
+
+/* Adjust Cost drawer */
+.hdr { display: flex; flex-direction: column; gap: 8px; }
+.hgrid { display: grid; grid-template-columns: auto 190px 170px minmax(220px, 1fr); gap: 12px; align-items: start; }
+.fld { display: flex; flex-direction: column; gap: 4px; }
+.fld label { font-size: 12px; font-weight: 500; }
+.fld label i { font-style: normal; color: var(--a-error); margin-left: 2px; }
+.in { height: 34px; border: 1px solid var(--a-border); border-radius: 6px; display: flex; align-items: center; gap: 6px; padding-inline: 10px; font-size: 13px; font-variant-numeric: tabular-nums; background: var(--a-surface); }
+.in.ph { color: var(--a-text-3); }
+.in svg.lucide { margin-left: auto; width: 14px; height: 14px; color: var(--a-icon-2); }
+.seg { display: inline-flex; align-items: center; border: 1px solid var(--a-border); border-radius: 8px; padding: 1px; }
+.seg span { height: 30px; display: inline-flex; align-items: center; padding-inline: 12px; font-size: 13px; font-weight: 600; color: var(--a-text-2); border-radius: 7px; border: 1px solid transparent; }
+.seg span.on { background: var(--a-primary-subtle); color: var(--a-primary-hover); }
+.strip { border-radius: 6px; background: var(--a-muted-solid); padding: 8px 12px; font-size: 13px; color: var(--a-text-2); }
+.fsec { display: flex; flex-direction: column; gap: 12px; position: relative; flex: 1; min-height: 0; }
+.fsec h4 { margin: 0; font-size: 14px; font-weight: 600; }
+.fsec .cap { margin: 0; font-size: 13px; color: var(--a-text-2); }
+.atbl { border: 1px solid var(--a-border-subtle); border-radius: 6px; overflow: hidden; }
+.atbl table { font-size: 13px; }
+.atbl th { height: 38px; font-weight: 500; color: var(--a-text-2); }
+.atbl td { height: 48px; color: var(--a-text-2); }
+.atbl td.t { color: var(--a-fg); }
+.atbl td.tag { color: var(--a-fg); font-weight: 500; }
+.atbl tr.tot td { background: var(--a-muted-solid); font-weight: 600; color: var(--a-fg); border-bottom: 0; }
+.atbl .in { height: 30px; font-size: 12.5px; padding-inline: 8px; }
+.atbl .in .pre { color: var(--a-text-3); }
+.atbl .in .v { margin-left: auto; }
+.atbl .in.sel { justify-content: space-between; }
+.atbl .in.sel svg.lucide { margin-left: 0; }
+.bulk { align-self: center; display: flex; align-items: center; gap: 12px; background: var(--a-surface); border: 1px solid var(--a-border); border-radius: 8px; padding: 8px 16px; box-shadow: 0 8px 24px rgba(15, 23, 42, 0.14); }
+.bulk .pill2 { font-size: 12px; font-weight: 500; background: var(--a-muted-solid); border-radius: 999px; padding: 4px 10px; white-space: nowrap; }
+.bulk .in { height: 30px; font-size: 12.5px; padding-inline: 8px; }
+.bulk .in .pre { color: var(--a-text-3); }
+.bulk .rate { width: 128px; }
+.bulk .rate .v { margin-left: auto; }
+.bulk .um { width: 84px; justify-content: space-between; }
+.bulk .um svg.lucide { margin-left: 0; }
+
+/* cost adjustment detail drawer */
+.dsec { border: 1px solid var(--a-border); border-radius: 8px; padding: 20px; }
+.dsec h4 { margin: 0 0 16px; font-size: 16px; font-weight: 600; }
+.dgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 24px; }
+.df2 { display: flex; flex-direction: column; min-width: 0; }
+.df2 small { font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: .03em; color: var(--a-text-2); }
+.df2 span { margin-top: 4px; font-size: 13.5px; }
+.tlist { border: 1px solid var(--a-border-subtle); border-radius: 6px; }
+.tlist div { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; padding: 9px 12px; font-size: 13.5px; }
+.tlist div + div { border-top: 1px solid var(--a-border-subtle); }
+.tlist b { font-weight: 500; }
+.tlist span { color: var(--a-text-2); }
+.tlist em { font-style: normal; text-align: right; }
+.vwrap { position: relative; display: inline-flex; }
+.pop { position: absolute; right: 0; bottom: calc(100% + 10px); width: 300px; background: #1b2638; color: #fff; border: 1px solid rgba(255,255,255,.1); border-radius: 8px; padding: 14px; box-shadow: 0 12px 30px rgba(15, 23, 42, .32); animation: pop .18s ease; z-index: 8; }
+.pop .pt { display: flex; align-items: center; gap: 6px; font-size: 15px; font-weight: 600; }
+.pop .pt svg.lucide { width: 19px; height: 19px; color: hsl(348 90% 66%); }
+.pop p { margin: 4px 0 0; font-size: 13.5px; line-height: 1.45; color: rgba(255,255,255,.75); }
+.pop .pa { margin-top: 12px; display: flex; justify-content: flex-end; gap: 8px; }
+.pop .rb { height: 30px; background: transparent; color: #fff; border-color: rgba(255,255,255,.22); }
+.pop .rb.danger { color: hsl(348 90% 72%); border-color: hsla(348, 90%, 72%, .45); }
+@keyframes pop { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: none; } }
+
+/* MUI success snackbar, bottom-left */
+.toast { position: absolute; left: 24px; bottom: 24px; background: hsl(162 73% 33%); color: #fff; border-radius: 4px; padding: 10px 16px; display: flex; align-items: center; gap: 10px; font-weight: 500; font-size: 14px; box-shadow: 0 6px 18px rgba(18,35,62,.25); animation: pop2 .3s ease; z-index: 7; }
+.toast svg.lucide { width: 20px; height: 20px; }
+@keyframes pop2 { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 /* intro / outro */
 .cover { position: absolute; inset: 0; background: rgba(248, 250, 252, 0.88); backdrop-filter: blur(3px); display: grid; place-items: center; z-index: 10; }
 .cover .card { width: 700px; display: flex; flex-direction: column; gap: 14px; align-items: flex-start; }
@@ -342,58 +360,66 @@ td { padding: 0 12px; height: 44px; border-bottom: 1px solid var(--a-border-subt
 
   const ic = (n, extra = '') => `<i data-lucide="${n}" ${extra}></i>`;
 
-  // Sample data (illustrative). Add Cost at $0.04/lb layers baling and
-  // freight cost found after the fact onto two in-stock tags.
-  const money = v => '$' + v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  const lb = v => v.toLocaleString('en-US') + ' lb';
+  // Sample data (illustrative). Add Cost at $0.0400/lbs layers baling and
+  // freight cost found after the fact onto two Available tags.
+  const usd = v => '$' + v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const lbs = v => v.toLocaleString('en-US') + ' lbs';
   const RATE = 0.04;
   const FGS = [
-    { id: 'FG-2204', mat: '6063 Extrusion', w: 2480, cost: 2628.80, st: 'In stock' },
-    { id: 'FG-2201', mat: 'Aluminum Cans (UBC)', w: 3100, cost: 1612.00, st: 'In stock', sel: true },
-    { id: 'FG-2195', mat: 'Painted Siding', w: 2240, cost: 1747.20, st: 'In stock', sel: true },
-    { id: 'FG-2198', mat: 'Clean Aluminum Wheels', w: 1960, cost: 1999.20, st: 'In stock' },
-    { id: 'FG-2192', mat: 'Old Sheet', w: 2850, cost: 1738.50, st: 'In stock' },
-    { id: 'FG-2190', mat: 'Litho Plates', w: 1480, cost: 1391.20, st: 'Shipped' },
+    { tag: '10488', mat: '6063 Extrusion', com: 'Aluminum', eff: '10/09/2026, 03:12 PM', type: 'Bale', wh: 'Main', w: 2480, po: '5512' },
+    { tag: '10471', mat: 'Aluminum Cans (UBC)', com: 'Aluminum', eff: '10/06/2026, 10:48 AM', type: 'Bale', wh: 'Main', w: 3100, cost: 1612.00, po: '5498', sel: true },
+    { tag: '10466', mat: 'Painted Siding', com: 'Aluminum', eff: '10/05/2026, 01:30 PM', type: 'Bale', wh: 'Dock 2', w: 2240, cost: 1747.20, po: '—', sel: true },
+    { tag: '10459', mat: 'Clean Aluminum Wheels', com: 'Aluminum', eff: '10/02/2026, 09:05 AM', type: 'Box', wh: 'Main', w: 1960, po: '5471' },
+    { tag: '10452', mat: 'Old Sheet', com: 'Aluminum', eff: '09/30/2026, 04:41 PM', type: 'Bale', wh: 'Dock 2', w: 2850, po: '—' },
+    { tag: '10447', mat: 'Insulated Copper Wire', com: 'Copper', eff: '09/29/2026, 11:20 AM', type: 'Box', wh: 'Main', w: 1480, po: '5463' },
   ];
   const SEL = FGS.filter(f => f.sel);
   const added = f => Math.round(RATE * f.w * 100) / 100;
-  const CAS = [
-    { type: 'Set Value', rate: '$0.4800 / lb', tags: 4, date: 'Sep 30, 2026', delta: -312.40, by: 'Jordan Pike', st: 'Active' },
-    { type: 'Add Cost', rate: '$0.0250 / lb', tags: 6, date: 'Sep 18, 2026', delta: 291.75, by: 'Morgan Lee', st: 'Active' },
-    { type: 'Add Cost', rate: '$0.0300 / lb', tags: 2, date: 'Sep 9, 2026', delta: 128.40, by: 'Jordan Pike', st: 'Voided' },
-    { type: 'Set Value', rate: '$0.5100 / lb', tags: 3, date: 'Aug 29, 2026', delta: -186.60, by: 'Morgan Lee', st: 'Active' },
+  const NOTE = 'Baling labor and freight to processor';
+  const HIST = [
+    { n: '1045', reason: 'Set Value', rate: '$0.4800/lbs', tags: 4, eff: '09/30/2026', notes: 'Q3 market write-down', by: 'Morgan Lee' },
+    { n: '1044', reason: 'Add Cost', rate: 'Multiple', tags: 6, eff: '09/18/2026', notes: 'Shredder burden, September', by: 'Morgan Lee' },
+    { n: '1043', reason: 'Add Cost', rate: '$0.0250/lbs', tags: 3, eff: '09/09/2026', notes: 'Outside baling charge', by: 'Jordan Pike' },
+    { n: '1042', reason: 'Set Value', rate: '$0.5100/lbs', tags: 2, eff: '08/29/2026', notes: '—', by: 'Morgan Lee' },
   ];
-  const NEW_CA = { type: 'Add Cost', rate: '$0.0400 / lb', tags: 2, date: 'Oct 13, 2026', delta: SEL.reduce((a, f) => a + added(f), 0), by: 'Jordan Pike', st: 'Active' };
-  const signed = v => (v < 0 ? '−' : '+') + money(Math.abs(v));
+  const NEW_ADJ = { n: '1046', reason: 'Add Cost', rate: '$0.0400/lbs', tags: 2, eff: '10/16/2026', notes: NOTE, by: 'Jordan Pike', isNew: true };
+
+  const LIST = '/app/inventory/finished-goods/list';
+  const HISTORY = '/app/inventory/finished-goods/history';
+  const DETAIL = HISTORY + '/7c1e5a92-4b0d-4f6e-9a3c-2d81f0b6e417';
 
   // ---------- steps ----------
   const STEPS = [
-    { view: 'fg', cover: 'intro', url: '/app/inventory/finished-goods' },
-    { view: 'ov', t: '#nav-fg', place: 'right', url: '/app/inventory/overview',
-      tip: 'Go to <b>Inventory → Finished Goods</b>.' },
-    { view: 'fg', picked: true, t: '#sel', place: 'bottom', url: '/app/inventory/finished-goods',
-      tip: 'Select the tags you want to fix. You can pick one or many at once.' },
-    { view: 'fg', picked: true, t: '#btn-adj', place: 'bottom', url: '/app/inventory/finished-goods',
-      tip: 'Click <b>Adjust Cost</b>.' },
-    { view: 'fg', picked: true, drawer: 'adj', t: '#reason', place: 'left', url: '/app/inventory/finished-goods',
-      tip: 'Pick <b>Add Cost</b> to layer on processing or burden cost you found after the fact, or <b>Set Value</b> to write the tags down to a specific number.' },
-    { view: 'fg', picked: true, drawer: 'adj', filled: true, t: '#inputs', place: 'left', url: '/app/inventory/finished-goods',
-      tip: 'Enter the rate per pound, an effective date in an open period, and a note explaining the change.' },
-    { view: 'fg', picked: true, drawer: 'adj', filled: true, t: '#preview', place: 'left', url: '/app/inventory/finished-goods',
-      tip: 'Check the resulting cost for each tag. It’s calculated live, before you save anything.' },
-    { view: 'fg', picked: true, drawer: 'adj', filled: true, t: '#btn-save', place: 'top', url: '/app/inventory/finished-goods',
-      tip: 'Save the adjustment. The tags keep their ties to packing lists, contracts and BOLs.' },
-    { view: 'ca', saved: true, t: '#row-new', place: 'bottom', url: '/app/inventory/cost-adjustments',
-      tip: 'Every adjustment is listed under <b>Inventory → Cost Adjustments</b>, so you have a full history.' },
-    { view: 'ca', saved: true, drawer: 'cad', t: '#btn-void', place: 'top', url: '/app/inventory/cost-adjustments',
-      tip: 'Open one to review it. If it was a mistake, click <b>Void</b> to reverse it.' },
-    { view: 'ca', saved: true, drawer: 'cad', cover: 'outro', url: '/app/inventory/cost-adjustments' },
+    { view: 'fg', cover: 'intro', url: LIST },
+    { view: 'fg', picked: true, t: '#sel', place: 'bottom', url: LIST,
+      tip: 'In <b>Inventory → Finished Goods</b>, tick the tags you want to recost. You can pick one or many.' },
+    { view: 'fg', picked: true, t: '#btn-adj', place: 'top', url: LIST,
+      tip: 'Click <b>Adjust Cost</b> in the selection bar.' },
+    { view: 'fg', picked: true, drawer: 'adj', reason: 'set', t: '#reason', place: 'right', url: LIST,
+      tip: '<b>Set Value</b> is selected by default and replaces each tag’s cost per UM. To layer extra cost on top instead, switch to <b>Add Cost</b>.' },
+    { view: 'fg', picked: true, drawer: 'adj', reason: 'add', notes: true, t: '#hdr', place: 'bottom', url: LIST,
+      tip: 'With <b>Add Cost</b> on, check the <b>Effective Date</b> and <b>Effective Time</b> (they start at now) and add <b>Notes</b> on why.' },
+    { view: 'fg', picked: true, drawer: 'adj', reason: 'add', notes: true, bulk: true, t: '#bulk', place: 'top', url: LIST,
+      tip: 'Type a <b>New rate</b>, pick the unit and click <b>Apply (2)</b> to fill every row at once.' },
+    { view: 'fg', picked: true, drawer: 'adj', reason: 'add', notes: true, bulk: true, rates: true, t: '#atable', place: 'bottom', url: LIST,
+      tip: 'Each tag has its own <b>New Rate</b> and <b>UM</b>, so you can change any row. <b>New Cost</b> previews the result before you save.' },
+    { view: 'fg', picked: true, drawer: 'adj', reason: 'add', notes: true, bulk: true, rates: true, t: '#btn-save', place: 'top', url: LIST,
+      tip: 'Click <b>Adjust Cost (2 Tags)</b> to save.' },
+    { view: 'fg', toast: true, t: '#tab-hist', place: 'bottom', url: LIST,
+      tip: 'You stay on the Finished Goods list. Every adjustment is kept on the <b>Recost History</b> tab.' },
+    { view: 'hist', t: '#row-new', place: 'bottom', url: HISTORY,
+      tip: 'Your adjustment is at the top, with its rate, tag count and notes. Click it to open it.' },
+    { view: 'hist', drawer: 'detail', t: '#btn-void', place: 'top', url: DETAIL,
+      tip: 'Review the rate, effective date and tags. If it was a mistake, click <b>Void</b>.' },
+    { view: 'hist', drawer: 'detail', confirm: true, t: '#confirm', place: 'left', url: DETAIL,
+      tip: 'Confirm with <b>Void</b>. The adjustment is removed from every tag it touched.' },
+    { view: 'hist', drawer: 'detail', cover: 'outro', url: DETAIL },
   ];
 
   // ---------- chrome ----------
   function sidebar(active) {
     const row = (i, l, extra = '') => `<div class="nrow">${ic(i)}<span>${l}</span>${extra || ic('chevron-right', 'class="chev"')}</div>`;
-    const sub = (id, l) => `<div class="nrow sub${active === id ? ' active' : ''}" id="nav-${id}"><span>${l}</span></div>`;
+    const sub = (id, l, isNew) => `<div class="nrow sub${active === id ? ' active' : ''}" id="nav-${id}"><span>${l}</span>${isNew ? '<span class="pill">New</span>' : ''}</div>`;
     return `<aside class="side">
       <div class="top">${MARK}<div class="yard"><span>North Yard</span>${ic('chevrons-up-down')}</div></div>
       <div class="nav">
@@ -403,7 +429,7 @@ td { padding: 0 12px; height: 44px; border-bottom: 1px solid var(--a-border-subt
         <div class="nsep"></div>
         ${row('shopping-cart', 'Purchases')}${row('tag', 'Sales')}${row('file-text', 'Contracts')}
         <div class="nrow">${ic('boxes')}<span>Inventory</span>${ic('chevron-down', 'class="chev"')}</div>
-        ${sub('ov', 'Inventory Overview')}${sub('hl', 'Holding Lots')}${sub('pk', 'Packages')}${sub('rg', 'Regrades')}${sub('fg', 'Finished Goods')}${sub('adj', 'Adjustments')}${sub('ca', 'Cost Adjustments')}${sub('pic', 'Physical Inventory Count')}
+        ${sub('ov', 'Inventory Overview')}${sub('rg', 'Regrades')}${sub('bp', 'Batch Production')}${sub('fg', 'Finished Goods')}${sub('pl', 'Packing Lists')}${sub('adj', 'Adjustments')}${sub('pic', 'Physical Inventory Count', true)}${sub('pk', 'Packages')}${sub('ni', 'Negative Inventory')}
         ${row('users', 'Customers')}${row('layers', 'Commodities')}${row('truck', 'Logistics')}${row('clipboard-list', 'Load Board')}${row('warehouse', 'Assets')}${row('chart-column', 'Reports')}${row('landmark', 'Ledger')}
       </div>
       <div class="foot"><div class="av">JP</div><div class="who"><span>Jordan Pike</span><small>General Manager</small></div>
@@ -411,90 +437,107 @@ td { padding: 0 12px; height: 44px; border-bottom: 1px solid var(--a-border-subt
     </aside>`;
   }
 
-  const head = (crumbs, title, acts) => `<div class="phead"><div class="left"><div class="crumbs">${crumbs.map(c => `<span>${c}</span>`).join(ic('chevron-right'))}</div><h1>${title}</h1></div><div class="acts">${acts}</div></div>`;
-
-  function overview() {
-    const rows = [['Aluminum Cans (UBC)', 'AL-UBC', 48220, 21600, 64800], ['6063 Extrusion', 'AL-6063', 22480, 9840, 31200], ['Old Sheet', 'AL-OSH', 61940, 0, 18400],
-      ['Cast Aluminum', 'AL-CST', 39310, 12200, 0], ['Painted Siding', 'AL-SID', 14870, 4100, 8600], ['Clean Aluminum Wheels', 'AL-WHL', 9630, 6040, 12480], ['Litho Plates', 'AL-LTH', 6210, 0, 4960]];
-    return `<main class="main">${head(['Inventory', 'Inventory Overview'], 'Inventory Overview', `<span class="rb">${ic('plus')}Finished Good</span><span class="rb">${ic('plus')}Package</span><span class="rb pri">${ic('plus')}Add Adjustment</span>`)}
-      <div class="ibody">
-        <div class="kpis"><div><small>WIP inventory</small><b>$194,166</b><span>300,770 lb</span></div><div><small>FG inventory</small><b>$102,092</b><span>140,440 lb</span></div><div><small>Total inventory</small><b>$296,258</b><span>441,210 lb</span></div><div><small>Expected inventory</small><b>$38,940</b><span>52,300 lb</span></div></div>
-        <div class="tcard"><div class="tt"><div class="inp">${ic('search')}Search</div><span class="cnt">10 materials</span></div>
-          <table class="itab"><thead><tr><th style="width:26%">Material</th><th>Material Code</th><th class="num">Loose WIP (lb)</th><th class="num">Packaged WIP (lb)</th><th class="num">Finished Goods (lb)</th></tr></thead>
-          <tbody>${rows.map(r => `<tr><td><span class="link">${r[0]}</span></td><td>${r[1]}</td><td class="num">${r[2].toLocaleString()}</td><td class="num">${r[3].toLocaleString()}</td><td class="num">${r[4].toLocaleString()}</td></tr>`).join('')}</tbody></table></div>
-      </div></main>`;
+  // Depth-3 inventory header: back arrow + breadcrumbs (maxItems 2) and the
+  // search / scan-license pill, then the "Finished Goods" title row with the
+  // shared inventory actions (hidden on Recost History). Sub-tabs below.
+  const INV_ACTS = `<span class="rb">${ic('pencil')}Regrade Material</span><span class="rb">${ic('plus')}Finished Good</span><span class="rb">${ic('plus')}Packing List</span><span class="rb">${ic('plus')}Package</span><span class="rb pri">${ic('plus')}Add Adjustment</span>`;
+  function header(tab, detail) {
+    const crumbs = tab === 'list'
+      ? `<span>Finished Goods</span><span class="sep">/</span><span class="leaf">List</span>`
+      : detail
+        ? `<span>Finished Goods</span><span class="sep">/</span><span>…</span><span class="sep">/</span><span class="leaf">Details</span>`
+        : `<span>Finished Goods</span><span class="sep">/</span><span class="leaf">History</span>`;
+    return `<div class="thead">
+        <div class="crow">${ic('arrow-left')}${crumbs}<span class="qpill"><span>${ic('search')}</span><span>${ic('id-card')}</span></span></div>
+        <div class="trow"><h1>Finished Goods</h1><div class="acts">${tab === 'list' ? INV_ACTS : ''}</div></div>
+      </div>
+      <div class="tabs"><span class="tab${tab === 'list' ? ' on' : ''}" id="tab-list">Finished Goods</span><span class="tab${tab === 'hist' ? ' on' : ''}" id="tab-hist">Recost History</span></div>`;
   }
 
   function finishedGoods(s) {
     const row = f => {
       const on = s.picked && f.sel;
-      return `<tr${on ? ' class="new"' : ''}><td><span class="cb${on ? ' on' : ''}">${on ? ic('check') : ''}</span></td><td class="mono">${f.id}</td><td>${f.mat}</td><td class="num">${lb(f.w)}</td><td class="num">${money(f.cost)}</td><td><span class="badge ${f.st === 'Shipped' ? 'b-neutral' : 'b-success'}">${f.st}</span></td></tr>`;
+      return `<tr${on ? ' class="on"' : ''}><td class="cbx"><span class="cb${on ? ' on' : ''}">${on ? ic('check') : ''}</span></td><td><span class="link">${f.tag}</span></td><td><span class="chip c-success">Available</span></td><td>${f.eff}</td><td><div class="stk"><span>${f.mat}</span><small>${f.com}</small></div></td><td>${f.type}</td><td>${f.wh}</td><td class="num">${lbs(f.w)}</td><td>${f.po}</td><td class="more">${ic('ellipsis')}</td></tr>`;
     };
     // Selected tags sit together in their own tbody so the step can point at them as one block.
     const top = FGS.slice(0, 1), picked = FGS.slice(1, 3), rest = FGS.slice(3);
-    const bar = s.picked
-      ? `<span class="selc">${SEL.length} selected</span><span class="rb" id="btn-adj">${ic('dollar-sign')}Adjust Cost</span>`
-      : '';
-    return `<main class="main">${head(['Inventory', 'Finished Goods'], 'Finished Goods', `<span class="rb pri">${ic('plus')}Finished Good</span>`)}
+    const bar = s.picked ? `<div class="selbar"><div class="cnt"><b>${SEL.length}</b>selected</div><div class="bacts">
+        <span class="rb sm">${ic('printer')}Print Tags</span><span class="rb sm" id="btn-adj">${ic('circle-dollar-sign')}Adjust Cost</span><span class="rb sm danger">${ic('trash-2')}Void</span>
+        <span class="vr"></span><span class="rb sm icon">${ic('x')}</span></div></div>` : '';
+    return `<main class="main">${header('list')}
       <div class="ibody">
-        <div class="tcard"><div class="tt"><div class="inp">${ic('search')}Search finished goods</div>${bar}<span class="cnt">${FGS.length} finished goods</span></div>
-          <table class="itab"><thead><tr><th style="width:44px"><span class="cb"></span></th><th style="width:12%">Tag</th><th style="width:28%">Material</th><th class="num">Weight</th><th class="num">Cost</th><th>Status</th></tr></thead>
-          <tbody>${top.map(row).join('')}</tbody><tbody id="sel">${picked.map(row).join('')}</tbody><tbody>${rest.map(row).join('')}</tbody></table></div>
-      </div>${drawer(s)}</main>`;
+        <div class="sumbar"><div><small>Finished Goods (AVAILABLE)</small><b>128</b></div><div><small>Total Weight</small><b>286,420 lbs</b></div><div><small>Largest Material By Weight</small><b>Aluminum Cans (UBC)</b></div></div>
+        <div class="grid"><div class="gtool"><div class="inp search">${ic('search')}Search FG, PO, commodity, material, warehouse…</div><div class="inp flt"><span class="chipv">Available</span>${ic('chevron-down')}</div></div>
+          <table class="gt"><thead><tr><th class="cbx" style="width:44px"><span class="cb${s.picked ? '' : ''}"></span></th><th style="width:96px">FG #</th><th style="width:120px">Status</th><th style="width:180px">Effective</th><th style="width:200px">Commodity / Material</th><th style="width:80px">Type</th><th style="width:100px">Warehouse</th><th class="num" style="width:120px">Net Weight</th><th style="width:80px">PO #</th><th style="width:44px"></th></tr></thead>
+          <tbody>${top.map(row).join('')}</tbody><tbody id="sel">${picked.map(row).join('')}</tbody><tbody>${rest.map(row).join('')}</tbody></table>
+          ${bar}
+        </div>
+      </div></main>`;
   }
 
-  function costAdjustments(s) {
-    const list = s.saved ? [NEW_CA, ...CAS] : CAS;
-    const rows = list.map(c => `<tr${c === NEW_CA ? ' class="new" id="row-new"' : ''}><td>${c.date}</td><td><span class="badge ${c.type === 'Add Cost' ? 'b-teal' : 'b-accent'}">${c.type}</span></td><td class="num">${c.rate}</td><td class="num">${c.tags}</td><td class="num">${signed(c.delta)}</td><td>${c.by}</td><td><span class="badge ${c.st === 'Voided' ? 'b-neutral' : 'b-success'}">${c.st}</span></td></tr>`).join('');
-    return `<main class="main">${head(['Inventory', 'Cost Adjustments'], 'Cost Adjustments', '')}
-      <div class="ibody">
-        <div class="tcard"><div class="tt"><div class="inp">${ic('search')}Search cost adjustments</div><span class="cnt">${list.length} adjustments</span></div>
-          <table class="itab"><thead><tr><th style="width:14%">Effective date</th><th style="width:13%">Type</th><th class="num">Rate</th><th class="num" style="width:8%">Tags</th><th class="num">Cost change</th><th>Created by</th><th style="width:11%">Status</th></tr></thead><tbody>${rows}</tbody></table></div>
-        ${s.saved && !s.drawer ? `<div class="toast">${ic('circle-check')}Cost adjustment saved for 2 tags</div>` : ''}
-      </div>${drawer(s)}</main>`;
+  function history(s) {
+    const list = [NEW_ADJ, ...HIST];
+    const rows = list.map(c => `<tr${c.isNew ? ' id="row-new"' : ''}><td><span class="link">${c.n}</span></td><td>${c.reason}</td><td class="num">${c.rate}</td><td class="num">${c.tags}</td><td>${c.eff}</td><td style="color:var(--a-text-2)">${c.notes}</td><td><span class="chip c-success">Active</span></td><td>${c.by}</td></tr>`).join('');
+    return `<main class="main">${header('hist', s.drawer === 'detail')}
+      <div class="ibody" style="padding-top:16px">
+        <div style="display:flex;justify-content:flex-end;margin-bottom:8px"><span class="rb sm pri">${ic('plus')}Cost Adjustment</span></div>
+        <div class="grid"><div class="gtool"><div class="inp flt ph">Status${ic('chevron-down')}</div></div>
+          <table class="gt"><thead><tr><th style="width:90px">Adj #</th><th style="width:110px">Reason</th><th class="num" style="width:130px">Rate</th><th class="num" style="width:70px">Tags</th><th style="width:120px">Effective</th><th style="width:260px">Notes</th><th style="width:110px">Status</th><th>Created By</th></tr></thead>
+          <tbody>${rows}</tbody></table></div>
+      </div></main>`;
   }
 
   function drawer(s) {
     if (!s.drawer) return '';
     const prev = STEPS[step - 1];
-    const still = prev && prev.drawer && prev.view === s.view ? ' still' : '';
-    const shell = (title, body, foot) => `<div class="drawer${still}"><div class="dh"><h3>${title}</h3><span class="x">${ic('x')}</span></div><div class="db">${body}</div>${foot ? `<div class="df">${foot}</div>` : ''}</div>`;
+    const still = prev && prev.drawer === s.drawer ? ' still' : '';
+    const shell = (title, width, body, foot) => `<div class="scrim"></div><div class="drawer${still}" style="width:${width}px"><div class="dh"><h3>${title}</h3>${ic('x')}</div><div class="db">${body}</div><div class="df">${foot}</div></div>`;
     if (s.drawer === 'adj') {
-      const f = s.filled;
-      const lines = SEL.map(t => `<tr><td><span class="mono">${t.id}</span></td><td class="num">${lb(t.w)}</td><td class="num">${money(t.cost)}</td><td class="num"><b>${money(f ? t.cost + added(t) : t.cost)}</b></td></tr>`).join('');
-      const cur = SEL.reduce((a, t) => a + t.cost, 0), res = SEL.reduce((a, t) => a + t.cost + (f ? added(t) : 0), 0);
-      return shell('Adjust Cost', `
-        <div class="sec">Reason</div>
-        <div class="row2" id="reason">
-          <div class="choice on"><span class="ci">${ic('plus')}</span><div><b>Add Cost</b><small>Add an amount on top of the current cost.</small></div></div>
-          <div class="choice"><span class="ci">${ic('target')}</span><div><b>Set Value</b><small>Set the tag’s total cost to a target.</small></div></div>
-        </div>
-        <div id="inputs" style="display:flex;flex-direction:column;gap:12px">
-          <div class="row2">
-            <div class="fld"><label>Rate</label><div class="in${f ? '' : ' ph'}">${f ? '$0.0400' : '$0.0000'}<span class="u">/ lb</span></div></div>
-            <div class="fld"><label>Effective date</label><div class="in${f ? '' : ' ph'}">${f ? 'Oct 13, 2026' : 'Select a date'}${ic('calendar')}</div></div>
+      const add = s.reason === 'add';
+      const desc = add
+        ? 'Layers a $/UM burden on top of each tag’s existing cost. Allowed on shipped tags.'
+        : 'Replaces each tag’s cost per UM with this rate. Shipped tags need a date before they shipped; the rate can’t be negative.';
+      const lines = SEL.map(t => {
+        const nc = s.rates ? usd(t.cost + added(t)) : '—';
+        return `<tr><td><span class="cb"></span></td><td class="tag">#${t.tag}</td><td class="t">${t.mat}</td><td class="num">${lbs(t.w)}</td><td class="num">$${(t.cost / t.w).toFixed(4)}/lbs</td>
+          <td><div class="in${s.rates ? '' : ' ph'}"><span class="pre">$</span><span class="v">${s.rates ? '0.0400' : '0.00'}</span></div></td>
+          <td><div class="in sel">LBS${ic('chevron-down')}</div></td><td class="num t">${nc}</td><td>${ic('trash-2')}</td></tr>`;
+      }).join('');
+      const total = s.rates ? usd(SEL.reduce((a, t) => a + t.cost + added(t), 0)) : usd(0);
+      return shell('Adjust Cost', 1240, `
+        <div class="hdr" id="hdr">
+          <div class="hgrid">
+            <div class="fld"><label>Reason</label><div class="seg" id="reason"><span${add ? '' : ' class="on"'}>Set Value</span><span${add ? ' class="on"' : ''}>Add Cost</span></div></div>
+            <div class="fld"><label>Effective Date<i>*</i></label><div class="in">10/16/2026${ic('calendar')}</div></div>
+            <div class="fld"><label>Effective Time<i>*</i></label><div class="in">09:42 AM${ic('clock')}</div></div>
+            <div class="fld"><label>Notes</label><div class="in${s.notes ? '' : ' ph'}">${s.notes ? NOTE : 'Why is this cost being adjusted?'}</div></div>
           </div>
-          <div class="fld"><label>Notes</label><div class="in${f ? '' : ' ph'}">${f ? 'Baling labor and freight to processor' : 'Why is this cost changing?'}</div></div>
+          <div class="strip">${desc}</div>
         </div>
-        <div id="preview">
-          <table class="alloc"><thead><tr><th style="width:26%">Tag</th><th class="num">Weight</th><th class="num">Current cost</th><th class="num">Resulting cost</th></tr></thead><tbody>
-            ${lines}
-            <tr class="tot"><td>Total</td><td class="num">${lb(SEL.reduce((a, t) => a + t.w, 0))}</td><td class="num">${money(cur)}</td><td class="num">${money(res)}</td></tr>
-          </tbody></table>
+        <div class="fsec"><h4>Tags (${SEL.length})</h4>
+          <p class="cap">New Cost is a preview — totals move if the weight is edited later.</p>
+          <div class="atbl" id="atable"><table><thead><tr><th style="width:44px"><span class="cb"></span></th><th style="width:100px">Tag #</th><th>Material</th><th class="num" style="width:120px">Net Wt</th><th class="num" style="width:170px">Current Cost ($/UM)</th><th class="num" style="width:128px">New Rate</th><th style="width:96px">UM</th><th class="num" style="width:130px">New Cost</th><th style="width:44px"></th></tr></thead>
+            <tbody>${lines}<tr class="tot"><td colspan="7">Total</td><td class="num">${total}</td><td></td></tr></tbody></table></div>
+          <div class="bulk" id="bulk"><span class="pill2">All tags</span><div class="in rate${s.bulk ? '' : ' ph'}"><span class="pre">$</span><span class="v">${s.bulk ? '0.0400' : 'New rate'}</span></div><div class="in um">LBS${ic('chevron-down')}</div><span class="rb sm pri">Apply (${SEL.length})</span></div>
         </div>`,
-        `<span class="rb">Cancel</span><span class="rb pri" id="btn-save">${ic('check')}Save</span>`);
+        `<span class="rb">Cancel</span><span class="rb pri" id="btn-save">Adjust Cost (${SEL.length} Tags)</span>`);
     }
-    if (s.drawer === 'cad') {
-      return shell(`Add Cost <span class="badge b-success" style="vertical-align:2px;margin-left:6px">Active</span>`, `
-        <div class="kv2"><div><small>Reason</small><b>Add Cost</b></div><div><small>Rate</small><b>$0.0400 / lb</b></div>
-          <div><small>Effective date</small><b>Oct 13, 2026</b></div><div><small>Created by</small><b>Jordan Pike</b></div></div>
-        <div class="kv2" style="grid-template-columns:1fr"><div><small>Notes</small><b>Baling labor and freight to processor</b></div></div>
-        <div class="sec">Tags</div>
-        <table class="alloc"><thead><tr><th style="width:26%">Tag</th><th>Material</th><th class="num">Cost change</th></tr></thead><tbody>
-          ${SEL.map(t => `<tr><td><span class="link mono">${t.id}</span></td><td>${t.mat}</td><td class="num">${signed(added(t))}</td></tr>`).join('')}
-          <tr class="tot"><td>Total</td><td></td><td class="num">${signed(NEW_CA.delta)}</td></tr>
-        </tbody></table>`,
-        `<span class="rb">Close</span><span class="rb danger" id="btn-void">${ic('ban')}Void</span>`);
+    if (s.drawer === 'detail') {
+      const pop = s.confirm ? `<div class="pop" id="confirm"><div class="pt">${ic('circle-alert')}Void this cost adjustment?</div>
+          <p>It is removed from every tag it touched. If the accounting period is locked, a reversal dated today is posted instead of deleting history.</p>
+          <div class="pa"><span class="rb">Cancel</span><span class="rb danger">Void</span></div></div>` : '';
+      return shell(`Cost Adjustment #${NEW_ADJ.n}`, 600, `
+        <div class="dsec"><h4>Adjustment</h4><div class="dgrid">
+          <div class="df2"><small>Adj #</small><span>${NEW_ADJ.n}</span></div>
+          <div class="df2"><small>Status</small><span><span class="chip c-success">Active</span></span></div>
+          <div class="df2"><small>Reason</small><span>Add Cost</span></div>
+          <div class="df2"><small>Rate</small><span>${NEW_ADJ.rate}</span></div>
+          <div class="df2"><small>Effective Date</small><span>10/16/2026</span></div>
+          <div class="df2"><small>Created</small><span>10/16/2026, 09:44 AM by Jordan Pike</span></div>
+        </div></div>
+        <div class="dsec"><h4>Notes</h4><span style="font-size:13.5px">${NOTE}</span></div>
+        <div class="dsec"><h4>Tags (${SEL.length})</h4><div class="tlist">${SEL.map(t => `<div><b>#${t.tag}</b><span>${t.w.toLocaleString('en-US')}</span><em>${NEW_ADJ.rate}</em></div>`).join('')}</div></div>`,
+        `<span class="vwrap">${pop}<span class="rb danger" id="btn-void">${ic('trash-2')}Void</span></span><span class="rb">Close</span>`);
     }
     return '';
   }
@@ -502,23 +545,24 @@ td { padding: 0 12px; height: 44px; border-bottom: 1px solid var(--a-border-subt
   function cover(kind) {
     if (kind === 'intro') {
       return `<div class="cover"><div class="card">
-        <div class="eyebrow">${ic('dollar-sign')}Inventory · Now live for everyone</div>
+        <div class="eyebrow">${ic('circle-dollar-sign')}Inventory · Now live for everyone</div>
         <h2>Fix a finished good’s cost without deleting the tag</h2>
-        <p>Adjust the cost of one or many finished goods right from the Finished Goods list, and the tags keep their ties to packing lists, contracts and BOLs.</p>
+        <p>Adjust the cost of one or many finished goods right from the Finished Goods list, then review every change on the <b>Recost History</b> tab.</p>
         <div class="cta"><button class="go" type="button" data-go="next">Get started${ic('arrow-right')}</button></div>
       </div></div>`;
     }
     return `<div class="cover"><div class="card">
       <div class="eyebrow">${ic('circle-check')}Finished good cost updates</div>
       <h2>Correct the cost, keep the tag</h2>
-      <p>Use <b>Add Cost</b> for cost you couldn’t know at the time, or <b>Set Value</b> to write a tag down. You see the result before you save, and every change can be reviewed or voided in <b>Cost Adjustments</b>. Voided tags can’t be adjusted, and a <b>Set Value</b> on a shipped tag has to be dated before it shipped.</p>
+      <p>Use <b>Set Value</b> to replace a tag’s cost per UM, or <b>Add Cost</b> to layer cost on top. You see the new cost before you save, and every change is kept in <b>Recost History</b>, where it can be voided. Voided tags can’t be adjusted, and a <b>Set Value</b> on a shipped tag has to be dated before it shipped.</p>
       <div class="cta"><button class="go sec" type="button" data-go="restart">${ic('rotate-ccw')}Replay</button><a class="go sec" href="https://intercom.help/greenspark-software/en/articles/6387729-create-and-manage-finished-goods" target="_blank" rel="noopener">${ic('book-open')}Read the full guide</a></div>
     </div></div>`;
   }
 
   function renderApp(s) {
-    const view = s.view === 'ov' ? overview() : s.view === 'ca' ? costAdjustments(s) : finishedGoods(s);
-    return `<div class="app">${sidebar(s.view)}${view}${s.cover ? cover(s.cover) : ''}</div>`;
+    const view = s.view === 'hist' ? history(s) : finishedGoods(s);
+    const toast = s.toast ? `<div class="toast">${ic('circle-check')}Cost adjusted on ${SEL.length} tags</div>` : '';
+    return `<div class="app">${sidebar('fg')}${view}${drawer(s)}${toast}${s.cover ? cover(s.cover) : ''}</div>`;
   }
   function anchorMenus() {}
 
@@ -604,7 +648,7 @@ td { padding: 0 12px; height: 44px; border-bottom: 1px solid var(--a-border-subt
     nextBtn.disabled = step === STEPS.length - 1;
     if (s.cover) caption.innerHTML = s.cover === 'intro'
       ? '<span class="n">Intro</span>Fix a finished good’s cost from the Finished Goods list without deleting the tag.'
-      : '<span class="n">Done</span>Add Cost or Set Value, check the result, and review or void it in Cost Adjustments. Read the full guide in the help center.';
+      : '<span class="n">Done</span>Set Value or Add Cost, check the New Cost preview, and review or void it on the Recost History tab. Read the full guide in the help center.';
     scale();
     // Measure only after entrance animations (panels sliding in, menus
     // popping, pins dropping) finish, or the ring lands where the element
