@@ -172,67 +172,68 @@ kbd { font: inherit; font-size: 11px; border: 1px solid var(--ctl-line); border-
 .b-accent { background: hsla(252, 89%, 65%, 0.14); color: var(--a-accent-strong); }
 .b-neutral { background: hsla(217, 55%, 16%, 0.07); color: var(--a-text-2); }
 
-/* assets page */
-.phead { padding: 14px 24px 0; border-bottom: 0; align-items: flex-start; }
-.ptabs { display: flex; gap: 22px; padding: 0 24px; border-bottom: 1px solid var(--a-border-subtle); margin-top: 10px; }
+/* assets page (list page header: title + actions, no path breadcrumbs) */
+.phead { padding: 18px 24px 4px; border-bottom: 0; align-items: center; }
+.ptabs { display: flex; gap: 22px; padding: 0 24px; border-bottom: 1px solid var(--a-border-subtle); margin-top: 6px; }
 .ptabs span { font-size: 13.5px; font-weight: 500; padding: 8px 0 9px; color: var(--a-text-3); border-bottom: 2px solid transparent; }
 .ptabs span.on { color: var(--a-fg); border-color: var(--a-fg); }
-.abody { flex: 1; min-height: 0; display: flex; gap: 14px; padding: 14px 16px 16px; background: var(--a-muted-solid); }
-.alist { width: 372px; flex-shrink: 0; background: var(--a-surface); border: 1px solid var(--a-border-subtle); border-radius: 10px; display: flex; flex-direction: column; overflow: hidden; position: relative; }
-.alist .tools { display: flex; gap: 8px; padding: 12px 12px 8px; }
-.inp { height: 32px; border: 1px solid var(--a-border); border-radius: 6px; display: flex; align-items: center; gap: 6px; padding-inline: 9px; color: var(--a-text-3); font-size: 12.5px; background: var(--a-surface); white-space: nowrap; }
-.inp svg.lucide { width: 14px; height: 14px; color: var(--a-icon-2); }
-.inp .chev { margin-left: auto; }
-.alist .lbl { font-size: 11.5px; color: var(--a-text-3); padding: 2px 12px 4px; }
-.sel { margin: 0 12px 10px; height: 34px; border: 1px solid var(--a-border); border-radius: 6px; display: flex; align-items: center; padding-inline: 10px; font-size: 13px; color: var(--a-fg); background: var(--a-surface); }
-.sel svg.lucide { margin-left: auto; width: 14px; height: 14px; color: var(--a-icon-2); }
-.sel.open { border-color: var(--a-primary); box-shadow: 0 0 0 3px hsla(183, 100%, 33%, 0.15); }
-.sel .new { font-size: 10px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--a-accent-strong); background: var(--a-accent-subtle); border-radius: 4px; padding: 1px 5px; margin-left: 8px; }
-.rows { border-top: 1px solid var(--a-border-subtle); overflow: hidden; flex: 1; }
-.arow { display: flex; align-items: center; gap: 11px; padding: 9px 12px; border-bottom: 1px solid var(--a-border-subtle); }
-.arow.hl { background: hsla(183, 100%, 33%, 0.07); }
-.arow .ai { width: 32px; height: 32px; border-radius: 7px; display: grid; place-items: center; flex-shrink: 0; }
-.arow .ai svg.lucide { width: 16px; height: 16px; }
-.arow .tx { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
-.arow .tx b { font-weight: 600; font-size: 13px; display: flex; align-items: center; gap: 6px; }
-.arow .tx small { font-size: 12px; color: var(--a-text-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.arow .kind { font-size: 10.5px; font-weight: 500; color: var(--a-text-2); background: var(--a-hover); border-radius: 4px; padding: 0 5px; }
-.dd { position: absolute; left: 12px; right: 12px; top: 128px; background: var(--a-surface); border: 1px solid var(--a-border); border-radius: 8px; box-shadow: 0 6px 22px rgba(15, 23, 42, 0.16); padding: 4px; z-index: 5; animation: pop .18s ease; }
-.dd .o { display: flex; align-items: center; gap: 8px; padding: 8px 9px; border-radius: 5px; font-size: 13px; }
-.dd .o svg.lucide { width: 15px; height: 15px; color: var(--a-primary-hover); margin-left: auto; }
-.dd .o.cur { font-weight: 600; }
-.dd .o.hv { background: var(--a-hover); }
+.abody { flex: 1; min-height: 0; display: flex; gap: 16px; padding: 8px; background: var(--a-surface); }
+.alist { width: 386px; flex-shrink: 0; background: var(--a-surface); border: 1px solid #bdbdbd; border-radius: 8px; display: flex; flex-direction: column; overflow: hidden; position: relative; padding-top: 16px; }
+.alist .tools { display: flex; gap: 16px; padding: 0 16px; margin-bottom: 16px; align-items: center; }
+/* MUI outlined small fields (TextField / Select with a notched InputLabel) */
+.fld { position: relative; height: 40px; border: 1px solid rgba(0, 0, 0, 0.23); border-radius: 4px; display: flex; align-items: center; gap: 8px; padding-inline: 12px 8px; font-size: 14px; color: var(--a-fg); background: var(--a-surface); white-space: nowrap; }
+.fld .ph { color: rgba(0, 0, 0, 0.42); }
+.fld > svg { width: 22px; height: 22px; color: rgba(0, 0, 0, 0.54); flex-shrink: 0; }
+.fld .arr { margin-left: auto; width: 0; height: 0; border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 5px solid rgba(0, 0, 0, 0.54); margin-right: 4px; }
+.fld label { position: absolute; left: 9px; top: -8px; font-size: 12px; line-height: 14px; padding: 0 4px; background: var(--a-surface); color: rgba(0, 0, 0, 0.6); }
+.fld.open { border: 2px solid var(--a-primary); padding-inline: 11px 7px; }
+.fld.open label { color: var(--a-primary-hover); left: 8px; top: -9px; }
+.iconbtn { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; flex-shrink: 0; }
+.iconbtn svg { width: 22px; height: 22px; color: rgba(0, 0, 0, 0.54); }
+.shownwrap { padding: 0 16px; margin-bottom: 16px; }
+.rows { border-top: 1px solid rgba(0, 0, 0, 0.12); overflow: hidden; flex: 1; }
+.arow { display: flex; align-items: center; padding: 8px 16px; border-bottom: 1px solid rgba(0, 0, 0, 0.12); }
+.arow .ai { margin-right: 8px; width: 24px; height: 24px; flex-shrink: 0; }
+.arow .ai svg { width: 24px; height: 24px; display: block; }
+.arow .tx { display: flex; flex-direction: column; min-width: 0; margin-block: 4px; padding-left: 8px; }
+.arow .tx b { font-weight: 400; font-size: 14px; line-height: 1.5; }
+.arow .tx small { font-size: 13px; line-height: 1.43; color: rgba(0, 0, 0, 0.6); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dd { position: absolute; left: 16px; right: 16px; top: 128px; background: var(--a-surface); border-radius: 4px; box-shadow: 0 5px 5px -3px rgba(0,0,0,.2), 0 8px 10px 1px rgba(0,0,0,.14), 0 3px 14px 2px rgba(0,0,0,.12); padding: 8px 0; z-index: 5; animation: pop .18s ease; }
+.dd .o { padding: 6px 16px; font-size: 14px; line-height: 1.5; }
+.dd .o.cur { background: hsla(183, 100%, 33%, 0.08); }
 @keyframes pop { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; transform: none; } }
 
-.map { flex: 1; min-width: 0; position: relative; border-radius: 10px; overflow: hidden; border: 1px solid var(--a-border-subtle); background: #eef0e8; }
+.map { flex: 1; min-width: 0; position: relative; border-radius: 8px; overflow: hidden; background: #eef0e8; font-family: "Helvetica Neue", Arial, Helvetica, sans-serif; }
 .map svg.bg { position: absolute; inset: 0; width: 100%; height: 100%; }
-.map .mt { position: absolute; top: 12px; right: 12px; display: flex; background: #fff; border-radius: 6px; box-shadow: 0 1px 4px rgba(0,0,0,.18); overflow: hidden; font-size: 12.5px; font-weight: 500; }
-.map .mt span { padding: 7px 12px; }
-.map .mt span.on { background: var(--a-dark); color: #fff; }
-.map .zm { position: absolute; right: 12px; bottom: 30px; background: #fff; border-radius: 6px; box-shadow: 0 1px 4px rgba(0,0,0,.18); display: flex; flex-direction: column; }
-.map .zm span { width: 30px; height: 30px; display: grid; place-items: center; font-size: 18px; }
-.map .zm span + span { border-top: 1px solid var(--a-border-subtle); }
-.map .attr { position: absolute; right: 0; bottom: 0; background: rgba(255,255,255,.8); font-size: 10.5px; padding: 2px 6px; color: var(--a-text-2); }
-.pin { position: absolute; width: 34px; height: 34px; margin: -17px 0 0 -17px; border-radius: 50%; border: 2.5px solid #fff; box-shadow: 0 2px 6px rgba(0,0,0,.3); display: grid; place-items: center; color: #fff; font-weight: 700; font-size: 14px; z-index: 2; }
-.pin svg.lucide { width: 16px; height: 16px; stroke-width: 2.2; }
-.pin.tr { border-radius: 9px; }
+/* Leaflet default controls: zoom top-left, collapsed layers control top-right */
+.lf-bar { position: absolute; border: 2px solid rgba(0, 0, 0, 0.2); border-radius: 4px; background-clip: padding-box; z-index: 3; }
+.lf-zoom { left: 10px; top: 10px; display: flex; flex-direction: column; }
+.lf-zoom span { width: 30px; height: 30px; display: grid; place-items: center; background: #fff; font: bold 18px/30px "Lucida Console", Monaco, monospace; color: #000; }
+.lf-zoom span:first-child { border-radius: 2px 2px 0 0; border-bottom: 1px solid #ccc; }
+.lf-zoom span:last-child { border-radius: 0 0 2px 2px; }
+.lf-layers { right: 10px; top: 10px; width: 44px; height: 44px; background: #fff; display: grid; place-items: center; box-shadow: none; }
+.lf-layers svg { width: 26px; height: 26px; color: #333; stroke-width: 1.6; }
+.map .attr { position: absolute; right: 0; bottom: 0; background: rgba(255,255,255,.8); font-size: 12px; line-height: 1.4; padding: 0 5px; color: #333; z-index: 3; }
+.map .attr a { color: #0078a8; }
+.pin { position: absolute; width: 36px; height: 36px; margin: -18px 0 0 -18px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 4px rgba(0,0,0,.3); display: flex; align-items: center; justify-content: center; color: #fff; font: bold 14px/1 Arial, Helvetica, sans-serif; z-index: 2; }
+.pin.clu { width: 40px; height: 40px; margin: -20px 0 0 -20px; border-width: 3px; box-shadow: 0 0 6px rgba(0,0,0,.3); opacity: .9; }
 .pin.fresh { animation: drop .4s ease both; }
 @keyframes drop { from { opacity: 0; transform: translateY(-14px); } to { opacity: 1; transform: none; } }
-.d-green { background: #2f7d32; } .d-yellow { background: #f4b120; } .d-orange { background: #ef7a12; } .d-red { background: #d7262d; } .d-gray { background: #6b7280; }
-.c-green { background: hsla(122, 45%, 34%, 0.12); color: #2f7d32; } .c-yellow { background: hsla(41, 90%, 54%, 0.16); color: #c98a00; }
-.c-orange { background: hsla(28, 88%, 50%, 0.14); color: #d4660a; } .c-red { background: hsla(357, 70%, 50%, 0.13); color: #d7262d; } .c-gray { background: hsla(220, 9%, 46%, 0.14); color: #4b5563; }
-.legend { position: absolute; left: 14px; bottom: 14px; background: #fff; border-radius: 8px; box-shadow: 0 1px 6px rgba(0,0,0,.18); padding: 10px 12px; font-size: 12.5px; display: flex; flex-direction: column; gap: 5px; z-index: 3; }
-.legend b { font-weight: 600; font-size: 13px; margin-bottom: 2px; }
-.legend div { display: flex; align-items: center; gap: 8px; border-radius: 4px; }
-.legend i { width: 11px; height: 11px; border-radius: 50%; display: block; }
-.pop { position: absolute; width: 264px; transform: translate(-50%, -100%); background: #fff; border-radius: 10px; box-shadow: 0 6px 22px rgba(0,0,0,.22); padding: 12px 14px; font-size: 12.5px; line-height: 1.5; z-index: 4; }
-.pop::after { content: ""; position: absolute; left: 50%; bottom: -7px; margin-left: -7px; width: 14px; height: 14px; background: #fff; transform: rotate(45deg); box-shadow: 3px 3px 4px rgba(0,0,0,.06); }
-.pop .x { position: absolute; top: 9px; right: 10px; color: var(--a-text-3); }
-.pop .x svg.lucide { width: 14px; height: 14px; }
-.pop h4 { margin: 0 0 2px; font-size: 14px; font-weight: 600; }
-.pop .kv { color: var(--a-text-2); }
-.pop .lnk { display: inline-flex; align-items: center; gap: 4px; color: var(--a-primary-hover); font-weight: 600; margin-top: 6px; padding: 2px 0; }
-.pop .lnk svg.lucide { width: 14px; height: 14px; }
+.legend { position: absolute; left: 16px; bottom: 16px; background: rgba(255,255,255,.92); color: #0E1A2F; border-radius: 6px; box-shadow: 0 1px 4px rgba(0,0,0,.3); padding: 8px 10px; font: 12px/1.4 sans-serif; z-index: 3; }
+.legend b { display: block; font-weight: bold; margin-bottom: 4px; }
+.legend div { display: flex; align-items: center; gap: 6px; margin-top: 2px; border-radius: 4px; }
+.legend i { width: 12px; height: 12px; border-radius: 50%; display: block; border: 1px solid #fff; box-shadow: 0 0 1px rgba(0,0,0,.4); box-sizing: content-box; }
+/* Leaflet popup */
+.pop { position: absolute; transform: translate(-50%, -100%); z-index: 4; color: #333; font: 13px/1.4 "Helvetica Neue", Arial, Helvetica, sans-serif; }
+.pop .wrap2 { background: #fff; border-radius: 12px; box-shadow: 0 3px 14px rgba(0,0,0,.4); padding: 1px; text-align: left; }
+.pop .body { margin: 13px 24px 13px 20px; min-width: 50px; white-space: nowrap; }
+.pop .tipc { width: 40px; height: 20px; position: relative; overflow: hidden; margin: -1px auto 0; pointer-events: none; }
+.pop .tipc::after { content: ""; position: absolute; left: 50%; width: 17px; height: 17px; padding: 1px; margin: -10px auto 0; margin-left: -10px; background: #fff; transform: rotate(45deg); box-shadow: 0 3px 14px rgba(0,0,0,.4); }
+.pop .x { position: absolute; top: 0; right: 0; width: 24px; height: 24px; font: 16px/24px Tahoma, Verdana, sans-serif; color: #757575; text-align: center; }
+.pop a { color: #0078a8; text-decoration: none; }
+.pop .list { margin-top: 4px; }
+.pop .list div { display: flex; align-items: center; gap: 4px; }
+.d-green { background: #2e7d32; } .d-yellow { background: #f9a825; } .d-orange { background: #ef6c00; } .d-red { background: #d32f2f; } .d-gray { background: #757575; }
 /* intro / outro */
 .cover { position: absolute; inset: 0; background: rgba(248, 250, 252, 0.88); backdrop-filter: blur(3px); display: grid; place-items: center; z-index: 10; }
 .cover .card { width: 700px; display: flex; flex-direction: column; gap: 14px; align-items: flex-start; }
@@ -292,40 +293,54 @@ kbd { font: inherit; font-size: 11px; border: 1px solid var(--ctl-line); border-
 
   const ic = (n, extra = '') => `<i data-lucide="${n}" ${extra}></i>`;
 
-  // Sample data (illustrative). Days on site drives the pin color; anything
-  // parked at the org's own yard is "At yard" and stays out of the color scale.
-  const tone = d => d == null ? 'gray' : d > 90 ? 'red' : d > 60 ? 'orange' : d > 30 ? 'yellow' : 'green';
+  // MUI icons used by the list (AssetMapList.tsx): Inventory for containers,
+  // RvHookup for every trailer-category asset (vans included), MenuOpen for
+  // "Collapse list", and the search adornment.
+  const mui = (d, extra = '') => `<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" ${extra}><path d="${d}"/></svg>`;
+  const P_INVENTORY = 'M20 2H4c-1 0-2 .9-2 2v3.01c0 .72.43 1.34 1 1.69V20c0 1.1 1.1 2 2 2h14c.9 0 2-.9 2-2V8.7c.57-.35 1-.97 1-1.69V4c0-1.1-1-2-2-2zm-5 12H9v-2h6v2zm5-7H4V4l16-.02V7z';
+  const P_RVHOOKUP = 'M20 17v-6c0-1.1-.9-2-2-2H7V7l-3 3 3 3v-2h4v3H4v3c0 1.1.9 2 2 2h2c0 1.66 1.34 3 3 3s3-1.34 3-3h8v-2h-2zm-9 3c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm7-6h-4v-3h4v3zM17 2v2H9v2h8v2l3-3z';
+  const P_MENUOPEN = 'M3 18h13v-2H3v2zm0-5h10v-2H3v2zm0-7v2h13V6H3zm18 9.59L17.42 12 21 8.41 19.59 7l-5 5 5 5L21 15.59z';
+  const P_SEARCH = 'M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z';
+
+  // Sample data (illustrative). Colors follow daysOnSiteColor.ts: 0–30 green,
+  // 31–60 yellow, 61–90 orange, 91+ red; assets at one of the org's own yards
+  // are "At yard" and neutral gray, and stay out of the pin's MAX.
+  const COLOR = { green: '#2e7d32', yellow: '#f9a825', orange: '#ef6c00', red: '#d32f2f', gray: '#757575' };
+  const tone = d => d == null ? 'gray' : d >= 91 ? 'red' : d >= 61 ? 'orange' : d >= 31 ? 'yellow' : 'green';
+  // Locations: x, y in map pixels; customer shown in the popup.
+  const LOC = {
+    lakeside: { n: 'Lakeside Machining', c: 'Lakeside Machining', x: 548, y: 74 },
+    dupage: { n: 'DuPage Roofing', c: 'DuPage Roofing', x: 312, y: 384 },
+    hartwell: { n: 'Hartwell Demolition', c: 'Hartwell Demolition', x: 372, y: 598 },
+    kenosha: { n: 'Kenosha Tool & Die', c: 'Kenosha Tool & Die', x: 338, y: 236 },
+    keller: { n: 'Keller Fabrication', c: 'Keller Fabrication', x: 440, y: 316 },
+    fox: { n: 'Fox River Castings', c: 'Fox River Castings', x: 186, y: 470 },
+    elgin: { n: 'Elgin Metal Works', c: 'Elgin Metal Works', x: 212, y: 282 },
+    midwest: { n: 'Midwest Auto Salvage', c: 'Midwest Auto Salvage', x: 592, y: 420 },
+    riverside: { n: 'Riverside Steel Service', c: 'Riverside Steel Service', x: 292, y: 482 },
+    calumet: { n: 'Calumet HVAC', c: 'Calumet HVAC', x: 520, y: 520 },
+    yard: { n: 'North Yard', c: 'Pike Metals', x: 560, y: 330, yard: true },
+  };
+  // [name, location, days on site]; days are ignored for yard assets.
   const CONTAINERS = [
-    { n: 'Hopper 22', site: 'Lakeside Machining', d: 97 },
-    { n: '40-yd 05', site: 'DuPage Roofing', d: 72 },
-    { n: '40-yd 12', site: 'Hartwell Demolition', d: 64 },
-    { n: '30-yd 19', site: 'Kenosha Tool & Die', d: 52 },
-    { n: '40-yd 18', site: 'Hartwell Demolition', d: 51 },
-    { n: '20-yd 03', site: 'Keller Fabrication', d: 41 },
-    { n: '40-yd 21', site: 'Fox River Castings', d: 35 },
-    { n: '20-yd 16', site: 'Elgin Metal Works', d: 28 },
-    { n: 'Lugger 04', site: 'Midwest Auto Salvage', d: 23 },
-    { n: 'Lugger 08', site: 'Riverside Steel Service', d: 19 },
-    { n: '30-yd 15', site: 'Midwest Auto Salvage', d: 17 },
+    ['Hopper 22', 'lakeside', 97], ['Roll-off 05', 'dupage', 72], ['Roll-off 12', 'hartwell', 64],
+    ['Roll-off 19', 'kenosha', 52], ['Roll-off 18', 'hartwell', 51], ['Roll-off 03', 'keller', 41],
+    ['Roll-off 21', 'fox', 35], ['Roll-off 16', 'elgin', 28], ['Lugger 04', 'midwest', 23],
+    ['Lugger 08', 'riverside', 19], ['Roll-off 15', 'midwest', 17],
+    ['Lugger 01', 'yard', 210], ['Roll-off 02', 'yard', 145], ['Roll-off 07', 'yard', 88], ['Roll-off 11', 'yard', 12],
   ];
   const TRAILERS = [
-    { n: 'TR-112', kind: 'Trailer', site: 'Calumet HVAC', d: 66 },
-    { n: 'VAN-07', kind: 'Van', site: 'Kenosha Tool & Die', d: 38 },
-    { n: 'TR-104', kind: 'Trailer', site: 'Riverside Steel Service', d: 12 },
-    { n: 'VAN-03', kind: 'Van', site: 'Fox River Castings', d: 8 },
+    ['Tallside 112', 'calumet', 66], ['Box Van 07', 'kenosha', 38], ['Dump Trailer 104', 'riverside', 12],
+    ['Cargo Van 03', 'fox', 8], ['Box Van 02', 'yard', 180], ['Tallside 101', 'yard', 40],
   ];
-  // Map pins: [x, y, count, days] in map pixels (786×683).
-  const C_PINS = [
-    [548, 74, 1, 97], [312, 384, 1, 72], [372, 598, 2, 64], [338, 196, 1, 52], [430, 300, 1, 41],
-    [196, 470, 1, 35], [222, 282, 1, 28], [592, 404, 2, 23], [292, 482, 2, 17], [700, 560, 3, 19], [612, 566, 2, 25],
-  ];
-  const T_PINS = [
-    { id: 'pin-tr112', x: 520, y: 470, d: 66, k: 'container' },
-    { id: 'pin-van07', x: 386, y: 150, d: 38, k: 'truck' },
-    { id: 'pin-tr104', x: 470, y: 534, d: 12, k: 'container' },
-    { id: 'pin-van03', x: 150, y: 372, d: 8, k: 'truck' },
-  ];
-  const YARD = { x: 560, y: 336 };
+  // A zoomed-out cluster bubble in the south-east: it sums the assets of the
+  // locations inside it and takes their oldest bin (containers only here).
+  const CLUSTER = { x: 664, y: 566, total: 5, maxDays: 25 };
+
+  const positions = s => {
+    const mk = kind => ([n, l, d]) => ({ n, kind, loc: l, d, yard: !!LOC[l].yard });
+    return [...CONTAINERS.map(mk('container')), ...(s.show === 'ct' ? TRAILERS.map(mk('trailer')) : [])];
+  };
 
   const MAPBG = `<svg class="bg" viewBox="0 0 786 683" preserveAspectRatio="none" aria-hidden="true">
     <rect width="786" height="683" fill="#eef0e8"/>
@@ -360,12 +375,12 @@ kbd { font: inherit; font-size: 11px; border: 1px solid var(--ctl-line); border-
       tip: 'New: the <b>Assets shown</b> dropdown above the asset list. <b>Containers</b> is still the default.' },
     { show: 'c', dd: true, t: '#opt-both', place: 'right', url: URL,
       tip: 'Pick <b>Containers</b>, <b>Trailers</b>, or <b>Containers and trailers</b>. Choose the last one to see everything you’ve dropped.' },
-    { show: 'ct', fresh: true, t: '#pin-tr112', place: 'left', url: URL,
-      tip: 'Your trailers and vans now show as pins where they were dropped, right next to your containers.' },
-    { show: 'ct', popup: true, t: '#pop-open', place: 'left', url: URL,
-      tip: 'Click a pin to see its details. From there you can open the trailer’s own page.' },
+    { show: 'ct', fresh: true, t: '#pin-calumet', place: 'left', url: URL,
+      tip: 'Trailers and vans now join your containers on the map. Each pin counts every asset at that location, and its color shows the oldest days on site there.' },
+    { show: 'ct', popup: 'kenosha', t: '#pop-asset', place: 'bottom', url: URL,
+      tip: 'Click a pin to see everything at that location. Click an asset’s name to open its page in a new tab.' },
     { show: 'ct', t: '#pin-yard', place: 'left', url: URL, legend: true,
-      tip: 'Equipment parked at your own yards shows as <b>At yard</b> in gray. Those pins don’t count toward days on site, so long-parked trailers don’t turn the pins around them red.' },
+      tip: 'Assets parked at your own yards read <b>At yard</b> in gray. Those don’t count toward days on site, so a long-parked trailer or container won’t turn its pin red. A pin is gray only when everything at it is at a yard.' },
     { show: 'ct', cover: 'outro', url: URL },
   ];
 
@@ -394,61 +409,69 @@ kbd { font: inherit; font-size: 11px; border: 1px solid var(--ctl-line); border-
   }
 
   function assetRows(s) {
-    const items = CONTAINERS.map(c => ({ ...c, kind: null }));
-    if (s.show === 'ct') items.push(...TRAILERS);
-    items.sort((a, b) => b.d - a.d);
-    return items.slice(0, 10).map(a => {
-      const t = tone(a.d);
-      const icon = a.kind === 'Van' ? 'truck' : a.kind ? 'caravan' : 'package';
-      return `<div class="arow${s.popup && a.n === 'TR-112' ? ' hl' : ''}"><span class="ai c-${t}">${ic(icon)}</span>
-        <div class="tx"><b>${a.n}${a.kind ? `<span class="kind">${a.kind}</span>` : ''}</b><small>${a.site} - ${a.d} days on site</small></div></div>`;
+    // Default sort is "Name" (alphabetical by asset name).
+    const items = positions(s).sort((a, b) => a.n.localeCompare(b.n));
+    return items.slice(0, 12).map(a => {
+      const color = a.yard ? COLOR.gray : COLOR[tone(a.d)];
+      const icon = a.kind === 'trailer' ? P_RVHOOKUP : P_INVENTORY;
+      const sub = a.yard ? `${LOC[a.loc].n} - At yard` : `${LOC[a.loc].n} - ${a.d} days on site`;
+      return `<div class="arow"><span class="ai" style="color:${color}">${mui(icon)}</span>
+        <div class="tx"><b>${a.n}</b><small>${sub}</small></div></div>`;
     }).join('');
   }
 
   function mapLayer(s) {
-    let pins = C_PINS.map(([x, y, n, d]) => `<div class="pin d-${tone(d)}" style="left:${x}px;top:${y}px">${n}</div>`).join('');
-    const yardCount = s.show === 'ct' ? 6 : 4;
-    pins += `<div class="pin d-gray" id="pin-yard" style="left:${YARD.x}px;top:${YARD.y}px">${yardCount}</div>`;
-    if (s.show === 'ct') {
-      pins += T_PINS.map(p => `<div class="pin tr d-${tone(p.d)}${s.fresh ? ' fresh' : ''}" id="${p.id}" style="left:${p.x}px;top:${p.y}px">${ic(p.k)}</div>`).join('');
-    }
+    const all = positions(s);
+    let pins = Object.entries(LOC).map(([key, l]) => {
+      const here = all.filter(a => a.loc === key);
+      if (!here.length) return '';
+      const aging = here.filter(a => !a.yard);
+      const max = aging.length ? Math.max(...aging.map(a => a.d)) : null;
+      const fresh = s.fresh && here.some(a => a.kind === 'trailer') ? ' fresh' : '';
+      return `<div class="pin d-${tone(max)}${fresh}" id="pin-${key}" style="left:${l.x}px;top:${l.y}px">${here.length}</div>`;
+    }).join('');
+    pins += `<div class="pin clu d-${tone(CLUSTER.maxDays)}" style="left:${CLUSTER.x}px;top:${CLUSTER.y}px">${CLUSTER.total}</div>`;
     if (s.popup) {
-      pins += `<div class="pop" style="left:520px;top:${470 - 26}px">
-        <span class="x">${ic('x')}</span>
-        <h4>TR-112 · 53' Tallside</h4>
-        <div class="kv">Dropped at Calumet HVAC</div>
-        <div class="kv">66 days on site</div>
-        <span class="lnk" id="pop-open">Open trailer${ic('arrow-right')}</span>
+      const l = LOC[s.popup];
+      const here = all.filter(a => a.loc === s.popup);
+      const rows = here.map(a => `<div><a${a.kind === 'trailer' ? ' id="pop-asset"' : ''}>${a.n}</a><span>${a.yard ? ' — At yard' : ` — ${a.d} days on site`}</span></div>`).join('');
+      pins += `<div class="pop" style="left:${l.x}px;top:${l.y - 20}px">
+        <div class="wrap2"><div class="body"><strong>${l.n}</strong><br>Customer: ${l.c}<br>${here.length} ${here.length === 1 ? 'asset' : 'assets'}
+          <div class="list">${rows}</div></div></div>
+        <div class="tipc"></div><span class="x">×</span>
       </div>`;
     }
-    const yardRow = s.legend ? ' style="background:hsla(183,100%,33%,.10);margin:0 -4px;padding:0 4px"' : '';
+    const yardRow = s.legend ? ' style="background:hsla(183,100%,33%,.14);margin:2px -4px 0;padding:0 4px"' : '';
     return `<div class="map" id="map">${MAPBG}
-      <div class="mt"><span class="on">Street</span><span>Satellite</span></div>
       ${pins}
+      <div class="lf-bar lf-zoom"><span>+</span><span>−</span></div>
+      <div class="lf-bar lf-layers">${ic('layers')}</div>
       <div class="legend" id="legend"><b>Days on site</b>
         <div><i class="d-green"></i>0–30 days</div><div><i class="d-yellow"></i>31–60 days</div>
         <div><i class="d-orange"></i>61–90 days</div><div><i class="d-red"></i>91+ days</div>
         <div${yardRow}><i class="d-gray"></i>At yard</div></div>
-      <div class="zm"><span>+</span><span>−</span></div>
-      <div class="attr">Leaflet | © OpenStreetMap contributors</div>
+      <div class="attr"><a>Leaflet</a> | © Google Maps</div>
     </div>`;
   }
 
   function assets(s) {
     const label = s.show === 'ct' ? 'Containers and trailers' : 'Containers';
     const dd = s.dd ? `<div class="dd" id="dd">
-        <div class="o cur">Containers${ic('check')}</div>
+        <div class="o cur">Containers</div>
         <div class="o">Trailers</div>
-        <div class="o hv" id="opt-both">Containers and trailers</div></div>` : '';
+        <div class="o" id="opt-both">Containers and trailers</div></div>` : '';
     return `<main class="main">
-      <div class="phead"><div class="left"><div class="crumbs"><span>Assets</span>${ic('chevron-right')}<span>Asset Map</span></div><h1>Assets</h1></div>
+      <div class="phead"><h1>Assets</h1>
         <div class="acts"><span class="rb">${ic('plus')}Add Truck</span><span class="rb">${ic('plus')}Add Trailer</span><span class="rb pri">${ic('plus')}Add Container</span></div></div>
       <div class="ptabs"><span class="on">Asset Map</span><span>Containers</span><span>Trucks</span><span>Trailers</span></div>
       <div class="abody">
         <div class="alist">
-          <div class="tools"><div class="inp" style="flex:1">${ic('search')}Search Assets</div><div class="inp" style="width:150px">Sort Days on Site${ic('chevron-down', 'class="chev"')}</div><div class="inp" style="width:32px;padding:0;justify-content:center">${ic('panel-left')}</div></div>
-          <div class="lbl">Assets shown</div>
-          <div class="sel${s.dd ? ' open' : ''}" id="shown">${label}<span class="new">New</span>${ic('chevron-down')}</div>
+          <div class="tools">
+            <div class="fld" style="flex:1">${mui(P_SEARCH)}<span class="ph">Search Assets</span></div>
+            <div class="fld" style="min-width:132px"><label>Sort by</label>Name<span class="arr"></span></div>
+            <span class="iconbtn" id="collapse" title="Collapse list">${mui(P_MENUOPEN)}</span>
+          </div>
+          <div class="shownwrap"><div class="fld${s.dd ? ' open' : ''}" id="shown"><label>Assets shown</label>${label}<span class="arr"></span></div></div>
           ${dd}
           <div class="rows">${assetRows(s)}</div>
         </div>
@@ -469,7 +492,7 @@ kbd { font: inherit; font-size: 11px; border: 1px solid var(--ctl-line); border-
     return `<div class="cover"><div class="card">
       <div class="eyebrow">${ic('circle-check')}Now on the Asset Map</div>
       <h2>Every container, trailer and van in one place</h2>
-      <p>Switch <b>Assets shown</b> to Containers and trailers, click any pin for details, and let gray <b>At yard</b> pins stay out of the way. Trucks aren’t on the map yet.</p>
+      <p>Switch <b>Assets shown</b> to Containers and trailers, click any pin to see what’s at that location, and let gray <b>At yard</b> assets stay out of the way. Trucks aren’t on the map yet.</p>
       <div class="cta"><button class="go sec" type="button" data-go="restart">${ic('rotate-ccw')}Replay</button></div>
     </div></div>`;
   }
