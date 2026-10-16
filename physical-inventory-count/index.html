@@ -132,6 +132,7 @@ kbd { font: inherit; font-size: 11px; border: 1px solid var(--ctl-line); border-
 
 /* ================= ReSpark app mock (fixed light theme) ================= */
 .app { width: 1440px; height: 820px; display: flex; font-family: var(--font); color: var(--a-fg); font-size: 13px; background: var(--a-surface); position: relative; overflow: hidden; }
+.app table { color: inherit; } /* pages render without a doctype, where tables don't inherit text color; keeps the app mock readable in dark mode */
 .app svg.lucide { width: 16px; height: 16px; stroke-width: 1.75; flex-shrink: 0; }
 .side { width: 236px; flex-shrink: 0; background: var(--a-muted-solid); border-right: 1px solid var(--a-border-subtle); display: flex; flex-direction: column; padding: 12px 10px; gap: 10px; }
 .side .top { display: flex; align-items: center; gap: 8px; padding: 2px 4px; }
