@@ -1,5 +1,5 @@
 <meta charset="utf-8">
-<title>ReSpark Physical Count</title>
+<title>Physical Inventory Count</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
@@ -277,44 +277,72 @@ td { padding: 0 12px; height: 44px; border-bottom: 1px solid var(--a-border-subt
 @keyframes pop2 { from { opacity: 0; transform: translate(-50%, 8px); } to { opacity: 1; transform: translateX(-50%); } }
 
 /* physical count pages */
-.ptitle { display: flex; align-items: center; gap: 10px; }
 .b-warn { background: hsla(38, 92%, 50%, 0.16); color: hsl(32 80% 34%); }
-.meta { display: flex; gap: 28px; font-size: 12.5px; border: 1px solid var(--a-border-subtle); border-radius: 10px; padding: 10px 16px; align-items: center; }
-.meta small { display: block; color: var(--a-text-3); font-size: 11.5px; }
-.meta b { font-weight: 500; }
-.meta .note { margin-left: auto; padding: 6px 10px; }
-.addbar { display: flex; align-items: center; gap: 8px; position: relative; }
-.seg { display: inline-flex; border: 1px solid var(--a-border); border-radius: 6px; overflow: hidden; height: 32px; }
-.seg span { display: inline-flex; align-items: center; padding-inline: 12px; font-size: 12.5px; font-weight: 500; color: var(--a-text-2); }
-.seg span + span { border-left: 1px solid var(--a-border); }
-.seg span.on { background: var(--a-primary-subtle); color: var(--a-primary-hover); }
-.addbar .pick { width: 260px; justify-content: space-between; }
-.addbar .pick.open { border-color: var(--a-primary); box-shadow: 0 0 0 3px hsla(183, 100%, 33%, 0.15); }
-.addbar .dd { left: 196px; right: auto; width: 300px; top: 38px; }
-.empty { flex: 1; border: 1px dashed var(--a-border); border-radius: 10px; display: grid; place-items: center; color: var(--a-text-3); font-size: 13px; text-align: center; }
-.empty svg.lucide { width: 22px; height: 22px; margin-bottom: 6px; }
-.itab tr.grp td { background: var(--a-muted-solid); font-weight: 600; font-size: 12px; height: 34px; color: var(--a-text-2); }
-.wcell { display: inline-flex; align-items: center; justify-content: flex-end; gap: 4px; border: 1px solid var(--a-border); border-radius: 6px; height: 30px; min-width: 96px; padding: 0 8px; }
+.nrow.active .pill { color: #fff; background: rgba(255,255,255,0.18); }
+.crumbbar { display: flex; align-items: center; gap: 8px; min-height: 62px; padding: 14px 24px 12px; font-size: 14px; color: var(--a-text-3); }
+.crumbbar > svg.lucide { color: var(--a-text-2); margin-right: 2px; }
+.crumbbar .leaf { color: var(--a-fg); }
+.crumbbar .acts { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+.phead h1 { font-size: 20px; }
+.phead { align-items: center; padding-top: 18px; }
+.rb.dis { opacity: .45; }
+.rb.ghost { border-color: transparent; background: transparent; }
+.rb.sm { height: 34px; font-weight: 400; font-size: 12.5px; padding-inline: 10px; }
+.rb.sm svg.lucide { width: 14px; height: 14px; }
+.rb.xs { height: 26px; font-size: 12px; padding-inline: 10px; }
+.rb.dashed { border-style: dashed; color: var(--a-text-2); }
+.rb.ms { gap: 5px; }
+.rb.ms.open { border-color: var(--a-primary); box-shadow: 0 0 0 3px hsla(183, 100%, 33%, 0.15); }
+.effrow { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.effrow > span:first-child { font-weight: 500; color: var(--a-text-2); }
+.effrow b { font-weight: 400; }
+.inp.dp { width: 256px; justify-content: space-between; color: var(--a-fg); }
+.gtool { display: flex; align-items: center; gap: 16px; position: relative; }
+.gtool .gl, .gtool .gr { display: flex; align-items: center; gap: 8px; }
+.gtool .gl > *, .gtool .gr > * { flex-shrink: 0; }
+.app td, .app th { font-size: 13px; }
+.app th { font-size: 12.5px; }
+.gtool .gr { margin-left: auto; position: relative; }
+.inp.srch { width: 150px; height: 34px; }
+.inp.fchip { height: 34px; justify-content: space-between; gap: 10px; }
+.msel { position: absolute; top: 40px; right: 254px; width: 240px; background: var(--a-surface); border: 1px solid var(--a-border); border-radius: 8px; box-shadow: 0 6px 22px rgba(15, 23, 42, 0.16); z-index: 5; animation: pop .18s ease; overflow: hidden; }
+.msel .ms-s { display: flex; align-items: center; gap: 6px; padding: 9px 10px; border-bottom: 1px solid var(--a-border-subtle); color: var(--a-text-3); font-size: 12.5px; }
+.msel .ms-s svg.lucide { width: 14px; height: 14px; }
+.msel .o { display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 10px; margin: 2px 4px; border-radius: 4px; font-size: 13px; }
+.msel .o.hv { background: var(--a-hover); }
+.msel .ms-f { display: flex; align-items: center; justify-content: space-between; height: 44px; padding: 0 8px 0 12px; border-top: 1px solid var(--a-border-subtle); font-size: 11.5px; color: var(--a-text-3); }
+.msel .ms-f u { margin-left: 6px; color: var(--a-text-2); }
+.cbx { display: inline-grid; place-items: center; width: 16px; height: 16px; border-radius: 3px; border: 1px solid hsla(217, 55%, 16%, 0.3); vertical-align: middle; flex-shrink: 0; }
+.cbx.on { background: var(--a-primary); border-color: var(--a-primary); color: #fff; }
+.app .cbx svg.lucide { width: 11px; height: 11px; stroke-width: 3; }
+.itab tr.grp td { background: var(--a-muted-solid); font-size: 12px; height: 34px; color: var(--a-text-2); }
+.itab tr.grp td b { font-size: 13px; color: var(--a-fg); margin-right: 8px; }
+.itab tr.grp td span + span { margin-left: 4px; }
+.wcell { display: inline-flex; align-items: center; justify-content: flex-end; gap: 4px; border: 1px solid var(--a-border); border-radius: 6px; height: 30px; width: 100%; max-width: 120px; padding: 0 8px; background: var(--a-surface); }
+.wcell.cost { max-width: 92px; justify-content: space-between; }
 .wcell .u { color: var(--a-text-3); }
-.scb { display: inline-grid; place-items: center; width: 30px; height: 30px; border: 1px solid var(--a-border); border-radius: 6px; color: var(--a-icon-2); vertical-align: middle; }
-.neg { color: var(--a-error); }
-.pos { color: var(--a-success-strong); }
-.sel { display: inline-flex; align-items: center; justify-content: space-between; gap: 6px; border: 1px solid var(--a-border); border-radius: 6px; height: 30px; width: 190px; padding: 0 8px; font-size: 12.5px; }
-.sel svg.lucide { width: 14px; height: 14px; color: var(--a-icon-2); }
-.sel.post { border-color: var(--a-primary); background: var(--a-primary-subtle); color: var(--a-primary-hover); font-weight: 600; }
-.sel.defer { color: hsl(32 80% 34%); background: hsla(38, 92%, 50%, 0.10); }
+.trash { display: inline-grid; place-items: center; width: 28px; height: 28px; color: var(--a-error); }
+.itab.rv td, .itab.rv th { padding: 0 10px; }
+.rads { display: inline-flex; gap: 12px; align-items: center; }
+.rad { display: inline-flex; align-items: center; gap: 5px; font-size: 12.5px; }
+.rad i { width: 15px; height: 15px; border-radius: 50%; border: 1.5px solid hsla(217, 55%, 16%, 0.35); flex-shrink: 0; }
+.rad.on i { border: 5px solid var(--a-primary); }
+.drawer { width: 520px; }
+.drawer .dh { align-items: flex-start; padding: 18px 20px 14px; }
+.drawer .dh .dsc { margin: 4px 0 0; font-size: 13px; color: var(--a-text-3); }
+.drawer .db { padding: 18px 20px; gap: 16px; }
+.drawer .dtx { margin: 0; font-size: 13px; line-height: 1.5; color: var(--a-text-2); max-width: 448px; }
+.swr { display: inline-flex; align-items: center; gap: 10px; font-size: 13px; align-self: flex-start; padding: 2px; }
+.swr .sw { width: 34px; height: 20px; border-radius: 999px; background: hsla(217, 55%, 16%, 0.18); position: relative; flex-shrink: 0; }
+.swr .sw::after { content: ""; position: absolute; left: 2px; top: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.2); }
 .scrim { position: absolute; inset: 0; background: rgba(18, 35, 62, 0.28); z-index: 8; display: grid; place-items: center; }
-.modal { width: 500px; background: var(--a-surface); border-radius: 12px; box-shadow: 0 24px 60px rgba(15, 23, 42, 0.3); animation: pop .18s ease; display: flex; flex-direction: column; }
+.modal { min-width: 420px; max-width: 520px; background: var(--a-surface); border-radius: 12px; box-shadow: 0 24px 60px rgba(15, 23, 42, 0.3); animation: pop .18s ease; display: flex; flex-direction: column; }
 .modal .mh2 { padding: 18px 20px 6px; font-size: 16px; font-weight: 600; }
-.modal .mb { padding: 8px 20px 16px; display: flex; flex-direction: column; gap: 12px; font-size: 13px; color: var(--a-text-2); }
+.modal .mb { margin: 6px 20px 16px; display: flex; flex-direction: column; gap: 8px; font-size: 13px; color: var(--a-text-2); }
+.modal .mb .q { color: var(--a-fg); font-size: 14px; font-weight: 500; }
+.modal .mb .dl { line-height: 1.6; }
+.modal .inf svg.lucide { width: 14px; height: 14px; vertical-align: -2px; color: var(--a-text-3); }
 .modal .mf { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 20px; border-top: 1px solid var(--a-border-subtle); }
-.finsum { border: 1px solid var(--a-border-subtle); border-radius: 8px; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; }
-.finsum > b { color: var(--a-fg); font-size: 14px; }
-.tgl { display: flex; gap: 12px; align-items: flex-start; border: 1px solid var(--a-border); border-radius: 8px; padding: 12px; }
-.tgl .sw { width: 34px; height: 20px; border-radius: 999px; background: hsla(217, 55%, 16%, 0.18); position: relative; flex-shrink: 0; margin-top: 1px; }
-.tgl .sw::after { content: ""; position: absolute; left: 2px; top: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.2); }
-.tgl b { display: block; font-size: 13px; font-weight: 600; margin-bottom: 2px; }
-.tgl small { font-size: 12px; color: var(--a-text-3); line-height: 1.4; }
 
 /* intro / outro */
 .cover { position: absolute; inset: 0; background: rgba(248, 250, 252, 0.88); backdrop-filter: blur(3px); display: grid; place-items: center; z-index: 10; }
@@ -376,61 +404,70 @@ td { padding: 0 12px; height: 44px; border-bottom: 1px solid var(--a-border-subt
   const ic = (n, extra = '') => `<i data-lucide="${n}" ${extra}></i>`;
 
   // Sample data (illustrative). A blind count of the Aluminum commodity at
-  // North Yard. Costs are the current average cost per lb, pre-filled at review.
-  const lb = v => v.toLocaleString('en-US') + ' lb';
-  const sgn = v => (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v).toLocaleString('en-US');
+  // North Yard. Weights are lbs (the yard's unit); cost is per lb.
+  // Formats follow the code: weights via toLocaleString (no unit in the cell,
+  // the unit is in the header), cost via the yard currency with up to 4 decimals,
+  // dates via dateTimeFormatter ("MM/DD/YYYY, hh:mm AM").
+  const n = v => v.toLocaleString('en-US', { maximumFractionDigits: 2 });
+  const money = v => v.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 4 });
   const ROWS = [
-    { id: 'ubc', mat: 'Aluminum Cans (UBC)', code: 'AL-UBC', book: 4820, gross: 5240, tare: 660, cost: 0.52, dec: 'Post' },
-    { id: 'osh', mat: 'Old Sheet', code: 'AL-OSH', book: 6190, gross: 6840, tare: 430, cost: 0.61, dec: 'Post' },
-    { id: 'cst', mat: 'Cast Aluminum', code: 'AL-CST', book: 3930, gross: 4360, tare: 430, cost: 0.66, dec: 'No Adjustment needed' },
-    { id: '6063', mat: '6063 Extrusion', code: 'AL-6063', book: 2250, gross: 2680, tare: 440, cost: 1.06, dec: 'No Adjustment needed' },
-    { id: 'sid', mat: 'Painted Siding', code: 'AL-SID', book: 1490, gross: 1920, tare: 430, cost: 0.78, dec: 'No Adjustment needed' },
-    { id: 'whl', mat: 'Clean Aluminum Wheels', code: 'AL-WHL', book: 960, gross: 1390, tare: 440, cost: 1.02, dec: 'No Adjustment needed' },
-    { id: 'lth', mat: 'Litho Plates', code: 'AL-LTH', book: 620, gross: 1050, tare: 430, cost: 0.94, dec: 'No Adjustment needed' },
+    { id: 'ubc', mat: 'Aluminum Cans (UBC)', book: 4820, gross: 5240, tare: 660, cost: 0.52, dec: 'post' },
+    { id: 'osh', mat: 'Old Sheet', book: 6190, gross: 6840, tare: 430, cost: 0.61, dec: 'post' },
+    { id: 'cst', mat: 'Cast Aluminum', book: 3930, gross: 4360, tare: 430, cost: 0.66, dec: 'no' },
+    { id: '6063', mat: '6063 Extrusion', book: 2250, gross: 2680, tare: 440, cost: 1.06, dec: 'no' },
+    { id: 'sid', mat: 'Painted Siding', book: 1490, gross: 1920, tare: 430, cost: 0.78, dec: 'no' },
+    { id: 'whl', mat: 'Clean Aluminum Wheels', book: 960, gross: 1390, tare: 440, cost: 1.02, dec: 'no' },
+    { id: 'lth', mat: 'Litho Plates', book: 620, gross: 1050, tare: 430, cost: 0.94, dec: 'no' },
   ].map(r => ({ ...r, net: r.gross - r.tare, v: r.gross - r.tare - r.book }));
+  // Statuses and badge variants from physicalCountLifecycle.ts statusChip().
+  const ST = {
+    open: ['Open', 'b-success'], review: ['Ready for Review', 'b-warn'],
+    posted: ['Closed · Posted', 'b-accent'], record: ['Closed · Record Only', 'b-neutral'],
+  };
   const COUNTS = [
-    { n: 13, date: 'Oct 9, 2026 4:30 PM', st: 'Open', cls: 'b-teal', mats: 12, by: 'Sam Ortiz' },
-    { n: 12, date: 'Sep 30, 2026 5:00 PM', st: 'Closed · Posted', cls: 'b-success', mats: 31, by: 'Jordan Pike' },
-    { n: 11, date: 'Sep 12, 2026 3:15 PM', st: 'Closed · Record Only', cls: 'b-neutral', mats: 8, by: 'Sam Ortiz' },
-    { n: 10, date: 'Aug 29, 2026 5:00 PM', st: 'Closed · Posted', cls: 'b-success', mats: 29, by: 'Jordan Pike' },
-    { n: 9, date: 'Jul 31, 2026 5:00 PM', st: 'Closed · Posted', cls: 'b-success', mats: 30, by: 'Jordan Pike' },
+    { n: 13, eff: '10/09/2026, 04:30 PM', st: 'open', blind: false, rev: '—', created: '10/09/2026, 04:12 PM', closed: '---' },
+    { n: 12, eff: '09/30/2026, 05:00 PM', st: 'posted', blind: true, rev: 'Jordan Pike', created: '09/30/2026, 07:05 AM', closed: '10/01/2026, 10:41 AM' },
+    { n: 11, eff: '09/12/2026, 03:15 PM', st: 'record', blind: true, rev: 'Jordan Pike', created: '09/12/2026, 01:50 PM', closed: '09/13/2026, 09:20 AM' },
+    { n: 10, eff: '08/29/2026, 05:00 PM', st: 'posted', blind: false, rev: 'Jordan Pike', created: '08/29/2026, 06:58 AM', closed: '08/30/2026, 11:02 AM' },
+    { n: 9, eff: '07/31/2026, 05:00 PM', st: 'posted', blind: true, rev: 'Jordan Pike', created: '07/31/2026, 07:10 AM', closed: '08/01/2026, 10:15 AM' },
   ];
-  const ADJS = [
-    { date: 'Oct 8, 2026', mats: 'Irony Aluminum', w: -380, val: -110.20, note: 'Moisture correction' },
-    { date: 'Oct 2, 2026', mats: 'Aluminum Breakage', w: 1240, val: 595.20, note: 'Missed inbound ticket' },
-    { date: 'Sep 30, 2026', mats: '9 materials', w: -1460, val: -812.40, note: 'Physical inventory count #12' },
-    { date: 'Sep 24, 2026', mats: 'Aluminum Turnings', w: -210, val: -90.30, note: 'Spill' },
-  ];
-  const EFF = 'Oct 14, 2026 9:00 AM';
+  const C14 = { n: 14, eff: '10/14/2026, 09:00 AM', st: 'posted', blind: true, rev: 'Jordan Pike', created: '10/14/2026, 08:46 AM', closed: '10/15/2026, 03:22 PM' };
+  const EFF = '10/14/2026, 09:00 AM';
+  const ADJ_NO = 58;
+  const LIST = '/app/inventory/physical-inventory-count';
+  const DETAIL = LIST + '/7c2e9a14-5b3d-4f1e-9a62-3d8c1b0e4f27';
 
   // ---------- steps ----------
   const STEPS = [
-    { view: 'list', cover: 'intro', url: '/app/inventory/physical-count' },
-    { view: 'list', t: '#btn-new', place: 'bottom', url: '/app/inventory/physical-count',
+    { view: 'list', cover: 'intro', url: LIST },
+    { view: 'list', t: '#btn-new', place: 'bottom', url: LIST,
       tip: 'Go to <b>Inventory → Physical Inventory Count</b> and click <b>New Count</b>.' },
-    { view: 'list', drawer: 'new', t: '#blind', place: 'left', url: '/app/inventory/physical-count',
+    { view: 'list', drawer: 'new', t: '#blind', place: 'left', url: LIST,
       tip: 'Set the <b>Effective date</b>. Leave <b>Show book weight and variance while counting</b> off for a blind count, then click <b>Start count</b>.' },
-    { view: 'cnt', phase: 'empty', t: '#opt-al', place: 'right', url: '/app/inventory/physical-count/14',
-      tip: 'Add what you’re counting. Pick <b>By commodity</b> to add every active material under it, or use <b>By material</b> or <b>Add All Materials</b>.' },
-    { view: 'cnt', phase: 'weighed', t: '#row-w', place: 'bottom', url: '/app/inventory/physical-count/14',
-      tip: 'Enter <b>Gross</b> and <b>Tare</b> for each row, from the scale button or by hand. <b>Net</b> is the counted weight. Click <b>Save weights</b> as you go.' },
-    { view: 'cnt', phase: 'weighed', t: '#btn-ready', place: 'bottom', url: '/app/inventory/physical-count/14',
-      tip: 'When counting is done, click <b>Mark ready for review</b>.' },
-    { view: 'cnt', phase: 'review', t: '#row-r', place: 'bottom', url: '/app/inventory/physical-count/14',
-      tip: 'In review, every counted row shows <b>Book</b> against the <b>Net</b> you weighed, with <b>Variance</b> and <b>Cost</b> filled in.' },
-    { view: 'cnt', phase: 'decided', t: '#dec-ubc', place: 'left', url: '/app/inventory/physical-count/14',
-      tip: 'Choose a <b>Decision</b> for each row: <b>Post</b> to correct the book, or <b>No Adjustment needed</b> to leave it as is.' },
-    { view: 'cnt', phase: 'decided', modal: true, t: '#fin-sum', place: 'right', url: '/app/inventory/physical-count/14',
-      tip: 'Click <b>Finish Review</b> and confirm. The rows marked <b>Post</b> go in as one inventory adjustment, and the count closes in the same step.' },
-    { view: 'adj', drawer: 'adj', t: '#adj-link', place: 'left', url: '/app/inventory/adjustments',
-      tip: 'Open the new adjustment in <b>Adjustments</b>. Its note links back to the count it came from.' },
-    { view: 'adj', drawer: 'adj', cover: 'outro', url: '/app/inventory/adjustments' },
+    { view: 'cnt', phase: 'add', t: '#opt-al', place: 'left', url: DETAIL, toast: 'Physical inventory count started',
+      tip: 'Add rows with <b>Add Materials</b>, <b>Add Commodity</b> or <b>Add All Materials</b>. Here, tick a commodity and click <b>Add</b>. You can also <b>Import CSV</b>.' },
+    { view: 'cnt', phase: 'typing', t: '#row-w', place: 'bottom', url: DETAIL,
+      tip: 'Type <b>Gross</b> and <b>Tare</b> for each row. <b>Net</b> fills in and the <b>Status</b> flips to <b>Counted</b>. Click <b>Save weights</b> as you go.' },
+    { view: 'cnt', phase: 'saved', t: '#btn-ready', place: 'left', url: DETAIL, toast: 'Weights saved',
+      tip: 'With everything saved, click <b>Mark ready for review</b>. If any rows are still uncounted, you’re asked to confirm, and those rows are left out of review.' },
+    { view: 'cnt', phase: 'review', t: '#dec-ubc', place: 'bottom', url: DETAIL, toast: 'Count marked ready for review',
+      tip: 'Review shows <b>Book</b> and <b>Variance</b> for every counted row. Rows with no variance start on <b>No Adj.</b>, the rest on <b>Defer</b>. Pick <b>Post</b> for the ones to correct.' },
+    { view: 'cnt', phase: 'decided', t: '#btn-finish', place: 'left', url: DETAIL,
+      tip: 'Cost is editable on <b>Post</b> rows. <b>Finish Review</b> unlocks once no row is on <b>Defer</b>. Click it.' },
+    { view: 'cnt', phase: 'decided', modal: true, t: '#fin-sum', place: 'right', url: DETAIL,
+      tip: 'Check the estimated changes and click <b>Finish review</b>. The <b>Post</b> rows go in as one inventory adjustment and the count closes.' },
+    { view: 'list', done: true, t: '#row-14', place: 'bottom', url: LIST, toast: 'Review finished and count closed',
+      tip: 'You’re back on the list. The count now reads <b>Closed · Posted</b>, or <b>Closed · Record Only</b> if nothing was posted.' },
+    { view: 'cnt', phase: 'closed', t: '#posted-ubc', place: 'left', url: DETAIL,
+      tip: 'Open the closed count any time. Each posted row links to its adjustment, <b>Posted (#' + ADJ_NO + ')</b>, in Adjustments.' },
+    { view: 'cnt', phase: 'closed', cover: 'outro', url: DETAIL },
   ];
 
   // ---------- chrome ----------
+  // Inventory sub-items in code order (utils/ui/routes.tsx).
   function sidebar(active) {
     const row = (i, l, extra = '') => `<div class="nrow">${ic(i)}<span>${l}</span>${extra || ic('chevron-right', 'class="chev"')}</div>`;
-    const sub = (id, l) => `<div class="nrow sub${active === id ? ' active' : ''}" id="nav-${id}"><span>${l}</span></div>`;
+    const sub = (id, l, isNew) => `<div class="nrow sub${active === id ? ' active' : ''}" id="nav-${id}"><span>${l}</span>${isNew ? '<span class="pill">New</span>' : ''}</div>`;
     return `<aside class="side">
       <div class="top">${MARK}<div class="yard"><span>North Yard</span>${ic('chevrons-up-down')}</div></div>
       <div class="nav">
@@ -440,7 +477,7 @@ td { padding: 0 12px; height: 44px; border-bottom: 1px solid var(--a-border-subt
         <div class="nsep"></div>
         ${row('shopping-cart', 'Purchases')}${row('tag', 'Sales')}${row('file-text', 'Contracts')}
         <div class="nrow">${ic('boxes')}<span>Inventory</span>${ic('chevron-down', 'class="chev"')}</div>
-        ${sub('ov', 'Inventory Overview')}${sub('hl', 'Holding Lots')}${sub('pk', 'Packages')}${sub('rg', 'Regrades')}${sub('fg', 'Finished Goods')}${sub('adj', 'Adjustments')}${sub('pic', 'Physical Inventory Count')}
+        ${sub('ov', 'Inventory Overview')}${sub('rg', 'Regrades')}${sub('bp', 'Batch Production')}${sub('fg', 'Finished Goods')}${sub('pl', 'Packing Lists')}${sub('adj', 'Adjustments')}${sub('pic', 'Physical Inventory Count', true)}${sub('pk', 'Packages')}${sub('ni', 'Negative Inventory')}
         ${row('users', 'Customers')}${row('layers', 'Commodities')}${row('truck', 'Logistics')}${row('clipboard-list', 'Load Board')}${row('warehouse', 'Assets')}${row('chart-column', 'Reports')}${row('landmark', 'Ledger')}
       </div>
       <div class="foot"><div class="av">JP</div><div class="who"><span>Jordan Pike</span><small>General Manager</small></div>
@@ -448,110 +485,129 @@ td { padding: 0 12px; height: 44px; border-bottom: 1px solid var(--a-border-subt
     </aside>`;
   }
 
-  const head = (crumbs, title, acts) => `<div class="phead"><div class="left"><div class="crumbs">${crumbs.map(c => `<span>${c}</span>`).join(ic('chevron-right'))}</div><h1>${title}</h1></div><div class="acts">${acts}</div></div>`;
+  const toast = s => s.toast ? `<div class="toast">${ic('circle-check')}${s.toast}</div>` : '';
+  const badge = st => `<span class="badge ${ST[st][1]}">${ST[st][0]}</span>`;
 
+  // List page (depth 3, no breadcrumb leaf): title only, with the page's one action.
   function countList(s) {
-    const rows = COUNTS.map(c => `<tr><td><span class="link">#${c.n}</span></td><td>${c.date}</td><td><span class="badge ${c.cls}">${c.st}</span></td><td class="num">${c.mats}</td><td>${c.by}</td></tr>`).join('');
-    return `<main class="main">${head(['Inventory', 'Physical Inventory Count'], 'Physical Inventory Count', `<span class="rb pri" id="btn-new">${ic('plus')}New Count</span>`)}
+    const all = s.done ? [C14, ...COUNTS] : COUNTS;
+    const rows = all.map(c => `<tr${c.n === 14 ? ' id="row-14" class="new"' : ''}><td>#${c.n}</td><td>${c.eff}</td><td>${badge(c.st)}</td>
+      <td><span class="badge b-neutral">${c.blind ? 'Blind' : 'Non-blind'}</span></td><td>${c.rev}</td><td>${c.created}</td><td>${c.closed}</td></tr>`).join('');
+    return `<main class="main"><div class="phead"><h1>Physical Inventory Count</h1><div class="acts"><span class="rb pri" id="btn-new">${ic('plus')}New Count</span></div></div>
       <div class="ibody">
-        <div class="tcard"><div class="tt"><div class="inp">${ic('search')}Search counts</div><span class="cnt">${COUNTS.length} counts · North Yard</span></div>
-          <table class="itab"><thead><tr><th style="width:12%">Count</th><th style="width:24%">Effective date</th><th style="width:24%">Status</th><th class="num" style="width:14%">Materials</th><th>Created by</th></tr></thead><tbody>${rows}</tbody></table></div>
-      </div>${drawer(s)}</main>`;
+        <div class="tcard"><table class="itab"><thead><tr><th style="width:9%">Count #</th><th style="width:16%">Effective date</th><th style="width:15%">Status</th><th style="width:10%">Mode</th><th style="width:12%">Reviewer</th><th style="width:16%">Created</th><th>Closed</th></tr></thead><tbody>${rows}</tbody></table></div>
+      </div>${drawer(s)}${toast(s)}</main>`;
   }
 
+  // Detail page: one compact header row (back arrow, crumbs, status badge, actions).
   function countPage(s) {
     const ph = s.phase;
-    const open = ph === 'empty' || ph === 'weighed';
-    const status = open ? '<span class="badge b-teal">Open</span>' : '<span class="badge b-accent">Ready for Review</span>';
-    const acts = open
-      ? `<span class="rb">${ic('upload')}Import CSV</span><span class="rb">${ic('save')}Save weights</span><span class="rb pri" id="btn-ready">${ic('check')}Mark ready for review</span><span class="rb icon">${ic('ellipsis-vertical')}</span>`
-      : `<span class="rb">${ic('save')}Save Changes</span><span class="rb pri" id="btn-finish">${ic('check-check')}Finish Review</span>`;
-    const meta = `<div class="meta"><div><small>Effective date</small><b>${EFF}</b></div><div><small>Yard</small><b>North Yard</b></div><div><small>Counted</small><b>${ph === 'empty' ? '0 of 0' : '7 of 7'} materials</b></div>
-      ${open ? `<div class="note">${ic('eye-off')}<span><b>Blind count.</b> Book weight, variance and cost are hidden while counting.</span></div>` : ''}</div>`;
-    let body;
-    if (ph === 'empty') {
-      body = `<div class="addbar">
-          <div class="seg"><span>By material</span><span class="on">By commodity</span></div>
-          <div class="inp pick open">Select a commodity${ic('chevron-down')}</div>
-          <span class="rb">${ic('list-plus')}Add All Materials</span>
-          <div class="dd"><div class="mh">Adds every active material under the commodity</div>
-            <div class="o hv" id="opt-al">Aluminum<span>7 materials</span></div>
-            <div class="o">Copper<span>9 materials</span></div>
-            <div class="o">Brass<span>5 materials</span></div>
-            <div class="o">Stainless Steel<span>6 materials</span></div>
-            <div class="o">Ferrous<span>11 materials</span></div></div>
-        </div>
-        <div class="empty"><div>${ic('scale')}<div>No materials on this count yet.</div></div></div>`;
-    } else if (open) {
-      const rows = ROWS.map((r, i) => `<tr${i === 0 ? ' id="row-w"' : ''}><td>${r.mat}</td><td class="mono">${r.code}</td>
-          <td class="num"><span class="wcell">${r.gross.toLocaleString()}<span class="u">lb</span></span></td>
-          <td class="num"><span class="wcell">${r.tare.toLocaleString()}<span class="u">lb</span></span></td>
-          <td class="num"><b>${lb(r.net)}</b></td><td class="num"><span class="scb">${ic('scale')}</span></td><td><span class="badge b-success">Counted</span></td></tr>`).join('');
-      body = `<div class="tcard"><table class="itab"><thead><tr><th style="width:24%">Material</th><th style="width:12%">Material Code</th><th class="num">Gross</th><th class="num">Tare</th><th class="num">Net</th><th class="num" style="width:7%"></th><th style="width:12%">State</th></tr></thead>
-          <tbody><tr class="grp"><td colspan="7">Aluminum</td></tr>${rows}</tbody></table></div>`;
-    } else {
-      const decided = ph === 'decided';
-      const rows = ROWS.map((r, i) => {
-        const d = decided ? r.dec : (r.v === 0 ? 'No Adjustment needed' : 'Defer');
-        const cls = d === 'Post' ? ' post' : d === 'Defer' ? ' defer' : '';
-        const cost = d === 'Post' ? `<span class="wcell" style="min-width:84px">$${r.cost.toFixed(4)}</span>` : `$${r.cost.toFixed(4)}`;
-        return `<tr${i === 0 ? ' id="row-r"' : ''}><td>${r.mat}</td><td class="num">${lb(r.book)}</td><td class="num"><b>${lb(r.net)}</b></td>
-          <td class="num ${r.v < 0 ? 'neg' : r.v > 0 ? 'pos' : ''}">${r.v === 0 ? '0 lb' : sgn(r.v) + ' lb'}</td><td class="num">${cost}</td>
-          <td><span class="sel${cls}"${i === 0 && decided ? ' id="dec-ubc"' : ''}>${d}${ic('chevron-down')}</span></td></tr>`;
-      }).join('');
-      body = `<div class="tcard"><table class="itab"><thead><tr><th style="width:24%">Material</th><th class="num">Book</th><th class="num">Net</th><th class="num">Variance</th><th class="num">Cost</th><th style="width:230px">Decision</th></tr></thead>
-          <tbody><tr class="grp"><td colspan="6">Aluminum</td></tr>${rows}</tbody></table></div>`;
+    const mode = ph === 'review' || ph === 'decided' ? 'review' : ph === 'closed' ? 'closed' : 'count';
+    const st = mode === 'count' ? 'open' : mode === 'review' ? 'review' : 'posted';
+    let acts = '';
+    if (mode === 'count') {
+      acts = (ph === 'typing'
+        ? `<span class="rb pri">${ic('save')}Save weights</span>`
+        : `<span class="rb pri${ph === 'add' ? ' dis' : ''}" id="btn-ready">${ic('check')}Mark ready for review</span>`) + `<span class="rb icon ghost">${ic('ellipsis-vertical')}</span>`;
+    } else if (mode === 'review') {
+      acts = `<span class="rb pri${ph === 'review' ? ' dis' : ''}" id="btn-finish">${ic('check-check')}Finish Review</span>`;
     }
-    return `<main class="main">${head(['Inventory', 'Physical Inventory Count', 'Count #14'], `<span class="ptitle">Count #14 ${status}</span>`, acts)}
-      <div class="ibody">${meta}${body}</div>${s.modal ? finishModal() : ''}</main>`;
+    const effRow = `<div class="effrow"><span>Effective date</span>${mode === 'closed' ? `<b>${EFF}</b>` : `<span class="inp dp">${EFF}${ic('calendar')}</span>`}</div>`;
+    return `<main class="main"><div class="crumbbar">${ic('arrow-left')}<span class="cl">Physical Inventory Count</span><span>/</span><span class="leaf">Count #14</span>${badge(st)}<div class="acts">${acts}</div></div>
+      <div class="ibody">${effRow}${toolbar(mode, ph)}${grid(mode, ph)}</div>${s.modal ? finishModal() : ''}${toast(s)}</main>`;
   }
 
+  function toolbar(mode, ph) {
+    const chip = l => `<span class="inp fchip">${l}${ic('chevron-down')}</span>`;
+    const left = `<span class="inp srch">${ic('search')}Search materials</span>${chip('All Commodities')}${mode === 'count' ? chip('All Statuses') : ''}<span class="rb sm dashed">${ic('sliders-horizontal')}Filters</span>`;
+    let right = '';
+    if (mode === 'count') {
+      right = `<span class="rb sm ms">${ic('plus')}Add Materials${ic('chevron-down')}</span>
+        <span class="rb sm ms${ph === 'add' ? ' open' : ''}" id="btn-addc">${ic('plus')}Add Commodity${ic('chevron-down')}</span>
+        <span class="rb sm">Add All Materials</span><span class="rb sm">${ic('upload')}Import CSV</span>`;
+    } else if (mode === 'review') {
+      right = `<span class="rb sm${ph === 'decided' ? ' dis' : ''}">Select all deferred</span>`;
+    }
+    const menu = ph === 'add' ? `<div class="msel">
+        <div class="ms-s">${ic('search')}<span>Search</span></div>
+        ${[['Aluminum', true], ['Brass', false], ['Copper', false], ['Ferrous', false], ['Stainless Steel', false]].map(([l, on]) =>
+          `<div class="o${on ? ' hv' : ''}"${on ? ' id="opt-al"' : ''}><span class="cbx${on ? ' on' : ''}">${on ? ic('check') : ''}</span><span>${l}</span></div>`).join('')}
+        <div class="ms-f"><span>1 selected <u>Clear</u></span><span class="rb xs pri">Add</span></div>
+      </div>` : '';
+    return `<div class="gtool"><div class="gl">${left}</div><div class="gr">${right}${menu}</div></div>`;
+  }
+
+  function grid(mode, ph) {
+    const cb = `<span class="cbx"></span>`;
+    if (mode === 'count') {
+      if (ph === 'add') {
+        return `<div class="tcard"><table class="itab"><thead><tr><th style="width:40px">${cb}</th><th style="width:28%">Material</th><th class="num">Gross (lbs)</th><th class="num">Tare (lbs)</th><th class="num">Net (lbs)</th><th style="width:15%">Status</th><th style="width:64px"></th></tr></thead><tbody></tbody></table></div>`;
+      }
+      // While typing, the last two rows are still uncounted.
+      const isCounted = (i) => ph !== 'typing' || i < 5;
+      const counted = ROWS.filter((_, i) => isCounted(i)).length;
+      const unc = ROWS.length - counted;
+      const rows = ROWS.map((r, i) => {
+        const c = isCounted(i);
+        return `<tr><td>${cb}</td><td>${r.mat}</td>
+          <td class="num"${i === 0 ? ' id="row-w"' : ''}><span class="wcell">${c ? n(r.gross) : ''}</span>${''}</td>
+          <td class="num"><span class="wcell${i === 0 ? '' : ''}">${c ? n(r.tare) : ''}</span></td>
+          <td class="num">${c ? n(r.net) : '-'}</td>
+          <td>${c ? '<span class="badge b-success">Counted</span>' : '<span class="badge b-warn">Uncounted</span>'}</td>
+          <td class="num"><span class="trash">${ic('trash-2')}</span></td></tr>`;
+      }).join('');
+      return `<div class="tcard"><table class="itab"><thead><tr><th style="width:40px">${cb}</th><th style="width:28%">Material</th><th class="num">Gross (lbs)</th><th class="num">Tare (lbs)</th><th class="num">Net (lbs)</th><th style="width:15%">Status</th><th style="width:64px"></th></tr></thead>
+        <tbody><tr class="grp"><td colspan="7"><b>Aluminum</b><span>7 materials</span>${unc ? `<span>· ${unc} uncounted</span>` : ''}</td></tr>${rows}</tbody></table></div>`;
+    }
+    const review = mode === 'review';
+    const decided = ph === 'decided' || mode === 'closed';
+    const decOf = r => decided ? r.dec : (r.v === 0 ? 'no' : 'defer');
+    const deferred = ROWS.filter(r => decOf(r) === 'defer').length;
+    const rows = ROWS.map((r, i) => {
+      const d = decOf(r);
+      const cost = review && d === 'post' ? `<span class="wcell cost"><span class="u">$</span>${r.cost.toFixed(2)}</span>` : money(r.cost);
+      let dec;
+      if (review) {
+        const rd = (k, l) => `<span class="rad${d === k ? ' on' : ''}"><i></i>${l}</span>`;
+        dec = `<span class="rads"${i === 0 ? ' id="dec-ubc"' : ''}>${rd('no', 'No Adj.')}${rd('defer', 'Defer')}${rd('post', 'Post')}</span>`;
+      } else {
+        dec = d === 'post' ? `<span class="link"${i === 0 ? ' id="posted-ubc"' : ''}>Posted (#${ADJ_NO})</span>` : (d === 'no' ? 'No Adjustment' : 'Deferred');
+      }
+      return `<tr>${review ? `<td>${cb}</td>` : ''}<td>${r.mat}</td><td class="num">${n(r.gross)}</td><td class="num">${n(r.tare)}</td><td class="num">${n(r.net)}</td>
+        <td class="num">${n(r.book)}</td><td class="num">${n(r.v)}</td><td class="num">${cost}</td><td>${dec}</td></tr>`;
+    }).join('');
+    const cols = review ? 9 : 8;
+    return `<div class="tcard"><table class="itab rv"><thead><tr>${review ? `<th style="width:40px">${cb}</th>` : ''}<th style="width:${review ? 19 : 21}%">Material</th><th class="num">Gross (lbs)</th><th class="num">Tare (lbs)</th><th class="num">Net (lbs)</th><th class="num">Book (lbs)</th><th class="num">Variance (lbs)</th><th class="num">Cost/lbs</th><th style="width:${review ? 236 : 150}px"></th></tr></thead>
+      <tbody><tr class="grp"><td colspan="${cols}"><b>Aluminum</b><span>7 materials</span>${review && deferred ? `<span>· ${deferred} deferred</span>` : ''}</td></tr>${rows}</tbody></table></div>`;
+  }
+
+  // ConfirmDialog in PhysicalCountDetailContainer.tsx (Finish review).
   function finishModal() {
+    const post = ROWS.filter(r => r.dec === 'post');
+    const wip = post.reduce((a, r) => a + r.v, 0);
+    const val = post.reduce((a, r) => a + r.v * r.cost, 0);
     return `<div class="scrim"><div class="modal">
-      <div class="mh2">Finish Review</div>
-      <div class="mb">
-        <div class="finsum" id="fin-sum"><b>2 materials will be posted in an inventory adjustment</b>
-          <div class="kv2"><div><small>Effective date</small><b>${EFF}</b></div><div><small>Materials</small><b>Aluminum Cans (UBC), Old Sheet</b></div>
-            <div><small>Est. WIP change</small><b>−20 lb</b></div><div><small>Est. value change</small><b>+$9.40</b></div></div></div>
-        <span>The count closes when you confirm and can’t be reopened.</span>
+      <div class="mh2">Finish review</div>
+      <div class="mb" id="fin-sum">
+        <b class="q">${post.length} materials will be posted in an inventory adjustment</b>
+        <div class="dl">Effective Date: ${EFF}<br>Estimated Total WIP Change: ${n(wip)} lbs<br>Estimated Total Value Change: ${val.toLocaleString('en-US', { style: 'currency', currency: 'USD' })} <span class="inf">${ic('info')}</span></div>
       </div>
-      <div class="mf"><span class="rb">Cancel</span><span class="rb pri">Confirm</span></div>
+      <div class="mf"><span class="rb">Go back</span><span class="rb pri">Finish review</span></div>
     </div></div>`;
-  }
-
-  function adjustments(s) {
-    const NEWA = { date: 'Oct 14, 2026', mats: '2 materials', w: -20, val: 9.40, note: 'Physical inventory count #14', isNew: true };
-    const money = v => (v < 0 ? '−$' : '+$') + Math.abs(v).toFixed(2);
-    const rows = [NEWA, ...ADJS].map(a => `<tr${a.isNew ? ' class="new"' : ''}><td>${a.date}</td><td>${a.mats}</td><td class="num">${sgn(a.w)} lb</td><td class="num">${money(a.val)}</td><td>${a.note}</td></tr>`).join('');
-    return `<main class="main">${head(['Inventory', 'Adjustments'], 'Adjustments', `<span class="rb pri">${ic('plus')}Add Adjustment</span>`)}
-      <div class="ibody">
-        <div class="tcard"><div class="tt"><div class="inp">${ic('search')}Search adjustments</div><span class="cnt">${ADJS.length + 1} adjustments</span></div>
-          <table class="itab"><thead><tr><th style="width:14%">Effective date</th><th style="width:20%">Materials</th><th class="num">WIP change</th><th class="num">Value change</th><th style="width:30%">Note</th></tr></thead><tbody>${rows}</tbody></table></div>
-      </div>${drawer(s)}</main>`;
   }
 
   function drawer(s) {
     if (!s.drawer) return '';
     const prev = STEPS[step - 1];
     const still = prev && prev.drawer && prev.view === s.view ? ' still' : '';
-    const shell = (title, body, foot) => `<div class="drawer${still}"><div class="dh"><h3>${title}</h3><span class="x">${ic('x')}</span></div><div class="db">${body}</div>${foot ? `<div class="df">${foot}</div>` : ''}</div>`;
     if (s.drawer === 'new') {
-      return shell('New Count', `
-        <div class="fld"><label>Yard</label><div class="in ro">North Yard</div></div>
-        <div class="fld"><label>Effective date</label><div class="in">${EFF}${ic('calendar')}</div>
-          <div class="hint">Any adjustment from this count posts on this date.</div></div>
-        <div class="tgl" id="blind"><span class="sw"></span><div><b>Show book weight and variance while counting</b><small>Leave this off for a blind count. Whoever is weighing won’t see book weight, variance or cost.</small></div></div>`,
-        `<span class="rb">Cancel</span><span class="rb pri">Start count</span>`);
-    }
-    if (s.drawer === 'adj') {
-      const lines = ROWS.filter(r => r.dec === 'Post').map(r => `<tr><td>${r.mat}</td><td class="num">${sgn(r.v)} lb</td><td class="num">$${r.cost.toFixed(4)}</td><td class="num">${(r.v * r.cost < 0 ? '−$' : '+$') + Math.abs(r.v * r.cost).toFixed(2)}</td></tr>`).join('');
-      return shell('Inventory adjustment', `
-        <div class="kv2"><div><small>Effective date</small><b>${EFF}</b></div><div><small>Yard</small><b>North Yard</b></div>
-          <div><small>WIP change</small><b>−20 lb</b></div><div><small>Value change</small><b>+$9.40</b></div></div>
-        <div class="sec">Materials</div>
-        <table class="alloc"><thead><tr><th style="width:42%">Material</th><th class="num">Change</th><th class="num">Cost</th><th class="num">Value</th></tr></thead><tbody>${lines}</tbody></table>
-        <div class="sec">Note</div>
-        <div class="became"><div class="br" id="adj-link">${ic('clipboard-check')}<span class="link">Physical inventory count #14</span><span>Closed · Posted</span></div></div>`, '');
+      return `<div class="drawer${still}"><div class="dh"><div><h3>Start new count</h3><p class="dsc">Start a new physical inventory count for this yard.</p></div><span class="x">${ic('x')}</span></div>
+        <div class="db">
+          <p class="dtx">A count captures on-hand weights against the book position. At review, you choose which materials to post as an inventory adjustment.</p>
+          <div class="fld"><label>Effective date</label><div class="in" style="width:256px">${EFF}${ic('calendar')}</div></div>
+          <div class="swr" id="blind"><span class="sw"></span><span>Show book weight and variance while counting</span></div>
+        </div>
+        <div class="df"><span class="rb">Cancel</span><span class="rb pri">Start count</span></div></div>`;
     }
     return '';
   }
@@ -560,22 +616,22 @@ td { padding: 0 12px; height: 44px; border-bottom: 1px solid var(--a-border-subt
     if (kind === 'intro') {
       return `<div class="cover"><div class="card">
         <div class="eyebrow">${ic('clipboard-check')}Inventory · Now live for everyone</div>
-        <h2>Count your yard’s loose material without keying adjustments one at a time</h2>
-        <p>Run a physical count of loose material for a whole yard, compare what you weighed against what your books say, and decide row by row what to correct.</p>
+        <h2>Count your yard and post only what needs correcting</h2>
+        <p>Capture on-hand weights for your yard, compare them against the book position, and choose which materials to post as an inventory adjustment.</p>
         <div class="cta"><button class="go" type="button" data-go="next">Get started${ic('arrow-right')}</button></div>
       </div></div>`;
     }
     return `<div class="cover"><div class="card">
       <div class="eyebrow">${ic('circle-check')}Physical Inventory Count</div>
       <h2>One count, one review, one adjustment</h2>
-      <p>Weigh blind or with the book showing, review counted against book for every row, and post only what needs correcting. If nothing is marked Post, the count is kept as a record. A finished count can’t be reopened, so run a new count if you need to correct something later.</p>
+      <p>Weigh blind or with the book showing, review counted against book for every row, and post only what needs correcting. If nothing is marked Post, the count closes as Record Only. A closed count can’t be reopened, so start a new count if you need to correct something later.</p>
       <div class="cta"><button class="go sec" type="button" data-go="restart">${ic('rotate-ccw')}Replay</button></div>
     </div></div>`;
   }
 
   function renderApp(s) {
-    const view = s.view === 'adj' ? adjustments(s) : s.view === 'cnt' ? countPage(s) : countList(s);
-    return `<div class="app">${sidebar(s.view === 'adj' ? 'adj' : 'pic')}${view}${s.cover ? cover(s.cover) : ''}</div>`;
+    const view = s.view === 'cnt' ? countPage(s) : countList(s);
+    return `<div class="app">${sidebar('pic')}${view}${s.cover ? cover(s.cover) : ''}</div>`;
   }
   function anchorMenus() {}
 
@@ -660,8 +716,8 @@ td { padding: 0 12px; height: 44px; border-bottom: 1px solid var(--a-border-subt
     backBtn.disabled = step === 0;
     nextBtn.disabled = step === STEPS.length - 1;
     if (s.cover) caption.innerHTML = s.cover === 'intro'
-      ? '<span class="n">Intro</span>Run a physical count of loose material for a whole yard, compare what you weighed against your books, and decide row by row what to correct.'
-      : '<span class="n">Done</span>Rows marked Post go in as one adjustment tied to the count. A finished count can’t be reopened, so run a new count to correct something later.';
+      ? '<span class="n">Intro</span>Capture on-hand weights for your yard, compare them against the book position, and choose which materials to post as an inventory adjustment.'
+      : '<span class="n">Done</span>Rows marked Post go in as one inventory adjustment linked to the count. A closed count can’t be reopened, so start a new count to correct something later.';
     scale();
     // Measure only after entrance animations (panels sliding in, menus
     // popping, pins dropping) finish, or the ring lands where the element
