@@ -278,49 +278,70 @@ td { padding: 0 12px; height: 44px; border-bottom: 1px solid var(--a-border-subt
 
 
 /* inventory management pages */
+.muted { color: var(--a-text-3); }
+.crumbbar { display: flex; align-items: center; gap: 8px; padding: 14px 24px; font-size: 14px; color: var(--a-text-3); }
+.crumbbar > svg.lucide { color: var(--a-text-2); margin-right: 2px; }
+.crumbbar .leaf { color: var(--a-fg); font-weight: 600; }
+.crumbbar .acts { margin-left: auto; display: flex; gap: 8px; }
+.kpis small svg.lucide { width: 12px; height: 12px; vertical-align: -2px; }
+.tcard { position: relative; }
 .tcard .tt .inp.typed { color: var(--a-fg); border-color: var(--a-primary); box-shadow: 0 0 0 3px hsla(183, 100%, 33%, 0.15); }
-.tcard .tt .inp.typed .mono { font-family: var(--mono); font-size: 12px; }
-.tcard .tt .colbtn { position: relative; }
-.tcard .tt .rb.icon.open { border-color: var(--a-primary); color: var(--a-primary-hover); }
-.colmenu { position: absolute; right: 54px; top: 46px; width: 250px; background: var(--a-surface); border: 1px solid var(--a-border); border-radius: 8px; box-shadow: 0 6px 22px rgba(15, 23, 42, 0.16); padding: 4px; z-index: 5; animation: pop .18s ease; }
-.colmenu .mh { font-size: 11px; color: var(--a-text-3); padding: 6px 9px 4px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
-.colmenu .o { display: flex; align-items: center; gap: 9px; padding: 7px 9px; border-radius: 5px; font-size: 13px; }
+.tcard .tt .inp.wf { width: 180px; color: var(--a-fg); justify-content: flex-start; }
+.tcard .tt .inp.wf svg.lucide:last-child { margin-left: auto; }
+.itab.ov th, .itab.ov td { padding: 0 8px; font-size: 12px; }
+.itab.ov th.gear { padding: 0 6px; text-align: center; }
+.gb { display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 6px; color: var(--a-icon-2); }
+.gb.open { background: var(--a-primary-subtle); color: var(--a-primary-hover); }
+.colmenu { position: absolute; right: 8px; top: 92px; width: 250px; background: var(--a-surface); border: 1px solid var(--a-border); border-radius: 8px; box-shadow: 0 6px 22px rgba(15, 23, 42, 0.16); padding: 6px; z-index: 5; animation: pop .18s ease; }
+.colmenu .cs { display: flex; align-items: center; gap: 6px; height: 30px; border: 1px solid var(--a-border); border-radius: 6px; padding-inline: 8px; font-size: 12.5px; color: var(--a-text-3); margin-bottom: 4px; }
+.colmenu .cs svg.lucide { width: 14px; height: 14px; }
+.colmenu .mh { font-size: 11px; color: var(--a-text-3); padding: 6px 6px 3px; font-weight: 600; }
+.colmenu .o { display: flex; align-items: center; gap: 7px; padding: 5px 6px; border-radius: 5px; font-size: 12.5px; }
 .colmenu .o.hv { background: var(--a-hover); }
+.colmenu .grip svg.lucide, .colmenu .pin svg.lucide, .colmenu .lk svg.lucide { width: 13px; height: 13px; color: var(--a-icon-2); }
+.colmenu .pin { margin-left: auto; }
+.colmenu .lk { width: 15px; display: grid; place-items: center; }
+.colmenu .reset { border-top: 1px solid var(--a-border-subtle); margin-top: 4px; padding: 8px 6px 4px; font-size: 12.5px; color: var(--a-primary-hover); font-weight: 500; }
 .cb { width: 15px; height: 15px; border-radius: 4px; border: 1.5px solid var(--a-border); display: grid; place-items: center; flex-shrink: 0; }
 .cb.on { background: var(--a-primary); border-color: var(--a-primary); color: #fff; }
 .cb.on svg.lucide { width: 11px; height: 11px; stroke-width: 3; }
-.tcard { position: relative; }
-.itab td .neg, .itab td.neg { color: var(--a-error); }
-.itab td.blank { color: transparent; }
-.itab tr.trtot td { font-weight: 600; background: var(--a-muted-solid); }
-.itab th.hl { color: var(--a-fg); }
 
-.drawer.wide { width: 720px; }
-.seg { display: inline-flex; border: 1px solid var(--a-border); border-radius: 6px; overflow: hidden; height: 34px; }
-.seg span { display: inline-flex; align-items: center; padding-inline: 12px; font-size: 12.5px; font-weight: 500; color: var(--a-text-2); }
+.drawer.ledger { width: 1286px; }
+.drawer .db { gap: 12px; }
+.seg { display: inline-flex; border: 1px solid var(--a-border); border-radius: 6px; overflow: hidden; height: 32px; }
+.seg span { display: inline-flex; align-items: center; padding-inline: 14px; font-size: 12.5px; font-weight: 500; color: var(--a-text-2); }
 .seg span + span { border-left: 1px solid var(--a-border); }
 .seg span.on { background: var(--a-primary-subtle); color: var(--a-primary-hover); }
-.drawer .dh .sub { font-size: 12px; color: var(--a-text-3); margin-top: 2px; }
-.lctl { display: flex; align-items: flex-end; gap: 12px; }
-.lctl .fld { width: 150px; }
-.lctl .fld .in svg.lucide { margin-left: auto; }
-.lctl .fld .in.ph { color: var(--a-text-3); }
-.lctl .seg { margin-right: auto; }
+.ltb { display: flex; align-items: center; gap: 8px; position: relative; }
+.ltb .msel { width: 200px; color: var(--a-fg); justify-content: space-between; }
+.ltb .lsearch { width: 240px; }
+.fbtn { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding-inline: 10px; border: 1px dashed var(--a-border); border-radius: 6px; font-size: 12.5px; font-weight: 500; color: var(--a-text-2); white-space: nowrap; }
+.fbtn.on { border-style: solid; border-color: hsla(183, 100%, 33%, 0.45); color: var(--a-primary-hover); background: var(--a-primary-subtle); }
+.fbtn svg.lucide { width: 14px; height: 14px; }
+.datepop { position: absolute; left: 470px; top: 40px; width: 300px; background: var(--a-surface); border: 1px solid var(--a-border); border-radius: 8px; box-shadow: 0 6px 22px rgba(15, 23, 42, 0.16); padding: 10px; z-index: 5; display: flex; flex-direction: column; gap: 10px; animation: pop .18s ease; }
+.datepop .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.datepop .in2 { height: 32px; border: 1px solid var(--a-border); border-radius: 6px; display: flex; align-items: center; padding-inline: 9px; font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.datepop .presets { display: flex; gap: 6px; }
+.datepop .presets span { font-size: 12px; border: 1px solid var(--a-border); border-radius: 999px; padding: 3px 9px; color: var(--a-text-2); }
+.datepop .pf { display: flex; justify-content: flex-end; font-size: 12.5px; }
 .ltab { width: 100%; font-size: 12.5px; table-layout: fixed; }
-.ltab th { height: 32px; font-size: 11.5px; color: var(--a-text-3); background: var(--a-muted-solid); padding: 0 8px; }
-.ltab td { height: 36px; padding: 0 8px; }
+.ltab th { height: 34px; font-size: 12px; color: var(--a-text-2); background: var(--a-muted-solid); padding: 0 10px; }
+.ltab td { height: 38px; padding: 0 10px; }
 .ltab td.num, .ltab th.num { text-align: right; }
-.ltab tr.bal td { background: hsla(217, 55%, 16%, 0.035); font-weight: 600; }
-.ltab tr.bal.close td { border-bottom: 0; background: var(--a-primary-subtle); }
-.ltab .muted { color: var(--a-text-3); }
+.ltab tr.bal td { background: hsla(217, 55%, 16%, 0.035); height: 46px; }
+.ltab tr.bal b { display: block; font-weight: 600; }
+.ltab tr.bal small { display: block; font-size: 11.5px; color: var(--a-text-3); }
+.ltab tr.bal td.num { font-weight: 600; }
+.ltab tr.bal.close td { background: var(--a-primary-subtle); }
+.mtot { display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 500; color: var(--a-text-2); border-top: 1px solid var(--a-border-subtle); padding-top: 10px; }
+.mtot svg.lucide { width: 14px; height: 14px; }
 .mv { display: inline-flex; align-items: center; height: 20px; padding-inline: 7px; border-radius: 999px; font-size: 11px; font-weight: 500; white-space: nowrap; }
 .mv.in { background: hsla(162, 73%, 37%, 0.14); color: var(--a-success-strong); }
 .mv.out { background: hsla(348, 81%, 48%, 0.10); color: var(--a-error-strong); }
-.mv.rg { background: hsla(252, 89%, 65%, 0.14); color: var(--a-accent-strong); }
-.mv.adj { background: hsla(38, 92%, 50%, 0.16); color: hsl(32 80% 34%); }
-.mv.fg { background: hsla(183, 100%, 33%, 0.12); color: var(--a-primary-hover); }
-.tlink { color: var(--a-primary-hover); font-weight: 500; font-family: var(--mono); font-size: 12px; display: inline-flex; align-items: center; gap: 3px; }
-.tlink svg.lucide { width: 11px; height: 11px; }
+.mv.rg { background: hsla(38, 92%, 50%, 0.16); color: hsl(32 80% 34%); }
+.mv.nt { background: hsla(217, 55%, 16%, 0.07); color: var(--a-text-2); }
+.tlink { color: var(--a-primary-hover); font-weight: 500; display: inline-flex; align-items: center; gap: 4px; }
+.tlink svg.lucide { width: 12px; height: 12px; }
 
 /* intro / outro */
 .cover { position: absolute; inset: 0; background: rgba(248, 250, 252, 0.88); backdrop-filter: blur(3px); display: grid; place-items: center; z-index: 10; }
@@ -382,69 +403,77 @@ td { padding: 0 12px; height: 44px; border-bottom: 1px solid var(--a-border-subt
   const ic = (n, extra = '') => `<i data-lucide="${n}" ${extra}></i>`;
 
 
-  // Sample data (illustrative). Aluminum materials at North Yard. Old Sheet
-  // carries a negative loose WIP balance that the transaction panel explains.
-  const n0 = v => (v < 0 ? '−' : '') + Math.abs(v).toLocaleString('en-US');
-  const sgn = v => (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v).toLocaleString('en-US');
-  const usd = (v, d = 2) => (v < 0 ? '−$' : '$') + Math.abs(v).toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
-  const smoney = v => (v < 0 ? '−$' : '+$') + Math.abs(v).toLocaleString('en-US', { maximumFractionDigits: 0 });
-  // [id, material, code, loose WIP, packaged WIP, FG, expected weight, expected cost (null = no PO)]
+  // Sample data (illustrative). Aluminum materials at North Yard. Old Sheet's
+  // WIP is below zero, and the Inventory Ledger explains it.
+  // Everything on screen follows greenspark-aws (Oct 16, 2026):
+  //  - commodity page: inventory/overview/InventoryCommodityMaterialContainer.tsx,
+  //    grid/inventoryOverviewColumns.tsx, CommodityMaterialGrid.tsx
+  //  - column manager: primitives/respark-grid/render/ResparkGridMenus.tsx
+  //  - ledger drawer: overview/material-activity-blade/* (title "Inventory Ledger")
+  // Number formats follow utils/helpers.tsx parseNumberObject: weights "48,220 lbs",
+  // costs "$" + 4 decimals (negatives come out as "$-5,978.0000").
+  const fmt = (v, d) => v.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
+  const W_ = v => fmt(v, 0) + ' lbs';
+  const C_ = v => '$' + (v < 0 ? '-' : '') + fmt(Math.abs(v), 4);
+  // [id, material, code, expected weight, expected cost (null = no PO), loose WIP, packaged WIP, FG, avg cost]
   const MATS = [
-    ['ubc', 'Aluminum Cans (UBC)', 'AL-UBC', 48220, 21600, 64800, 18400, 9568],
-    ['6063', '6063 Extrusion', 'AL-6063', 22480, 9840, 31200, 8200, 8692],
-    ['osh', 'Old Sheet', 'AL-OSH', -2360, 0, 18400, 6800, 4148],
-    ['cst', 'Cast Aluminum', 'AL-CST', 39310, 12200, 0, 0, null],
-    ['sid', 'Painted Siding', 'AL-SID', 14870, 4100, 8600, 4100, null],
-    ['whl', 'Clean Aluminum Wheels', 'AL-WHL', 9630, 6040, 12480, 9000, 9180],
-    ['lth', 'Litho Plates', 'AL-LTH', 6210, 0, 4960, 0, null],
-    ['trn', 'Aluminum Turnings', 'AL-TRN', 18450, 0, 0, 5800, 2494],
-    ['irn', 'Irony Aluminum', 'AL-IRN', 27120, 0, 0, 0, null],
-  ].map(([id, m, c, l, p, fg, ew, ec]) => ({ id, m, c, l, p, fg, ew, ec }));
+    ['ubc', 'Aluminum Cans (UBC)', 'AL-UBC', 18400, 9568, 48220, 21600, 64800, 0.52],
+    ['6063', '6063 Extrusion', 'AL-6063', 8200, 8692, 22480, 9840, 31200, 1.06],
+    ['osh', 'Old Sheet', 'AL-OSH', 6800, 4148, -2360, 0, 18400, 0.61],
+    ['cst', 'Cast Aluminum', 'AL-CST', 0, null, 39310, 12200, 0, 0.66],
+    ['sid', 'Painted Siding', 'AL-SID', 4100, null, 14870, 4100, 8600, 0.78],
+    ['whl', 'Clean Aluminum Wheels', 'AL-WHL', 9000, 9180, 9630, 6040, 12480, 1.02],
+    ['lth', 'Litho Plates', 'AL-LTH', 0, null, 6210, 0, 4960, 0.94],
+    ['trn', 'Aluminum Turnings', 'AL-TRN', 5800, 2494, 18450, 0, 0, 0.43],
+    ['irn', 'Irony Aluminum', 'AL-IRN', 0, null, 27120, 0, 0, 0.29],
+  ].map(([id, m, c, ew, ec, l, p, fg, ac]) => ({ id, m, c, ew, ec, l, p, fg, ac, tw: l + p + fg }));
 
-  // Transaction panel rows for Old Sheet. Opening + rows = closing.
+  // Ledger rows for Old Sheet. Opening + rows = closing. Ticket labels use the
+  // code's prefixes (IBT, OBT, Regrade, Tag).
   const WIP_COST = 0.61, FG_COST = 0.66;
   const WIP = { open: 4180, rows: [
-    { d: 'Sep 3', tk: '48211', mv: 'Inbound', c: 'in', w: 6240, who: 'Coastal Demolition' },
-    { d: 'Sep 9', tk: '48407', mv: 'Outbound', c: 'out', w: -9800, who: 'Delta Aluminum Mill' },
-    { d: 'Sep 12', tk: '311', mv: 'Regrade', c: 'rg', w: 1120, who: 'From Painted Siding', note: true },
-    { d: 'Sep 18', tk: '48690', mv: 'Inbound', c: 'in', w: 3410, who: 'Ridgeview Contractors' },
-    { d: 'Sep 24', tk: '48903', mv: 'Outbound', c: 'out', w: -8600, who: 'Delta Aluminum Mill', id: 'tk-out' },
-    { d: 'Oct 6', tk: '49188', mv: 'Inbound', c: 'in', w: 2940, who: 'Coastal Demolition', oct: true },
-    { d: 'Oct 13', tk: '49342', mv: 'Outbound', c: 'out', w: -1850, who: 'Harbor Export Co.', oct: true },
+    { d: '09/03/2026', tk: 'IBT 48211', mv: 'Inbound', c: 'in', w: 6240, cu: 'Coastal Demolition' },
+    { d: '09/09/2026', tk: 'OBT 48407', mv: 'Outbound', c: 'out', w: -9800, cu: 'Delta Aluminum Mill' },
+    { d: '09/12/2026', tk: 'Regrade 311', mv: 'Regrade', c: 'rg', w: 1120, no: 'From Painted Siding' },
+    { d: '09/18/2026', tk: 'IBT 48690', mv: 'Inbound', c: 'in', w: 3410, cu: 'Ridgeview Contractors' },
+    { d: '09/24/2026', tk: 'OBT 48903', mv: 'Outbound', c: 'out', w: -8600, cu: 'Delta Aluminum Mill', id: 'tk-out' },
+    { d: '10/06/2026', tk: 'IBT 49188', mv: 'Inbound', c: 'in', w: 2940, cu: 'Coastal Demolition', oct: true },
+    { d: '10/13/2026', tk: 'OBT 49342', mv: 'Outbound', c: 'out', w: -1850, cu: 'Harbor Export Co.', oct: true },
   ] };
   const FG = { open: 15600, rows: [
-    { d: 'Sep 5', tk: '8841', mv: 'Finished Good · Produced', c: 'fg', w: 12400, who: 'Baled at North Yard', note: true },
-    { d: 'Sep 20', tk: '8790', mv: 'Finished Good · Shipped', c: 'out', w: -9600, who: 'Delta Aluminum Mill' },
+    { d: '09/05/2026', tk: 'Tag 8841', mv: 'FG Produced', c: 'nt', w: 12400 },
+    { d: '09/20/2026', tk: 'Tag 8790', mv: 'FG Shipped', c: 'nt', w: -9600, cu: 'Delta Aluminum Mill' },
   ] };
 
   // ---------- steps ----------
+  const URL_ = '/app/inventory/commodities/14';
   const STEPS = [
-    { cover: 'intro', url: '/app/inventory/overview/aluminum' },
-    { cols: true, menu: true, t: '#col-mc', place: 'left', url: '/app/inventory/overview/aluminum',
-      tip: 'On <b>Inventory Overview</b>, open the column manager and turn on <b>Material Code</b> to add it as a column.' },
-    { cols: true, q: 'AL-OSH', t: '#search', place: 'bottom', url: '/app/inventory/overview/aluminum',
-      tip: 'You can now search by <b>Material Code</b> as well as by name. Type a code to find the material.' },
-    { cols: true, q: 'AL-OSH', t: '#mat-osh', place: 'right', url: '/app/inventory/overview/aluminum',
-      tip: 'Old Sheet shows a negative loose WIP balance. Click the material name to see what’s behind it.' },
-    { cols: true, q: 'AL-OSH', drawer: 'ledger', side: 'wip', to: true, t: '#dates', place: 'left', url: '/app/inventory/overview/aluminum',
-      tip: 'A panel opens on the same page with this material’s transactions for the yard. Set the <b>From</b> and <b>To</b> dates for the period you’re checking.' },
-    { cols: true, q: 'AL-OSH', drawer: 'ledger', side: 'wip', to: true, t: '#open-row', place: 'left', url: '/app/inventory/overview/aluminum',
-      tip: 'The first row is the <b>Opening Balance</b>: all activity before the From date. The transactions in your range follow it.' },
-    { cols: true, q: 'AL-OSH', drawer: 'ledger', side: 'wip', to: true, t: '#tk-out', place: 'left', url: '/app/inventory/overview/aluminum',
-      tip: 'Each row shows the date, ticket, movement type, weight, cost, and the customer or notes. Click a ticket number to open the source document.' },
-    { cols: true, q: 'AL-OSH', drawer: 'ledger', side: 'wip', to: false, t: '#close-row', place: 'left', url: '/app/inventory/overview/aluminum',
-      tip: 'Clear the <b>To</b> date. The <b>Closing Balance</b> now matches the Old Sheet row on the Overview: −2,360 lb.' },
-    { cols: true, q: 'AL-OSH', drawer: 'ledger', side: 'fg', to: false, t: '#seg', place: 'left', url: '/app/inventory/overview/aluminum',
-      tip: 'Switch between loose WIP and finished goods. The finished goods side lists finished goods produced and shipped for the same material.' },
-    { cols: true, t: '#exp-cost', place: 'left', url: '/app/inventory/overview/aluminum',
-      tip: 'Pending loads now show <b>Expected Cost</b> next to expected weight. It’s left blank when a pending load has no purchase order.' },
-    { cols: true, cover: 'outro', url: '/app/inventory/overview/aluminum' },
+    { cover: 'intro', url: URL_ },
+    { cols: true, menu: true, t: '#col-mc', place: 'left', url: URL_,
+      tip: 'On the commodity page, click <b>Manage columns</b> at the end of the header row and turn on <b>Material Code</b>.' },
+    { cols: true, q: 'AL-OSH', t: '#search', place: 'bottom', url: URL_,
+      tip: 'Search finds materials by <b>Material Code</b> as well as by name.' },
+    { cols: true, q: 'AL-OSH', t: '#mat-osh', place: 'right', url: URL_,
+      tip: 'Old Sheet’s WIP is below zero. Click the material name to see the transactions behind it.' },
+    { cols: true, q: 'AL-OSH', drawer: 'ledger', side: 'wip', to: true, datepop: true, t: '#datepop', place: 'left', url: URL_,
+      tip: 'The <b>Inventory Ledger</b> opens on the same page, showing <b>WIP</b> for last month. Click <b>Date</b> to change the range.' },
+    { cols: true, q: 'AL-OSH', drawer: 'ledger', side: 'wip', to: true, t: '#open-row', place: 'bottom', url: URL_,
+      tip: 'The first row is the <b>Opening Balance</b>: everything before the start date. The transactions in the range follow, oldest first.' },
+    { cols: true, q: 'AL-OSH', drawer: 'ledger', side: 'wip', to: true, t: '#tk-out', place: 'bottom', url: URL_,
+      tip: 'Each row shows the date, ticket, movement, weight, cost, customer and notes. Click a ticket to open its source document in a new tab.' },
+    { cols: true, q: 'AL-OSH', drawer: 'ledger', side: 'wip', to: false, t: '#close-row', place: 'top', url: URL_,
+      tip: 'Clear the <b>To</b> date. The <b>Closing Balance</b> now reads <b>Today</b> and matches Old Sheet’s WIP on the commodity page.' },
+    { cols: true, q: 'AL-OSH', drawer: 'ledger', side: 'fg', to: false, t: '#seg', place: 'bottom', url: URL_,
+      tip: 'Switch between <b>WIP</b>, <b>FG</b> and <b>All</b>. <b>FG</b> shows the finished goods produced and shipped for this material.' },
+    { cols: true, t: '#exp-cost', place: 'bottom', url: URL_,
+      tip: '<b>Expected Cost</b> sits next to <b>Expected Weight</b> for pending loads. It shows <b>—</b> when no pending load has a purchase order.' },
+    { cols: true, cover: 'outro', url: URL_ },
   ];
 
   // ---------- chrome ----------
   function sidebar(active) {
     const row = (i, l, extra = '') => `<div class="nrow">${ic(i)}<span>${l}</span>${extra || ic('chevron-right', 'class="chev"')}</div>`;
-    const sub = (id, l) => `<div class="nrow sub${active === id ? ' active' : ''}" id="nav-${id}"><span>${l}</span></div>`;
+    const sub = (id, l, isNew) => `<div class="nrow sub${active === id ? ' active' : ''}" id="nav-${id}"><span>${l}</span>${isNew ? '<span class="pill">New</span>' : ''}</div>`;
     return `<aside class="side">
       <div class="top">${MARK}<div class="yard"><span>North Yard</span>${ic('chevrons-up-down')}</div></div>
       <div class="nav">
@@ -454,7 +483,7 @@ td { padding: 0 12px; height: 44px; border-bottom: 1px solid var(--a-border-subt
         <div class="nsep"></div>
         ${row('shopping-cart', 'Purchases')}${row('tag', 'Sales')}${row('file-text', 'Contracts')}
         <div class="nrow">${ic('boxes')}<span>Inventory</span>${ic('chevron-down', 'class="chev"')}</div>
-        ${sub('ov', 'Inventory Overview')}${sub('hl', 'Holding Lots')}${sub('pk', 'Packages')}${sub('rg', 'Regrades')}${sub('fg', 'Finished Goods')}${sub('adj', 'Adjustments')}${sub('pic', 'Physical Inventory Count')}
+        ${sub('ov', 'Inventory Overview')}${sub('rg', 'Regrades')}${sub('bp', 'Batch Production')}${sub('fg', 'Finished Goods')}${sub('pl', 'Packing Lists')}${sub('adj', 'Adjustments')}${sub('pic', 'Physical Inventory Count', true)}${sub('pk', 'Packages')}${sub('ni', 'Negative Inventory')}
         ${row('users', 'Customers')}${row('layers', 'Commodities')}${row('truck', 'Logistics')}${row('clipboard-list', 'Load Board')}${row('warehouse', 'Assets')}${row('chart-column', 'Reports')}${row('landmark', 'Ledger')}
       </div>
       <div class="foot"><div class="av">JP</div><div class="who"><span>Jordan Pike</span><small>General Manager</small></div>
@@ -462,31 +491,30 @@ td { padding: 0 12px; height: 44px; border-bottom: 1px solid var(--a-border-subt
     </aside>`;
   }
 
-  const head = (crumbs, title, acts) => `<div class="phead"><div class="left"><div class="crumbs">${crumbs.map(c => `<span>${c}</span>`).join(ic('chevron-right'))}</div><h1>${title}</h1></div><div class="acts">${acts}</div></div>`;
-
   function overview(s) {
     const rows = s.q ? MATS.filter(r => r.c === s.q) : MATS;
-    const cell = v => v < 0 ? `<span class="neg">${n0(v)}</span>` : n0(v);
-    const tr = r => `<tr><td><span class="link"${r.id === 'osh' ? ' id="mat-osh"' : ''}>${r.m}</span></td>${s.cols ? `<td class="mono">${r.c}</td>` : ''}
-        <td class="num">${cell(r.l)}</td><td class="num">${cell(r.p)}</td><td class="num">${cell(r.fg)}</td><td class="num">${n0(r.ew)}</td>
-        <td class="num${r.ec === null ? ' blank' : ''}">${r.ec === null ? '' : usd(r.ec, 0)}</td></tr>`;
-    const wip = MATS.reduce((a, r) => a + r.l + r.p, 0), fg = MATS.reduce((a, r) => a + r.fg, 0);
-    const ew = MATS.reduce((a, r) => a + r.ew, 0), ec = MATS.reduce((a, r) => a + (r.ec || 0), 0);
-    const menu = s.menu ? `<div class="colmenu"><div class="mh">Columns</div>
-        <div class="o"><span class="cb on">${ic('check')}</span>Material</div>
-        <div class="o hv" id="col-mc"><span class="cb on">${ic('check')}</span>Material Code</div>
-        <div class="o"><span class="cb on">${ic('check')}</span>Loose WIP</div>
-        <div class="o"><span class="cb on">${ic('check')}</span>Packaged WIP</div>
-        <div class="o"><span class="cb on">${ic('check')}</span>Finished Goods</div>
-        <div class="o"><span class="cb on">${ic('check')}</span>Expected Weight</div>
-        <div class="o"><span class="cb on">${ic('check')}</span>Expected Cost</div>
-        <div class="o"><span class="cb"></span>Avg. Cost</div></div>` : '';
-    const search = s.q ? `<div class="inp typed" id="search">${ic('search')}<span class="mono">${s.q}</span></div>` : `<div class="inp" id="search">${ic('search')}Search</div>`;
-    return `<main class="main">${head(['Inventory', 'Inventory Overview', 'Aluminum'], 'Aluminum', `<span class="rb">${ic('pencil')}Regrade Material</span><span class="rb">${ic('plus')}Finished Good</span><span class="rb">${ic('plus')}Package</span><span class="rb pri">${ic('plus')}Add Adjustment</span>`)}
+    const ewc = r => r.ew > 0 ? `<span class="link">${W_(r.ew)}</span>` : W_(0);
+    const ecc = r => r.ec === null ? '<span class="muted">—</span>' : `<span class="link">${C_(r.ec)}</span>`;
+    const tr = r => `<tr><td><span class="link"${r.id === 'osh' ? ' id="mat-osh"' : ''}>${r.m}</span></td>${s.cols ? `<td>${r.c}</td>` : ''}
+        <td class="num">${ewc(r)}</td><td class="num">${ecc(r)}</td><td class="num">${W_(r.l)}</td><td class="num">${W_(r.p)}</td><td class="num">${W_(r.fg)}</td>
+        <td class="num">${W_(r.tw)}</td><td class="num">${C_(r.ac)}</td><td class="num">${C_(r.tw * r.ac)}</td><td></td></tr>`;
+    const wip = MATS.reduce((a, r) => a + r.l + r.p, 0), wipV = MATS.reduce((a, r) => a + (r.l + r.p) * r.ac, 0);
+    const fg = MATS.reduce((a, r) => a + r.fg, 0), fgV = MATS.reduce((a, r) => a + r.fg * r.ac, 0);
+    const ew = MATS.reduce((a, r) => a + r.ew, 0);
+    const item = (l, opts = {}) => `<div class="o${opts.hv ? ' hv' : ''}"${opts.id ? ` id="${opts.id}"` : ''}><span class="grip">${ic('grip-vertical')}</span>${opts.lock ? `<span class="lk" title="This column can't be hidden">${ic('lock')}</span>` : `<span class="cb on">${ic('check')}</span>`}<span>${l}</span><span class="pin">${ic('pin')}</span></div>`;
+    const menu = s.menu ? `<div class="colmenu"><div class="cs">${ic('search')}Search columns...</div><div class="mh">Visible columns</div>
+        ${item('Material', { lock: true })}${item('Material Code', { hv: true, id: 'col-mc' })}${['Expected Weight', 'Expected Cost', 'Loose WIP', 'Packaged WIP', 'Finished Goods', 'Total Weight', 'Avg. Cost', 'Total Value'].map(l => item(l)).join('')}
+        <div class="reset">Reset to defaults</div></div>` : '';
+    const search = s.q ? `<div class="inp typed" id="search">${ic('search')}<span>${s.q}</span></div>` : `<div class="inp" id="search">${ic('search')}Search</div>`;
+    const tile = (l, v, w, info) => `<div><small>${l}${info ? ` ${ic('info')}` : ''}</small><b>${v}</b><span>${w}</span></div>`;
+    const th = (l, id) => `<th class="num">${id ? `<span id="${id}">${l}</span>` : l}</th>`;
+    return `<main class="main">
+      <div class="crumbbar">${ic('arrow-left')}<span class="link">Commodities</span><span>/</span><span class="leaf">Aluminum</span>
+        <div class="acts"><span class="rb">${ic('pencil')}Regrade Material</span><span class="rb">${ic('plus')}Finished Good</span><span class="rb">${ic('plus')}Packing List</span><span class="rb">${ic('plus')}Package</span><span class="rb pri">${ic('plus')}Add Adjustment</span></div></div>
       <div class="ibody">
-        <div class="kpis"><div><small>WIP inventory</small><b>${usd(wip * 0.62, 0)}</b><span>${n0(wip)} lb</span></div><div><small>FG inventory</small><b>${usd(fg * 0.66, 0)}</b><span>${n0(fg)} lb</span></div><div><small>Total inventory</small><b>${usd(wip * 0.62 + fg * 0.66, 0)}</b><span>${n0(wip + fg)} lb</span></div><div><small>Expected inventory</small><b>${usd(ec, 0)}</b><span>${n0(ew)} lb</span></div></div>
-        <div class="tcard"><div class="tt">${search}<span class="cnt">${rows.length} ${rows.length === 1 ? 'material' : 'materials'}</span><span class="rb icon${s.menu ? ' open' : ''}">${ic('columns-3')}</span><span class="rb icon">${ic('download')}</span></div>
-          <table class="itab"><thead><tr><th style="width:${s.cols ? 21 : 27}%">Material</th>${s.cols ? '<th style="width:11%">Material Code</th>' : ''}<th class="num">Loose WIP (lb)</th><th class="num">Packaged WIP (lb)</th><th class="num">Finished Goods (lb)</th><th class="num">Expected Weight (lb)</th><th class="num"><span id="exp-cost">Expected Cost</span></th></tr></thead>
+        <div class="kpis">${tile('WIP INVENTORY', C_(wipV), W_(wip))}${tile('FG INVENTORY', C_(fgV), W_(fg))}${tile('TOTAL INVENTORY', C_(wipV + fgV), W_(wip + fg))}${tile('EXPECTED INVENTORY', '—', W_(ew), true)}</div>
+        <div class="tcard"><div class="tt">${search}<div class="inp wf"><span class="muted">Weight</span>&nbsp;All Weights${ic('chevron-down')}</div></div>
+          <table class="itab ov"><thead><tr><th style="width:${s.cols ? 13 : 17}%">Material</th>${s.cols ? '<th style="width:8%">Material Code</th>' : ''}${th('Expected Weight')}${th('Expected Cost', 'exp-cost')}${th('Loose WIP')}${th('Packaged WIP')}${th('Finished Goods')}${th('Total Weight')}${th('Avg. Cost')}${th('Total Value')}<th class="gear" style="width:36px"><span class="gb${s.menu ? ' open' : ''}" title="Manage columns">${ic('settings-2')}</span></th></tr></thead>
           <tbody>${rows.map(tr).join('')}</tbody></table>${menu}</div>
       </div>${drawer(s)}</main>`;
   }
@@ -498,21 +526,26 @@ td { padding: 0 12px; height: 44px; border-bottom: 1px solid var(--a-border-subt
     const L = s.side === 'fg' ? FG : WIP, cost = s.side === 'fg' ? FG_COST : WIP_COST;
     const rows = L.rows.filter(r => !(s.to && r.oct));
     const close = L.open + rows.reduce((a, r) => a + r.w, 0);
-    const lines = rows.map(r => `<tr><td>${r.d}</td><td><span class="tlink"${r.id ? ` id="${r.id}"` : ''}>#${r.tk}${ic('external-link')}</span></td><td><span class="mv ${r.c}">${r.mv}</span></td>
-        <td class="num">${sgn(r.w)} lb</td><td class="num">${smoney(r.w * cost)}</td><td${r.note ? ' class="muted"' : ''}>${r.who}</td></tr>`).join('');
-    return `<div class="drawer wide${still}"><div class="dh"><div><h3>Old Sheet</h3><div class="sub">North Yard · Aluminum · AL-OSH</div></div><span class="x">${ic('x')}</span></div>
+    const lines = rows.map(r => `<tr><td>${r.d}</td><td><span class="tlink"${r.id ? ` id="${r.id}"` : ''}>${r.tk}${ic('external-link')}</span></td><td><span class="mv ${r.c}">${r.mv}</span></td>
+        <td class="num">${W_(r.w)}</td><td class="num">${C_(r.w * cost)}</td><td>${r.cu || ''}</td><td class="muted">${r.no || ''}</td></tr>`).join('');
+    const seg = ['WIP', 'FG', 'All'].map((l, i) => `<span${(s.side === 'fg' ? 1 : 0) === i ? ' class="on"' : ''}>${l}</span>`).join('');
+    const dateBtn = s.to ? 'Sep 1 – Sep 30' : '&gt;= Sep 1';
+    const pop = s.datepop ? `<div class="datepop" id="datepop"><div class="row2"><div class="in2">09/01/2026</div><div class="in2">09/30/2026</div></div>
+        <div class="presets"><span>Today</span><span>Last 7 days</span><span>Last 30 days</span></div><div class="pf"><span class="link">Clear all</span></div></div>` : '';
+    return `<div class="drawer ledger${still}"><div class="dh"><h3>Inventory Ledger</h3><span class="x">${ic('x')}</span></div>
       <div class="db">
-        <div class="lctl">
-          <div class="seg" id="seg"><span${s.side === 'wip' ? ' class="on"' : ''}>WIP</span><span${s.side === 'fg' ? ' class="on"' : ''}>Finished Goods</span></div>
-          <div id="dates" style="display:flex;gap:10px">
-            <div class="fld"><label>From</label><div class="in">Sep 1, 2026${ic('calendar')}</div></div>
-            <div class="fld"><label>To</label>${s.to ? `<div class="in">Sep 30, 2026${ic('calendar')}</div>` : `<div class="in ph">No end date${ic('calendar')}</div>`}</div>
-          </div>
+        <div class="ltb">
+          <div class="seg" id="seg">${seg}</div>
+          <div class="inp msel">Old Sheet${ic('chevron-down')}</div>
+          <div class="inp lsearch">${ic('search')}Search ticket or customer</div>
+          <span class="fbtn on">${ic('calendar')}Date: ${dateBtn}</span>${pop}
+          <span class="fbtn">${ic('list-filter')}Movement</span>
         </div>
-        <table class="ltab"><thead><tr><th style="width:10%">Date</th><th style="width:13%">Ticket</th><th style="width:26%">Movement</th><th class="num" style="width:13%">Weight</th><th class="num" style="width:12%">Cost</th><th>Customer / Notes</th></tr></thead>
-          <tbody><tr class="bal" id="open-row"><td colspan="3">Opening Balance</td><td class="num">${n0(L.open)} lb</td><td class="num">${usd(L.open * cost, 0)}</td><td class="muted">Before Sep 1</td></tr>
+        <table class="ltab"><thead><tr><th style="width:13%">Date</th><th style="width:13%">Ticket</th><th style="width:13%">Movement</th><th class="num" style="width:12%">Weight</th><th class="num" style="width:13%">Cost</th><th style="width:17%">Customer</th><th>Notes</th></tr></thead>
+          <tbody><tr class="bal" id="open-row"><td colspan="3"><b>Opening Balance</b><small>Before Sep 1, 2026</small></td><td class="num">${W_(L.open)}</td><td class="num">${C_(L.open * cost)}</td><td></td><td></td></tr>
           ${lines}
-          <tr class="bal close" id="close-row"><td colspan="3">Closing Balance</td><td class="num">${close < 0 ? `<span class="neg">${n0(close)} lb</span>` : n0(close) + ' lb'}</td><td class="num">${usd(close * cost, 0)}</td><td class="muted">${s.to ? 'As of Sep 30' : 'Today'}</td></tr></tbody></table>
+          <tr class="bal close" id="close-row"><td colspan="3"><b>Closing Balance</b><small>${s.to ? 'Through Sep 30, 2026' : 'Today'}</small></td><td class="num">${W_(close)}</td><td class="num">${C_(close * cost)}</td><td></td><td></td></tr></tbody></table>
+        <div class="mtot">${ic('chevron-right')}Total Weight by Movement</div>
       </div></div>`;
   }
 
@@ -528,7 +561,7 @@ td { padding: 0 12px; height: 44px; border-bottom: 1px solid var(--a-border-subt
     return `<div class="cover"><div class="card">
       <div class="eyebrow">${ic('circle-check')}Inventory Management</div>
       <h2>Explain any balance without running a report</h2>
-      <p>Open a material’s transactions for one yard, read from the Opening Balance to a Closing Balance that ties to the Overview, and jump to the ticket behind any line. Material Code is searchable and available as a column, and pending loads show Expected Cost. This is rolling out now, so it isn’t on for every account yet. Exact dates and times on ledger rows, sorted newest first, are still to come.</p>
+      <p>Open a material’s Inventory Ledger for one yard, read from the Opening Balance to a Closing Balance that ties to the commodity page, and open the ticket behind any line. Material Code is searchable and can be turned on as a column, and pending loads show Expected Cost. This is rolling out now, so it isn’t on for every account yet.</p>
       <div class="cta"><button class="go sec" type="button" data-go="restart">${ic('rotate-ccw')}Replay</button></div>
     </div></div>`;
   }
@@ -620,7 +653,7 @@ td { padding: 0 12px; height: 44px; border-bottom: 1px solid var(--a-border-subt
     nextBtn.disabled = step === STEPS.length - 1;
     if (s.cover) caption.innerHTML = s.cover === 'intro'
       ? '<span class="n">Intro</span>Click a material on the Inventory Overview to see every transaction behind its balance for the yard, with each row linked to its source ticket.'
-      : '<span class="n">Done</span>Read from Opening Balance to a Closing Balance that ties to the Overview, and jump to the ticket behind any line. Rolling out now, so not on for every account yet.';
+      : '<span class="n">Done</span>Read the Inventory Ledger from Opening Balance to a Closing Balance that ties to the commodity page, and open the ticket behind any line. Rolling out now, so not on for every account yet.';
     scale();
     // Measure only after entrance animations (panels sliding in, menus
     // popping, pins dropping) finish, or the ring lands where the element
