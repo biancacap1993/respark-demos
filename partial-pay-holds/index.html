@@ -303,6 +303,71 @@ td { padding: 0 12px; height: 44px; border-bottom: 1px solid var(--a-border-subt
 .held .hr > span:not(.bin) { margin-left: auto; font-variant-numeric: tabular-nums; font-weight: 500; }
 .held .hr .bin { width: 30px; height: 30px; border-radius: 6px; display: grid; place-items: center; color: var(--a-error); border: 1px solid hsla(348, 81%, 48%, 0.3); background: hsla(348, 81%, 48%, 0.06); }
 .held .hr .bin svg.lucide { width: 15px; height: 15px; }
+.hlock svg.lucide { width: 13px; height: 13px; color: hsl(32 80% 40%); vertical-align: -2px; }
+.crow { display: flex; align-items: center; gap: 8px; padding: 12px 24px 0; font-size: 13px; color: var(--a-text-3); }
+.crow svg.lucide { width: 16px; height: 16px; color: var(--a-text-2); margin-right: 4px; }
+.phead2 { display: flex; align-items: center; gap: 12px; padding: 8px 24px 12px; border-bottom: 1px solid var(--a-border-subtle); }
+.phead2 .tl { display: flex; align-items: center; gap: 8px; }
+.phead2 h1 { margin: 0; font-size: 22px; font-weight: 500; }
+.chip { display: inline-flex; align-items: center; height: 32px; padding-inline: 12px; border-radius: 16px; background: hsla(217, 55%, 16%, 0.08); font-size: 15px; font-weight: 500; }
+.phead2 .acts { margin-left: auto; display: flex; align-items: center; gap: 4px; }
+.mb { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding-inline: 10px; border-radius: 4px; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: .02em; color: var(--a-primary-hover); white-space: nowrap; }
+.mb svg.lucide { width: 16px; height: 16px; }
+.mb.con { background: var(--a-primary); color: #fff; }
+.mb.dis { color: var(--a-text-3); opacity: .6; }
+.mb.err { color: var(--a-error); }
+.mb.err.con { background: var(--a-error); color: #fff; }
+.vsep { width: 1px; height: 22px; background: var(--a-border); margin-inline: 4px; }
+.pbody { display: flex; gap: 24px; padding: 20px 24px; min-height: 0; flex: 1; overflow: hidden; }
+.pl { width: 40%; flex-shrink: 0; display: flex; flex-direction: column; gap: 12px; }
+.pr { flex: 1; min-width: 0; padding-inline: 16px; display: flex; flex-direction: column; gap: 10px; }
+.h6 { font-size: 17px; font-weight: 500; }
+.hr2 { height: 1px; background: var(--a-border-subtle); }
+.hline { display: flex; align-items: center; gap: 8px; position: relative; }
+.hline svg.lucide { color: hsl(32 90% 45%); width: 18px; height: 18px; }
+.hline b { font-weight: 500; font-size: 13.5px; }
+.hline small { font-size: 12px; color: var(--a-text-3); }
+.mtip { position: absolute; left: 26px; top: 24px; z-index: 4; background: hsla(217, 30%, 30%, 0.92); color: #fff; font-size: 11.5px; line-height: 1.4; border-radius: 4px; padding: 5px 8px; max-width: 340px; animation: pop .18s ease; }
+#held { display: flex; flex-direction: column; gap: 14px; }
+#pays, #rec { display: flex; flex-direction: column; gap: 16px; }
+.prow { display: flex; align-items: center; gap: 16px; }
+.mf { position: relative; flex: 1; height: 40px; border: 1px solid var(--a-border); border-radius: 4px; display: flex; align-items: center; gap: 6px; padding-inline: 12px; font-size: 14px; min-width: 0; }
+.mf label { position: absolute; top: -8px; left: 9px; padding-inline: 4px; background: var(--a-surface); font-size: 11.5px; color: var(--a-text-3); }
+.mf.sel svg.lucide { margin-left: auto; width: 16px; height: 16px; color: var(--a-icon-2); }
+.mf.w2 { flex: 2; }
+.mf.amt { justify-content: flex-end; font-variant-numeric: tabular-nums; }
+.mf.amt .d { margin-right: auto; color: var(--a-text-3); }
+.mf.amt.ro { border-color: transparent; justify-content: flex-start; }
+.plain { flex: 1; text-align: right; padding-right: 56px; font-size: 14px; font-variant-numeric: tabular-nums; }
+.ib { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; color: var(--a-icon-2); flex-shrink: 0; }
+.ib svg.lucide { width: 18px; height: 18px; }
+.ib.red { color: var(--a-error); }
+.hist { flex: 1; display: flex; flex-direction: column; gap: 2px; font-size: 14px; }
+.hist small { font-size: 11.5px; color: var(--a-text-3); }
+.addrow { display: flex; align-items: center; justify-content: space-between; font-size: 14px; padding-right: 24px; }
+.tb { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: var(--a-primary-hover); text-transform: uppercase; letter-spacing: .02em; }
+.tb svg.lucide { width: 16px; height: 16px; }
+.crow2 { display: flex; align-items: center; justify-content: space-between; margin-top: 10px; }
+.cgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 16px; }
+.cfl { display: flex; flex-direction: column; gap: 2px; font-size: 14px; }
+.cfl small { font-size: 11.5px; color: var(--a-text-3); }
+.rinfo { display: flex; gap: 20px; font-size: 12.5px; }
+.rinfo .rl { flex: 3; } .rinfo .rr { flex: 2; text-align: right; }
+.rinfo div div { display: flex; gap: 8px; line-height: 1.7; }
+.rinfo .rl b { width: 120px; font-weight: 600; }
+.rinfo .rr div { justify-content: flex-end; } .rinfo .rr b { font-weight: 600; }
+.rtab { width: 100%; font-size: 12.5px; table-layout: fixed; border-collapse: collapse; }
+.rtab th { font-size: 12px; font-weight: 600; height: 26px; padding: 0 6px; background: transparent; border-bottom: 1px solid var(--a-border-subtle); color: var(--a-fg); }
+.rtab td { height: 21px; padding: 0 6px; border-bottom: 0; }
+.rtab td.num, .rtab th.num { text-align: right; }
+.rtab tr.ml td { font-weight: 600; padding-top: 4px; }
+.rtab tr.rt td { font-weight: 700; border-top: 1px solid var(--a-border-subtle); height: 28px; }
+.scrim { position: absolute; inset: 0; background: rgba(18, 35, 62, 0.28); z-index: 8; display: grid; place-items: center; }
+.modal { width: 440px; background: var(--a-surface); border-radius: 8px; box-shadow: 0 24px 60px rgba(15, 23, 42, 0.3); animation: pop .18s ease; display: flex; flex-direction: column; }
+.modal .mh2 { padding: 18px 20px 6px; font-size: 18px; font-weight: 500; }
+.modal .mb2 { padding: 6px 20px 14px; display: flex; flex-direction: column; gap: 8px; font-size: 14px; color: var(--a-text-2); }
+.modal .mb2 b { color: var(--a-fg); font-weight: 500; }
+.modal .mf2 { display: flex; justify-content: flex-end; gap: 8px; padding: 8px 16px 14px; }
 .paygrid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: start; }
 .pm { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .pm .in { height: 34px; border: 1px solid var(--a-border); border-radius: 6px; display: flex; align-items: center; padding-inline: 10px; font-size: 13px; }
@@ -385,24 +450,27 @@ td { padding: 0 12px; height: 44px; border-bottom: 1px solid var(--a-border-subt
   const TOTAL = 10384.56, PAYABLE = 4553.16, HOLD_THRU = 'Oct 22, 2026', READY = 'Oct 23, 2026';
 
   // ---------- steps ----------
+  const TK = '/app/purchases/ticket-library/48213', PAYURL = TK + '/payment';
   const STEPS = [
-    { view: 'tk', cover: 'intro', url: '/app/purchases/tickets/48213' },
-    { view: 'tk', t: '#r-cu', place: 'bottom', url: '/app/purchases/tickets/48213',
-      tip: 'Open a purchase ticket that mixes copper with other metals. Here the copper is on a payment hold, and the rest can be paid today.' },
-    { view: 'tk', t: '#btn-pay', place: 'bottom', url: '/app/purchases/tickets/48213',
+    { view: 'tk', cover: 'intro', url: TK },
+    { view: 'tk', t: '#r-cu', place: 'bottom', url: TK,
+      tip: 'Open a purchase ticket that mixes copper with other metals. The lock marks material on a payment hold. The rest can be paid today.' },
+    { view: 'tk', t: '#btn-pay', place: 'bottom', url: TK,
       tip: 'Click <b>PAY</b> to open the payment screen.' },
-    { view: 'pay', t: '#held', place: 'right', url: '/app/purchases/tickets/48213',
-      tip: 'Each held material gets its own row with its <b>Hold through</b> date. Held material can’t be paid until its hold ends.' },
-    { view: 'pay', t: '#pays', place: 'right', url: '/app/purchases/tickets/48213',
-      tip: 'The amount fills in with what you can pay now. Split it across payment methods if you like. Fees and promotions for those methods are already counted.' },
-    { view: 'pay', t: '#btn-paynow', place: 'bottom', url: '/app/purchases/tickets/48213',
-      tip: 'Pay the unheld part of the ticket. You don’t need to build a separate bill first.' },
-    { view: 'tk', paid: 'partial', t: '#status', place: 'bottom', url: '/app/purchases/tickets/48213',
-      tip: 'The ticket now shows <b>Partially Paid</b>. The copper stays unpaid until its hold ends.' },
-    { view: 'pay', paid: 'partial', t: '#void-cash', place: 'bottom', url: '/app/purchases/tickets/48213',
-      tip: 'Need to undo one payment? Click the red bin on that payment to void just that one.' },
-    { view: 'pay', paid: 'voided', t: '#rec', place: 'right', url: '/app/purchases/tickets/48213',
-      tip: 'Only that payment is reversed. The check stays recorded, and the ticket stays <b>Partially Paid</b>.' },
+    { view: 'pay', t: '#held', place: 'right', url: PAYURL,
+      tip: 'Held material is listed first under <b>Payment Methods</b>, with its <b>Hold through</b> date. Held items with the same date are grouped as <b>MULTIPLE</b>. Held material can’t be paid until its hold ends.' },
+    { view: 'pay', t: '#pays', place: 'right', url: PAYURL,
+      tip: 'The <b>Amount</b> fills in with what you can pay now. To split it, click <b>ADD NEW PAYMENT TYPE</b> and pick another <b>Pay From</b> method. Fees and promotions for those methods are already counted.' },
+    { view: 'pay', t: '#btn-paynow', place: 'bottom', url: PAYURL,
+      tip: 'Click <b>PAY THIS TICKET</b> to pay the unheld part. You don’t need to build a separate bill first.' },
+    { view: 'pay', paid: 'partial', t: '#status', place: 'bottom', url: PAYURL,
+      tip: 'The ticket now shows <b>Partial</b>. Your payments are listed under <b>Payment Methods</b>, and the copper stays unpaid until its hold ends.' },
+    { view: 'pay', paid: 'partial', t: '#void-cash', place: 'right', url: PAYURL,
+      tip: 'Need to undo one payment? Click the red bin on that payment to void just that one. <b>VOID PAYMENTS</b> at the top voids them all.' },
+    { view: 'pay', paid: 'partial', modal: true, t: '#void-dlg', place: 'right', url: PAYURL,
+      tip: 'Click <b>Confirm Void Payment</b>. Only that payment is voided, and the ticket’s balance updates.' },
+    { view: 'pay', paid: 'voided', t: '#rec', place: 'right', url: PAYURL,
+      tip: 'The check stays recorded, and the ticket stays <b>Partial</b>.' },
     { view: 'rp', t: '#rtp', place: 'bottom', url: '/app/reports/payment-holds',
       tip: 'Open <b>Reports → Payment Holds</b> to see when the held material is <b>Ready to Pay</b>. The dates follow your yard’s own hold days.' },
     { view: 'rp', cover: 'outro', url: '/app/reports/payment-holds' },
@@ -433,17 +501,17 @@ td { padding: 0 12px; height: 44px; border-bottom: 1px solid var(--a-border-subt
 
   function ticket(s) {
     const status = s.paid
-      ? `<span class="badge b-warn" id="status">Partially Paid</span>`
+      ? `<span class="badge b-warn" id="status">Partial</span>`
       : `<span class="badge b-accent" id="status">Price Complete</span>`;
     const title = `<span style="display:inline-flex;align-items:center;gap:10px">Inbound Ticket #48213 ${status}</span>`;
     const fld = (l, v) => `<div class="fld"><label>${l}</label><div class="in">${v}</div></div>`;
-    const rows = MATS.map(m => `<tr${m.id ? ` id="${m.id}"` : ''}><td class="c">${m.n}</td><td>${m.mat}</td><td class="num">${m.g.toLocaleString()}</td><td class="num">${m.t.toLocaleString()}</td><td class="num">${m.adj}</td><td class="num"><b>${m.net.toLocaleString()}</b></td><td class="num">${m.p}</td><td>${m.um}</td><td class="num"><b>${money(m.v)}</b></td></tr>`).join('');
-    const toast = s.paid === 'partial' ? `<div class="toast">${ic('circle-check')}Payment of ${money(PAYABLE)} recorded</div>` : '';
+    const rows = MATS.map(m => `<tr${m.id ? ` id="${m.id}"` : ''}><td class="c">${m.n}</td><td>${m.mat}${m.hold ? ` <span class="hlock">${ic('lock')}</span>` : ''}</td><td class="num">${m.g.toLocaleString()}</td><td class="num">${m.t.toLocaleString()}</td><td class="num">${m.adj}</td><td class="num"><b>${m.net.toLocaleString()}</b></td><td class="num">${m.p}</td><td>${m.um}</td><td class="num"><b>${money(m.v)}</b></td></tr>`).join('');
+    const toast = '';
     return `<main class="main">${head(['Purchases', 'Ticket Library', 'Inbound Ticket #48213'], title,
-      `<span class="saved">${ic('check')}Saved</span><span class="rb" id="btn-pay">${ic('wallet')}PAY</span><span class="rb">${ic('printer')}SCALE TICKET</span><span class="rb">${ic('printer')}PURCHASE TICKET</span><span class="rb pri">Done</span><span class="rb icon">${ic('ellipsis-vertical')}</span>`)}
+      `<span class="saved">${ic('check')}Saved</span><span class="rb pri" id="btn-pay">${ic('dollar-sign')}PAY</span><span class="rb">${ic('printer')}SCALE TICKET</span><span class="rb">${ic('printer')}PURCHASE TICKET</span><span class="rb pri">Done</span><span class="rb icon">${ic('ellipsis-vertical')}</span>`)}
       <div class="ibody">
         <div class="cards2">
-          <div class="icard"><div class="ct">Customer Information</div><div class="g3">${fld('Supplier Name', '<b>Midwest Auto Salvage</b>')}${fld('Effective Date', '10/16/26 9:42 AM')}${fld('Contact', 'Dana Ruiz')}${fld('Location', 'Gary, IN — Main Lot')}${fld('# Passengers', '1')}${fld('ID Verified', '<span class="badge b-success">Driver license</span>')}</div></div>
+          <div class="icard"><div class="ct">Customer Information</div><div class="g3">${fld('Supplier Name', '<b>Dana Ruiz</b>')}${fld('Effective Date', '10/16/26 9:42 AM')}${fld('Contact', 'Dana Ruiz')}${fld('Location', 'Gary, IN — Main Lot')}${fld('# Passengers', '1')}${fld('ID Verified', '<span class="badge b-success">Driver license</span>')}</div></div>
           <div class="icard"><div class="ct">Transportation Info</div><div class="g4">${fld('Carrier', 'Self-delivered')}${fld('Driver Name', 'Luis Ortega')}${fld('Bill of Lading', 'BL-20931')}${fld('Pickup?', 'No')}${fld('Truck #', 'T-114')}${fld('Trailer #', 'TR-22')}${fld('Container #', '40-yd 12')}${fld('Scale', 'Inbound Scale 1')}</div></div>
         </div>
         <div class="tcard"><div class="tt"><b style="font-size:14px">Materials (7)</b><span class="cnt"></span><span class="rb">${ic('scale')}Received Weights</span><span class="rb">${ic('plus')}Add Vehicle</span></div>
@@ -455,9 +523,9 @@ td { padding: 0 12px; height: 44px; border-bottom: 1px solid var(--a-border-subt
 
   function report() {
     const R = [
-      ['IBT-48213', 'Midwest Auto Salvage', '#1 Bare Bright Copper', 2143.20, 'Oct 16, 2026', 5, READY, 'On hold'],
-      ['IBT-48213', 'Midwest Auto Salvage', '#2 Copper', 2737.00, 'Oct 16, 2026', 5, READY, 'On hold', 'rtp'],
-      ['IBT-48213', 'Midwest Auto Salvage', 'Insulated Copper Wire', 951.20, 'Oct 16, 2026', 5, READY, 'On hold'],
+      ['IBT-48213', 'Dana Ruiz', '#1 Bare Bright Copper', 2143.20, 'Oct 16, 2026', 5, READY, 'On hold'],
+      ['IBT-48213', 'Dana Ruiz', '#2 Copper', 2737.00, 'Oct 16, 2026', 5, READY, 'On hold', 'rtp'],
+      ['IBT-48213', 'Dana Ruiz', 'Insulated Copper Wire', 951.20, 'Oct 16, 2026', 5, READY, 'On hold'],
       ['IBT-48197', 'Lakeshore Demolition', '#2 Copper', 1314.25, 'Oct 15, 2026', 5, 'Oct 22, 2026', 'On hold'],
       ['IBT-48164', 'R. Alvarez', '#1 Bare Bright Copper', 486.40, 'Oct 13, 2026', 5, 'Oct 20, 2026', 'On hold'],
       ['IBT-48122', 'Tri-County Electric', 'Insulated Copper Wire', 1702.60, 'Oct 8, 2026', 5, 'Oct 15, 2026', 'Ready'],
@@ -472,40 +540,52 @@ td { padding: 0 12px; height: 44px; border-bottom: 1px solid var(--a-border-subt
       </div></main>`;
   }
 
-  // The payment screen opens as its own full page (not a drawer).
+  // The payment screen is its own full page (route ticket-library/:id/payment,
+  // InboundTicketBillContainer.jsx): Payment Methods + Customer Information on
+  // the left, the scale ticket receipt on the right.
   function payPage(s) {
-    const held = MATS.filter(m => m.hold).map(m => `<div class="hr">${ic('lock')}<div class="tx"><b>${m.mat}</b><small>Hold through ${HOLD_THRU}</small></div><span>${money(m.v)}</span></div>`).join('');
-    const crumbs = ['Purchases', 'Ticket Library', 'Inbound Ticket #48213', 'Pay'];
-    if (!s.paid) {
-      return `<main class="main">${head(crumbs, 'Pay Inbound Ticket #48213', `<span class="rb">Cancel</span><span class="rb pri" id="btn-paynow">${ic('wallet')}PAY ${money(PAYABLE)}</span>`)}
-        <div class="ibody"><div class="paygrid">
-          <div class="icard"><div class="ct">Summary</div>
-            <div class="sum"><div>Ticket total<b>${money(TOTAL)}</b></div><div>On hold<b>$5,831.40</b></div><div>Payable now<b>${money(PAYABLE)}</b></div></div>
-            <div class="sec">On hold</div>
-            <div class="held" id="held">${held}</div></div>
-          <div class="icard"><div class="ct">Payment</div>
-            <div id="pays" style="display:flex;flex-direction:column;gap:8px">
-              <div class="pm"><div class="in">Check${ic('chevron-down')}</div><div class="in amt">4,000.00</div></div>
-              <div class="pm"><div class="in">Cash${ic('chevron-down')}</div><div class="in amt">553.16</div></div>
-              <span class="link" style="font-size:12.5px">${ic('plus')} Add payment method</span>
-            </div></div>
-        </div></div></main>`;
-    }
-    const voided = s.paid === 'voided';
-    const paid = voided ? 4000 : PAYABLE;
-    const toast = voided ? `<div class="toast">${ic('circle-check')}Cash payment of $553.16 voided</div>` : '';
-    return `<main class="main">${head(crumbs, 'Pay Inbound Ticket #48213', `<span class="rb">Close</span>`)}
-      <div class="ibody"><div class="paygrid">
-        <div class="icard"><div class="ct">Summary</div>
-          <div class="sum"><div>Paid<b>${money(paid)}</b></div><div>On hold<b>$5,831.40</b></div><div>Payable now<b>${money(PAYABLE - paid)}</b></div></div>
-          <div class="sec">On hold</div>
-          <div class="held">${held}</div></div>
-        <div class="icard"><div class="ct">Payments</div>
-          <div class="held" id="rec">
-            <div class="hr">${ic('banknote')}<div class="tx"><b>Check #10482</b><small>Oct 16, 2026 · 10:05 AM</small></div><span>$4,000.00</span><span class="bin">${ic('trash-2')}</span></div>
-            ${voided ? '' : `<div class="hr">${ic('banknote')}<div class="tx"><b>Cash</b><small>Oct 16, 2026 · 10:05 AM</small></div><span>$553.16</span><span class="bin" id="void-cash">${ic('trash-2')}</span></div>`}
-          </div></div>
-      </div>${toast}</div></main>`;
+    const paid = !!s.paid, voided = s.paid === 'voided';
+    const HELD = MATS.filter(m => m.hold), heldAmt = HELD.reduce((a, m) => a + m.v, 0);
+    const btn = (l, i, cls = '', id = '') => `<span class="mb ${cls}"${id ? ` id="${id}"` : ''}>${i ? ic(i) : ''}${l}</span>`;
+    const acts = paid
+      ? btn('Print Check', '') + btn('Receipt', 'printer') + btn('Settlement', 'printer') + btn('Pay this ticket', 'dollar-sign', 'dis') + '<span class="vsep"></span>' + btn(voided ? 'Void payment' : 'Void payments', 'flag', 'err')
+      : btn('Receipt', 'printer') + btn('Settlement', 'printer') + btn('Pay this ticket', 'dollar-sign', 'con', 'btn-paynow');
+    const status = paid ? '<span class="chip" id="status">Partial</span>' : '<span class="chip" id="status">Price Complete</span>';
+    const sel = (v, wide) => `<div class="mf sel${wide ? ' w2' : ''}"><label>Pay From</label><span>${v}</span>${ic('chevron-down')}</div>`;
+    const heldBlock = `<div id="held"><div class="hline">${ic('timer')}<b>MULTIPLE</b><small>Hold through 10/22</small>
+        ${s.holdTip ? `<div class="mtip">${HELD.map(m => `${m.mat} ${money(m.v)}`).join(', ')}</div>` : ''}</div>
+      <div class="prow">${sel('Check', true)}<span class="plain">${money(heldAmt)}</span></div></div>`;
+    const edit = (m, v) => `<div class="prow">${sel(m)}<div class="mf amt"><label>Amount</label><span class="d">$</span><span>${v}</span></div><span class="ib">${ic('trash-2')}</span></div>`;
+    const hist = (m, v, id) => `<div class="prow"><div class="hist"><small>Pay Method</small><span>${m}</span></div><div class="mf amt ro"><label>Amount</label><span>${v}</span></div><span class="ib red"${id ? ` id="${id}"` : ''}>${ic('trash-2')}</span></div>`;
+    const rows = paid
+      ? `<div id="rec">${hist('Check', '$4,000.00')}${voided ? '' : hist('Cash', '$553.16', 'void-cash')}</div>`
+      : `<div id="pays">${edit('Check', '4,000.00')}${edit('Cash', '553.16')}
+          <div class="addrow"><span class="tb">${ic('plus')}ADD NEW PAYMENT TYPE</span><span>$0.00 balance remaining</span></div></div>`;
+    const cf = (l, v) => `<div class="cfl"><small>${l}</small><span>${v}</span></div>`;
+    const lines = MATS.map(m => `<tr class="ml"><td colspan="5">${m.n}. ${m.mat} (${m.p}/${m.um})</td></tr>
+      <tr><td>${m.g.toLocaleString()}</td><td>${m.t.toLocaleString()}</td><td class="num">${m.adj}</td><td class="num">${m.net.toLocaleString()}</td><td class="num">${money(m.v)}</td></tr>`).join('');
+    const kv = (l, v) => `<div><b>${l}</b><span>${v}</span></div>`;
+    const modal = s.modal ? `<div class="scrim"><div class="modal" id="void-dlg"><div class="mh2">Confirm Void Payment</div>
+        <div class="mb2"><b>Are you sure you want to void this payment?</b><span>This payment will be voided and ticket #48213’s balance updated.</span></div>
+        <div class="mf2"><span class="mb">Cancel</span><span class="mb err con">Confirm Void Payment</span></div></div></div>` : '';
+    return `<main class="main">
+      <div class="crow">${ic('arrow-left')}<span class="link">Ticket Library</span><span>/</span><span>…</span><span>/</span><span>Payment</span></div>
+      <div class="phead2"><div class="tl"><h1>Ticket #48213</h1>${status}</div><div class="acts">${acts}</div></div>
+      <div class="pbody">
+        <div class="pl">
+          <div class="h6">Payment Methods</div><div class="hr2"></div>
+          ${heldBlock}<div class="hr2"></div>${rows}
+          <div class="crow2"><div class="h6">Customer Information</div><span class="tb">${ic('external-link')}View</span></div><div class="hr2"></div>
+          <div class="cgrid">${cf('Customer Name', 'Dana Ruiz')}${cf('Type', 'Retail')}${cf('Email', 'dana.ruiz@example.com')}${cf('# of Passengers', '1')}</div>
+        </div>
+        <div class="pr">
+          <div class="h6">Scale Ticket #48213 | ${paid ? 'PARTIAL' : 'PRICE COMPLETE'}</div><div class="hr2"></div>
+          <div class="rinfo"><div class="rl">${kv('Date:', '10/16/2026 9:42 AM')}${kv('Customer Name:', 'Dana Ruiz')}${kv('Carrier:', 'Self-delivered')}${kv('Plate #:', 'IN 7HK 214')}</div>
+            <div class="rr">${kv('Gross Weight:', '43,440 LB')}${kv('Tare Weight:', '15,334 LB')}${kv('Net Weight:', '27,954 LB')}</div></div>
+          <table class="rtab"><thead><tr><th>G</th><th>T</th><th class="num">Adj</th><th class="num">Net</th><th class="num">Value</th></tr></thead>
+            <tbody>${lines}<tr class="rt"><td colspan="4">Total</td><td class="num">${money(TOTAL)}</td></tr></tbody></table>
+        </div>
+      </div>${modal}</main>`;
   }
 
   function cover(kind) {
