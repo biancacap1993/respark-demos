@@ -6,8 +6,8 @@
 <script src="https://cdn.jsdelivr.net/npm/lucide@0.460.0/dist/umd/lucide.min.js"></script>
 <style>
 /* Layout: an Arcade-style player. One framed browser window holds a scaled
-   1440×820 mock of ReSpark (based on the Inventory Overview
-   screen) for finished goods compliance language; a pulsing hotspot + tooltip guides each step; step controls sit
+   1440×820 mock of ReSpark (Inventory Settings, Material Properties and
+   Finished Goods screens) for finished goods compliance language; a pulsing hotspot + tooltip guides each step; step controls sit
    under the frame. The app mock keeps ReSpark's light theme (it stands in
    for a screenshot); the page around it follows the viewer's theme. */
 :root {
@@ -149,6 +149,7 @@ kbd { font: inherit; font-size: 11px; border: 1px solid var(--ctl-line); border-
 .nrow.active { background: var(--a-nav-selected); color: #fff; }
 .nrow.active svg.lucide { color: #fff; }
 .pill { margin-left: auto; font-size: 10px; font-weight: 600; color: var(--a-text-2); background: var(--a-hover); padding: 1px 6px; border-radius: 999px; }
+.nrow.active .pill { color: #fff; background: rgba(255, 255, 255, 0.18); }
 .nsep { height: 1px; background: var(--a-border-subtle); margin: 4px 6px; }
 .foot { margin-top: auto; display: flex; align-items: center; gap: 8px; padding: 8px 4px 0; border-top: 1px solid var(--a-border-subtle); }
 .av { width: 28px; height: 28px; border-radius: 50%; background: var(--a-primary-subtle); color: var(--a-primary-hover); display: grid; place-items: center; font-weight: 600; font-size: 11px; }
@@ -157,124 +158,172 @@ kbd { font: inherit; font-size: 11px; border: 1px solid var(--ctl-line); border-
 .foot .ico { margin-left: auto; display: flex; gap: 4px; }
 .foot .ico span { width: 28px; height: 28px; border: 1px solid var(--a-border-subtle); border-radius: 6px; display: grid; place-items: center; }
 
-.main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
-.phead { display: flex; align-items: center; gap: 12px; padding: 14px 22px 12px; border-bottom: 1px solid var(--a-border-subtle); }
-.crumbs { font-size: 12px; color: var(--a-text-3); display: flex; align-items: center; gap: 4px; }
-.crumbs svg.lucide { width: 12px; height: 12px; }
-.phead h1 { font-size: 20px; font-weight: 600; margin: 0; letter-spacing: -0.015em; }
-.phead .left { display: flex; flex-direction: column; gap: 4px; }
-.phead .acts { margin-left: auto; display: flex; gap: 8px; align-items: center; }
-
-.rb { font: inherit; font-size: 13px; font-weight: 500; height: 32px; padding-inline: 12px; border-radius: 6px; display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--a-border); background: var(--a-surface); color: var(--a-fg); cursor: default; white-space: nowrap; }
+.main { flex: 1; min-width: 0; display: flex; flex-direction: column; position: relative; }
+.rb { font: inherit; font-size: 13px; font-weight: 600; height: 34px; padding-inline: 14px; border-radius: 8px; display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--a-border); background: var(--a-surface); color: var(--a-fg); cursor: default; white-space: nowrap; }
 .rb.pri { background: var(--a-primary); border-color: var(--a-primary); color: #fff; }
-.rb.icon { width: 32px; padding: 0; justify-content: center; }
-.badge { display: inline-flex; align-items: center; height: 20px; padding-inline: 8px; border-radius: 999px; font-size: 11.5px; font-weight: 500; white-space: nowrap; }
-.b-success { background: hsla(162, 73%, 37%, 0.14); color: var(--a-success-strong); }
-.b-accent { background: hsla(252, 89%, 65%, 0.14); color: var(--a-accent-strong); }
-.b-neutral { background: hsla(217, 55%, 16%, 0.07); color: var(--a-text-2); }
-
-/* inventory pages */
-.phead { padding: 14px 24px 12px; border-bottom: 0; align-items: flex-start; }
-.ibody { flex: 1; min-height: 0; padding: 0 24px 20px; display: flex; flex-direction: column; gap: 14px; position: relative; }
-.kpis { display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid var(--a-border-subtle); border-radius: 10px; }
-.kpis > div { padding: 12px 16px; display: flex; flex-direction: column; gap: 2px; }
-.kpis > div + div { border-left: 1px solid var(--a-border-subtle); }
-.kpis small { font-size: 10.5px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--a-text-3); }
-.kpis b { font-size: 20px; font-weight: 700; letter-spacing: -.01em; }
-.kpis span { font-size: 12px; color: var(--a-text-3); }
-.tcard { border: 1px solid var(--a-border-subtle); border-radius: 10px; overflow: hidden; flex: 1; min-height: 0; }
-.tcard .tt { display: flex; align-items: center; gap: 8px; padding: 10px 12px; }
-.tcard .tt .inp { width: 240px; }
-.tcard .tt .cnt { margin-left: auto; font-size: 12px; color: var(--a-text-3); }
-.inp { height: 32px; border: 1px solid var(--a-border); border-radius: 6px; display: flex; align-items: center; gap: 6px; padding-inline: 9px; color: var(--a-text-3); font-size: 12.5px; background: var(--a-surface); white-space: nowrap; }
-.inp svg.lucide { width: 14px; height: 14px; color: var(--a-icon-2); }
-table { width: 100%; border-collapse: separate; border-spacing: 0; font-variant-numeric: tabular-nums; table-layout: fixed; }
-th { text-align: left; font-weight: 500; font-size: 12.5px; padding: 0 12px; height: 38px; background: var(--a-muted-solid); border-bottom: 1px solid var(--a-border-subtle); white-space: nowrap; }
-td { padding: 0 12px; height: 44px; border-bottom: 1px solid var(--a-border-subtle); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.itab td, .itab th { border-right: 0; }
-.itab th { color: var(--a-text-2); }
-.itab td.num, .itab th.num { text-align: right; }
-.itab tr.new td { background: hsla(183, 100%, 33%, 0.07); }
-.itab .mono { font-family: var(--mono); font-size: 12px; }
-.b-teal { background: hsla(183, 100%, 33%, 0.12); color: var(--a-primary-hover); }
-
-.drawer { position: absolute; top: 0; right: 0; bottom: 0; width: 470px; background: var(--a-surface); border-left: 1px solid var(--a-border); box-shadow: -12px 0 32px rgba(15, 23, 42, 0.12); display: flex; flex-direction: column; z-index: 6; animation: slide .25s ease; }
-.drawer.still { animation: none; }
-@keyframes slide { from { transform: translateX(30px); opacity: 0; } to { transform: none; opacity: 1; } }
-.drawer .dh { display: flex; align-items: center; gap: 10px; padding: 16px 18px 12px; border-bottom: 1px solid var(--a-border-subtle); }
-.drawer .dh h3 { margin: 0; font-size: 16px; font-weight: 600; }
-.drawer .dh .x { margin-left: auto; color: var(--a-text-3); }
-.drawer .db { flex: 1; min-height: 0; padding: 16px 18px; display: flex; flex-direction: column; gap: 14px; position: relative; overflow: hidden; }
-.drawer .df { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 18px; border-top: 1px solid var(--a-border-subtle); }
-.fld { display: flex; flex-direction: column; gap: 5px; }
-.fld label { font-size: 12px; font-weight: 500; color: var(--a-text-2); }
-.fld .in { height: 34px; border: 1px solid var(--a-border); border-radius: 6px; display: flex; align-items: center; gap: 6px; padding-inline: 10px; font-size: 13px; font-variant-numeric: tabular-nums; }
-.fld .in.ph { color: var(--a-text-3); }
-.fld .in.open { border-color: var(--a-primary); box-shadow: 0 0 0 3px hsla(183, 100%, 33%, 0.15); }
-.fld .in .u { margin-left: auto; color: var(--a-text-3); }
-.fld .in svg.lucide { margin-left: auto; width: 14px; height: 14px; color: var(--a-icon-2); }
-.fld .in.ro { background: var(--a-muted-solid); font-weight: 600; }
-.fld .hint { font-size: 12px; color: var(--a-text-3); }
-.fld .hint b { color: var(--a-primary-hover); font-weight: 600; }
-.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
-.note { display: flex; gap: 8px; align-items: flex-start; font-size: 12.5px; line-height: 1.45; background: hsla(183, 100%, 33%, 0.07); border: 1px solid hsla(183, 100%, 33%, 0.22); border-radius: 8px; padding: 10px 12px; color: var(--a-text-2); }
-.note svg.lucide { width: 15px; height: 15px; color: var(--a-primary-hover); margin-top: 1px; }
-.note b { color: var(--a-fg); }
-.dd { position: absolute; left: 18px; right: 18px; top: 82px; background: var(--a-surface); border: 1px solid var(--a-border); border-radius: 8px; box-shadow: 0 6px 22px rgba(15, 23, 42, 0.16); padding: 4px; z-index: 5; animation: pop .18s ease; }
-.dd .mh { font-size: 11px; color: var(--a-text-3); padding: 6px 9px 4px; }
-.dd .o { display: flex; align-items: center; gap: 8px; padding: 8px 9px; border-radius: 5px; font-size: 13px; }
-.dd .o span { margin-left: auto; font-size: 12px; color: var(--a-text-3); font-variant-numeric: tabular-nums; }
-.dd .o.hv { background: var(--a-hover); }
-@keyframes pop { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; transform: none; } }
-
-.stepper { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--a-text-3); }
-.stepper span { display: inline-flex; align-items: center; gap: 6px; }
-.stepper i.n { font-style: normal; width: 20px; height: 20px; border-radius: 50%; border: 1px solid var(--a-border); display: grid; place-items: center; font-size: 11px; font-weight: 600; }
-.stepper .on { color: var(--a-fg); font-weight: 600; }
-.stepper .on i.n { background: var(--a-dark); border-color: var(--a-dark); color: #fff; }
-.stepper .done i.n { background: var(--a-primary-subtle); border-color: transparent; color: var(--a-primary-hover); }
-.stepper .ln { flex: 1; height: 1px; background: var(--a-border-subtle); }
-.choice { border: 1px solid var(--a-border); border-radius: 10px; padding: 14px; display: flex; gap: 12px; align-items: flex-start; }
-.choice .ci { width: 34px; height: 34px; border-radius: 8px; display: grid; place-items: center; background: var(--a-hover); flex-shrink: 0; }
-.choice .ci svg.lucide { width: 18px; height: 18px; }
-.choice b { display: block; font-size: 13.5px; font-weight: 600; margin-bottom: 2px; }
-.choice small { font-size: 12.5px; color: var(--a-text-3); line-height: 1.4; }
-.choice.on { border-color: var(--a-primary); box-shadow: 0 0 0 3px hsla(183, 100%, 33%, 0.12); }
-.choice.on .ci { background: var(--a-primary-subtle); color: var(--a-primary-hover); }
-.pkl { border: 1px solid var(--a-border-subtle); border-radius: 8px; overflow: hidden; }
-.pkl .pr { display: flex; align-items: center; gap: 10px; padding: 10px 12px; font-size: 13px; }
-.pkl .pr + .pr { border-top: 1px solid var(--a-border-subtle); }
-.pkl .pr .rd { width: 15px; height: 15px; border-radius: 50%; border: 1.5px solid var(--a-border); flex-shrink: 0; }
-.pkl .pr.on { background: hsla(183, 100%, 33%, 0.06); }
-.pkl .pr.on .rd { border: 5px solid var(--a-primary); }
-.pkl .pr .tx { display: flex; flex-direction: column; }
-.pkl .pr .tx small { color: var(--a-text-3); font-size: 12px; }
-.pkl .pr .w { margin-left: auto; text-align: right; font-variant-numeric: tabular-nums; }
-.pkl .pr .w small { display: block; color: var(--a-text-3); font-size: 12px; }
-.sum { display: grid; grid-template-columns: repeat(3, 1fr); background: var(--a-muted-solid); border-radius: 8px; padding: 10px 12px; font-size: 12px; color: var(--a-text-3); gap: 6px; }
-.sum b { display: block; font-size: 14px; color: var(--a-fg); font-variant-numeric: tabular-nums; }
-.alloc { width: 100%; font-size: 12.5px; }
-.alloc th { height: 32px; font-size: 11.5px; color: var(--a-text-3); background: transparent; border-right: 0; padding: 0 6px; }
-.alloc td { height: 40px; border-right: 0; padding: 0 6px; }
-.alloc td.num, .alloc th.num { text-align: right; }
-.alloc .cell { border: 1px solid var(--a-border); border-radius: 6px; height: 30px; display: flex; align-items: center; justify-content: flex-end; padding: 0 8px; gap: 4px; }
-.alloc .cell .u { color: var(--a-text-3); }
-.alloc tr.waste td { color: var(--a-text-2); background: hsla(38, 92%, 50%, 0.07); }
-.alloc tr.waste .tagw { font-size: 11px; font-weight: 600; color: hsl(32 80% 38%); background: hsla(38, 92%, 50%, 0.16); border-radius: 4px; padding: 1px 6px; }
-.alloc tr.tot td { font-weight: 600; border-bottom: 0; }
+.rb.dis { color: var(--a-text-3); border-color: var(--a-border-subtle); }
+.rb.err { color: var(--a-error-strong); border-color: hsla(348, 81%, 48%, 0.5); }
+.rb svg.lucide { width: 16px; height: 16px; }
 .link { color: var(--a-primary-hover); font-weight: 500; }
-.became .br { display: flex; align-items: center; gap: 10px; padding: 9px 12px; font-size: 13px; border: 1px solid var(--a-border-subtle); border-radius: 8px; }
-.became .br + .br { margin-top: 6px; }
-.became .br span:last-child { margin-left: auto; color: var(--a-text-3); font-variant-numeric: tabular-nums; }
-.became .br svg.lucide { width: 15px; height: 15px; color: var(--a-icon-2); }
-.sec { font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--a-text-3); }
-.kv2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px; font-size: 12.5px; }
-.kv2 small { display: block; color: var(--a-text-3); font-size: 11.5px; }
-.kv2 b { font-weight: 500; font-variant-numeric: tabular-nums; }
-.toast { position: absolute; left: 50%; bottom: 22px; transform: translateX(-50%); background: var(--a-fg); color: #fff; border-radius: 8px; padding: 10px 14px; display: flex; align-items: center; gap: 8px; font-weight: 500; box-shadow: 0 10px 24px rgba(18,35,62,.3); animation: pop2 .3s ease; z-index: 7; }
-.toast svg.lucide { color: hsl(162 73% 55%); }
-@keyframes pop2 { from { opacity: 0; transform: translate(-50%, 8px); } to { opacity: 1; transform: translateX(-50%); } }
+
+/* page header (ContentLayout, breadcrumb + title rows) */
+.phd { display: flex; flex-direction: column; gap: 10px; padding: 20px 24px 14px; border-bottom: 1px solid var(--a-border-subtle); flex-shrink: 0; }
+.crow { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--a-text-2); height: 38px; }
+.crow > svg.lucide { width: 20px; height: 20px; color: var(--a-fg); }
+.crow .sep { color: var(--a-text-3); }
+.crow .leaf { color: var(--a-fg); }
+.spill { margin-left: 16px; display: inline-flex; gap: 2px; padding: 3px; border-radius: 10px; background: var(--a-hover); }
+.spill span { width: 32px; height: 32px; display: grid; place-items: center; border-radius: 8px; color: var(--a-text-2); }
+.trow { display: flex; align-items: center; gap: 8px; }
+.trow h1 { font-size: 22px; font-weight: 500; margin: 0; flex: 1; letter-spacing: -0.01em; }
+.ntabs { display: flex; border-bottom: 1px solid var(--a-border-subtle); flex-shrink: 0; }
+.ntabs span { flex: 1; text-align: center; padding: 18px 12px 16px; font-size: 13.5px; font-weight: 600; color: var(--a-text-3); border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.ntabs span.on { color: var(--a-primary-hover); border-bottom-color: var(--a-primary); }
+
+/* tables (ResparkGrid look) */
+table { width: 100%; border-collapse: separate; border-spacing: 0; font-variant-numeric: tabular-nums; table-layout: fixed; }
+th { text-align: left; font-weight: 600; font-size: 11.5px; letter-spacing: 0.02em; text-transform: uppercase; color: var(--a-text-2); padding: 0 12px; height: 38px; background: var(--a-muted-solid); border-bottom: 1px solid var(--a-border-subtle); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+td { padding: 0 12px; height: 46px; border-bottom: 1px solid var(--a-border-subtle); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+tr:last-child td { border-bottom: 0; }
+td.num, th.num { text-align: right; }
+td.more { text-align: center; color: var(--a-text-3); padding: 0; }
+.cbx { width: 16px; height: 16px; border-radius: 4px; border: 1.5px solid hsla(217, 55%, 16%, 0.35); display: inline-grid; place-items: center; vertical-align: middle; color: #fff; }
+.cbx.on { background: var(--a-primary); border-color: var(--a-primary); }
+.cbx svg.lucide { width: 12px !important; height: 12px !important; stroke-width: 3 !important; }
+.badge { display: inline-flex; align-items: center; height: 22px; padding-inline: 9px; border-radius: 999px; font-size: 12px; font-weight: 500; white-space: nowrap; }
+.b-success { background: hsla(162, 73%, 37%, 0.14); color: var(--a-success-strong); }
+.mchip { display: inline-flex; align-items: center; height: 22px; padding-inline: 8px; border-radius: 999px; background: hsla(217, 55%, 16%, 0.08); font-size: 12px; white-space: nowrap; }
+
+/* settings shell: app bar + settings menu */
+.sapp { flex-direction: column; }
+.abar { height: 64px; flex-shrink: 0; display: flex; align-items: center; gap: 14px; padding: 0 22px; border-bottom: 1px solid var(--a-border-subtle); background: var(--a-surface); }
+.abar .x { width: 36px; height: 36px; display: grid; place-items: center; border-radius: 50%; color: var(--a-text-2); }
+.abar .x svg.lucide { width: 20px; height: 20px; }
+.abar .ttl { font-size: 15px; }
+.abar .right { margin-left: auto; display: flex; align-items: center; gap: 4px; }
+.scope { display: inline-flex; align-items: center; border: 1px solid var(--a-border-subtle); border-radius: 6px; background: var(--a-surface); margin-right: 14px; }
+.scope span { display: inline-flex; align-items: center; gap: 6px; padding: 5px 8px; border: 1px solid transparent; border-radius: 6px; font-size: 13.5px; font-weight: 500; color: var(--a-text-2); }
+.scope span.on { border-color: var(--a-primary); background: var(--a-primary-subtle); color: var(--a-primary-hover); }
+.scope span svg.lucide:last-child:not(:first-child) { width: 14px; height: 14px; }
+.abar .ib2 { width: 38px; height: 38px; display: grid; place-items: center; color: var(--a-text-2); }
+.abar .ib2 svg.lucide { width: 20px; height: 20px; }
+.uchip { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px 0 8px; border: 1px solid var(--a-border); border-radius: 999px; font-size: 13px; margin-left: 6px; }
+.srow { flex: 1; min-height: 0; display: flex; }
+.smenu { width: 272px; flex-shrink: 0; background: var(--a-muted-solid); border-right: 1px solid var(--a-border-subtle); padding: 28px 16px 0 22px; display: flex; flex-direction: column; }
+.smenu .gh { font-size: 12px; letter-spacing: 1px; padding-bottom: 6px; }
+.smenu .gi { display: flex; align-items: center; gap: 10px; height: 38px; padding: 0 12px; border-radius: 8px; font-size: 14.5px; color: var(--a-text-2); }
+.smenu .gi.on { background: var(--a-primary-subtle); color: var(--a-fg); font-weight: 600; }
+.smenu .gi svg.lucide { width: 18px; height: 18px; color: var(--a-text-3); }
+.smenu .gap { height: 16px; flex-shrink: 0; }
+.smain { flex: 1; min-width: 0; display: flex; flex-direction: column; position: relative; }
+.shd { display: flex; align-items: center; gap: 12px; padding: 22px 24px 16px; border-bottom: 1px solid var(--a-border-subtle); flex-shrink: 0; }
+.shd h1 { font-size: 22px; font-weight: 500; margin: 0; flex: 1; letter-spacing: -0.01em; }
+.scont { flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end; gap: 28px; padding: 0 24px 20px; }
+.ssec { flex-shrink: 0; }
+.ssec h3 { margin: 0; font-size: 16px; font-weight: 600; }
+.ssec p { margin: 2px 0 0; font-size: 13.5px; color: var(--a-text-2); }
+.addb { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 8px; border-radius: 6px; color: var(--a-primary-hover); font-weight: 600; font-size: 13px; margin-top: 8px; }
+.sgrid { margin-top: 8px; border: 1px solid var(--a-border-subtle); border-radius: 8px; overflow: hidden; }
+.sgrid td { height: 48px; }
+.sgrid td.ed { padding: 0 6px; }
+.cin { border: 1.5px solid var(--a-primary); border-radius: 6px; height: 34px; display: flex; align-items: center; padding: 0 9px; background: var(--a-surface); box-shadow: 0 0 0 3px hsla(183, 100%, 33%, 0.14); overflow: hidden; white-space: nowrap; }
+.cin i.caret { display: inline-block; width: 1.5px; height: 16px; background: var(--a-fg); margin-left: 1px; flex-shrink: 0; }
+tr.dirty td.ed { background: hsla(183, 100%, 33%, 0.06); }
+.ms { border: 1px solid var(--a-border); border-radius: 6px; height: 32px; display: flex; align-items: center; gap: 4px; padding: 0 8px; background: var(--a-surface); }
+.ms .ph { color: var(--a-text-3); }
+.ms svg.lucide { margin-left: auto; width: 14px; height: 14px; color: var(--a-icon-2); }
+.ms.yardscol { width: 100%; }
+
+/* material overview */
+.mcols { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; padding: 22px 24px; }
+.mcol { display: flex; flex-direction: column; gap: 16px; }
+.sfl h4 { font-size: 17px; font-weight: 500; color: var(--a-text-2); margin: 0 0 8px; }
+.sfl .box { background: hsla(217, 55%, 16%, 0.035); border-radius: 8px; padding: 14px 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px 16px; }
+.sf small { display: block; font-size: 11.5px; color: var(--a-text-3); margin-bottom: 2px; }
+.sf div { font-size: 14px; min-height: 19px; }
+.sf.full { grid-column: 1 / -1; }
+
+/* material wizard (FormModal drawer + WizardStepper) */
+.scrim { position: absolute; inset: 0; background: rgba(10, 16, 28, 0.5); z-index: 5; animation: fade .2s ease; }
+.scrim.still { animation: none; }
+@keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+.wiz { position: absolute; top: 0; right: 0; bottom: 0; width: 1400px; background: var(--a-surface); box-shadow: -12px 0 32px rgba(15, 23, 42, 0.18); display: flex; flex-direction: column; z-index: 6; animation: slide .25s ease; }
+.wiz.still { animation: none; }
+@keyframes slide { from { transform: translateX(30px); opacity: 0; } to { transform: none; opacity: 1; } }
+.wh { display: flex; align-items: center; padding: 22px 24px 22px 32px; border-bottom: 1px solid var(--a-border-subtle); }
+.wh h2 { margin: 0; font-size: 24px; font-weight: 400; flex: 1; }
+.wh .x { width: 40px; height: 40px; display: grid; place-items: center; color: var(--a-text-2); }
+.wh .x svg.lucide { width: 22px; height: 22px; }
+.wb { flex: 1; min-height: 0; display: flex; }
+.wsteps { width: 25%; flex-shrink: 0; padding: 32px 0 0 32px; border-right: 1px solid var(--a-border-subtle); }
+.vstep { display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--a-text-2); height: 26px; }
+.vstep i.n { font-style: normal; width: 24px; height: 24px; border-radius: 50%; background: hsla(217, 55%, 16%, 0.38); color: #fff; display: grid; place-items: center; font-size: 12px; }
+.vstep.on { color: var(--a-fg); font-weight: 600; }
+.vstep.on i.n { background: var(--a-primary); }
+.vline { margin-left: 11.5px; border-left: 1px solid hsla(217, 55%, 16%, 0.22); height: 24px; }
+.wcont { flex: 1; min-width: 0; padding: 28px 32px 0; overflow: hidden; position: relative; }
+.wcont h5 { margin: 0; font-size: 24px; font-weight: 400; }
+.wcont h6 { margin: 0; font-size: 18px; font-weight: 500; }
+.wcont .tx2 { font-size: 13.5px; color: var(--a-text-2); line-height: 1.5; margin: 6px 0 0; }
+.wcont .tx2 b { color: var(--a-primary-hover); font-weight: 600; }
+.wcont .tx2 strong { color: var(--a-fg); }
+.hrow { display: flex; align-items: center; gap: 16px; margin-top: 18px; }
+.msw { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; }
+.msw i { width: 34px; height: 14px; border-radius: 999px; background: hsla(217, 55%, 16%, 0.3); position: relative; display: block; }
+.msw i::after { content: ""; position: absolute; top: -3px; left: -2px; width: 20px; height: 20px; border-radius: 50%; background: #fafafa; box-shadow: 0 1px 3px rgba(0, 0, 0, .35); }
+.fgsec { margin-top: 22px; position: relative; }
+.msel { position: relative; margin-top: 14px; border: 1px solid hsla(217, 55%, 16%, 0.3); border-radius: 6px; min-height: 52px; display: flex; align-items: center; gap: 6px; padding: 8px 40px 8px 12px; }
+.msel.open { border: 2px solid var(--a-primary); padding: 7px 39px 7px 11px; }
+.msel .lab { position: absolute; top: -9px; left: 9px; background: var(--a-surface); padding: 0 4px; font-size: 12px; color: var(--a-text-2); }
+.msel.open .lab { color: var(--a-primary-hover); }
+.msel > svg.lucide { position: absolute; right: 12px; top: 50%; margin-top: -8px; color: var(--a-text-2); }
+.chp { display: inline-flex; align-items: center; height: 30px; padding: 0 12px; border-radius: 999px; background: hsla(217, 55%, 16%, 0.08); font-size: 13px; }
+.mmenu { position: absolute; left: 0; top: calc(100% + 4px); width: 520px; background: var(--a-surface); border-radius: 6px; box-shadow: 0 5px 5px -3px rgba(0,0,0,.2), 0 8px 10px 1px rgba(0,0,0,.14), 0 3px 14px 2px rgba(0,0,0,.12); padding: 8px 0; z-index: 3; animation: pop .18s ease; }
+.mmenu .mi { display: flex; align-items: center; gap: 12px; height: 46px; padding: 0 16px 0 14px; font-size: 14.5px; }
+.mmenu .mi.sel { background: hsla(183, 100%, 33%, 0.08); }
+.mmenu .mi .cbx { width: 18px; height: 18px; }
+@keyframes pop { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; transform: none; } }
+.wfoot { display: flex; justify-content: space-between; padding: 16px; box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.12); position: relative; z-index: 1; }
+.wfoot > div { display: flex; gap: 8px; }
+
+/* finished goods list */
+.fgbody { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 20px 24px 0; gap: 14px; }
+.sumbar { display: flex; border: 1px solid var(--a-border-subtle); border-radius: 10px; flex-shrink: 0; }
+.sumbar > div { flex: 1; padding: 10px 16px; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.sumbar > div + div { border-left: 1px solid var(--a-border-subtle); }
+.sumbar small { font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--a-text-2); opacity: .85; }
+.sumbar b { font-size: 18px; font-weight: 600; letter-spacing: -.01em; }
+.gtool { display: flex; align-items: center; gap: 8px; }
+.gsearch { width: 340px; height: 34px; border: 1px solid var(--a-border); border-radius: 8px; display: flex; align-items: center; gap: 7px; padding: 0 10px; color: var(--a-text-3); font-size: 13px; white-space: nowrap; overflow: hidden; }
+.gsearch svg.lucide { width: 15px; height: 15px; color: var(--a-icon-2); }
+.fchip { height: 30px; display: inline-flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid var(--a-border); border-radius: 999px; font-size: 12.5px; }
+.fchip b { font-weight: 600; }
+.fchip svg.lucide { width: 14px; height: 14px; color: var(--a-icon-2); }
+.gcard { border: 1px solid var(--a-border-subtle); border-radius: 10px; overflow: hidden; position: relative; }
+.gcard td.fg { font-weight: 600; color: var(--a-primary-hover); text-decoration: underline; text-decoration-color: hsla(183, 100%, 33%, 0.35); text-underline-offset: 2px; }
+.stk { display: flex; flex-direction: column; line-height: 1.3; }
+.stk small { color: var(--a-text-3); font-size: 12px; }
+.gcard td { height: 52px; }
+.gcard tr.hov td { background: var(--a-hover); }
+.more .mb { display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 6px; }
+tr.hov .more .mb { background: hsla(217, 55%, 16%, 0.1); color: var(--a-fg); }
+.rmenu { position: absolute; right: 14px; width: 210px; background: var(--a-surface); border: 1px solid var(--a-border); border-radius: 8px; box-shadow: 0 8px 24px rgba(15, 23, 42, 0.16); padding: 4px; z-index: 4; animation: pop .18s ease; }
+.rmenu .ri { display: flex; align-items: center; gap: 8px; height: 34px; padding: 0 10px; border-radius: 5px; font-size: 13px; }
+.rmenu .ri.hv { background: var(--a-hover); }
+.rmenu .ri.dst { color: var(--a-error-strong); }
+
+/* print dialog (PrintDialog + BaleTag) */
+.pdlg { position: absolute; left: 50%; top: 50%; width: 820px; transform: translate(-50%, -50%); background: #fff; color: #12233e; border-radius: 4px; box-shadow: 0 11px 15px -7px rgba(0,0,0,.2), 0 24px 38px 3px rgba(0,0,0,.14), 0 9px 46px 8px rgba(0,0,0,.12); z-index: 6; animation: pop .2s ease; padding: 0 16px 18px; }
+.pdlg .pt { font-size: 20px; font-weight: 500; padding: 14px 0 12px; }
+.pdlg .dv { height: 1px; background: rgba(0, 0, 0, 0.12); }
+.btag { padding-top: 14px; display: flex; flex-direction: column; }
+.btag .tg { font-family: "Poppins", var(--font); font-size: 24px; font-weight: 600; margin-bottom: 6px; }
+.btag .h6 { font-size: 18px; font-weight: 500; line-height: 1.35; }
+.btag .mn { line-height: 1.1; margin-top: 4px; }
+.btag .cl { font-size: 15px; line-height: 1.45; margin-top: 4px; }
+.btag .wts { margin-top: 8px; display: flex; flex-direction: column; gap: 6px; }
+.btag .wts div { display: flex; justify-content: space-between; font-size: 18px; font-weight: 500; line-height: 1; }
+.btag .qr { margin: 16px auto 0; width: 128px; height: 128px; }
 
 /* intro / outro */
 .cover { position: absolute; inset: 0; background: rgba(248, 250, 252, 0.88); backdrop-filter: blur(3px); display: grid; place-items: center; z-index: 10; }
@@ -282,8 +331,6 @@ td { padding: 0 12px; height: 44px; border-bottom: 1px solid var(--a-border-subt
 .cover .eyebrow { font-size: 13px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--a-primary-hover); display: flex; align-items: center; gap: 8px; }
 .cover h2 { margin: 0; font-size: 40px; line-height: 1.12; letter-spacing: -0.025em; font-weight: 700; text-wrap: balance; }
 .cover p { margin: 0; font-size: 17px; line-height: 1.55; color: var(--a-text-2); max-width: 620px; }
-.cover .chips { display: flex; gap: 8px; flex-wrap: wrap; }
-.cover .chips code { font-family: var(--mono); font-size: 14px; padding: 5px 10px; border-radius: 6px; background: var(--a-surface); border: 1px solid var(--a-border); }
 .cover .cta { display: flex; gap: 10px; margin-top: 8px; }
 .cover .go { font: inherit; font-size: 15px; font-weight: 600; height: 44px; padding-inline: 20px; border-radius: 8px; border: 0; background: var(--a-primary); color: #fff; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; text-decoration: none; }
 .cover .go.sec { background: var(--a-surface); color: var(--a-fg); border: 1px solid var(--a-border); }
@@ -295,52 +342,6 @@ td { padding: 0 12px; height: 44px; border-bottom: 1px solid var(--a-border-subt
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
-
-/* settings + compliance language */
-.sbody { flex: 1; min-height: 0; display: flex; gap: 20px; padding: 0 24px 20px; }
-.snav { width: 200px; flex-shrink: 0; display: flex; flex-direction: column; gap: 2px; }
-.snav .sh { font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--a-text-3); padding: 10px 8px 4px; }
-.snav .si { padding: 6px 8px; border-radius: 6px; font-weight: 500; color: var(--a-text-2); font-size: 12.5px; }
-.snav .si.on { background: var(--a-hover); color: var(--a-fg); font-weight: 600; }
-.seg { display: inline-flex; border: 1px solid var(--a-border); border-radius: 8px; padding: 2px; gap: 2px; background: var(--a-muted-solid); }
-.seg span { padding: 5px 12px; border-radius: 6px; font-size: 12.5px; font-weight: 500; color: var(--a-text-2); }
-.seg span.on { background: var(--a-surface); color: var(--a-fg); box-shadow: 0 1px 2px rgba(15, 23, 42, 0.12); font-weight: 600; }
-.spanel { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 14px; }
-.scard { border: 1px solid var(--a-border-subtle); border-radius: 10px; overflow: hidden; }
-.scard .sct { display: flex; align-items: flex-start; gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--a-border-subtle); }
-.scard .sct h3 { margin: 0 0 3px; font-size: 14px; font-weight: 600; }
-.scard .sct p { margin: 0; font-size: 12.5px; color: var(--a-text-3); }
-.scard .sct .rb { margin-left: auto; }
-.ctab td.wd { white-space: normal; line-height: 1.4; color: var(--a-text-2); font-size: 12.5px; padding-block: 8px; }
-.ctab td { height: 52px; }
-.ctab .lab { font-weight: 600; }
-.ctab td.act { text-align: right; }
-.ctab .ib { display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--a-border); color: var(--a-text-2); }
-.ctab tr.hl td { background: hsla(183, 100%, 33%, 0.07); }
-.sw { display: inline-flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--a-text-2); }
-.sw i { width: 30px; height: 18px; border-radius: 999px; background: var(--a-border); position: relative; display: block; }
-.sw i::after { content: ""; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.2); }
-.sw.on i { background: var(--a-primary); }
-.sw.on i::after { left: 14px; }
-.fld .ta { border: 1px solid var(--a-border); border-radius: 6px; padding: 9px 10px; font-size: 13px; line-height: 1.45; min-height: 74px; }
-.fld .ta.open { border-color: var(--a-primary); box-shadow: 0 0 0 3px hsla(183, 100%, 33%, 0.15); }
-.cbl { border: 1px solid var(--a-border-subtle); border-radius: 8px; overflow: hidden; }
-.cbl .cr { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; font-size: 13px; }
-.cbl .cr + .cr { border-top: 1px solid var(--a-border-subtle); }
-.cbl .cr .bx { width: 16px; height: 16px; border-radius: 4px; border: 1.5px solid var(--a-border); flex-shrink: 0; margin-top: 1px; display: grid; place-items: center; color: #fff; }
-.cbl .cr .bx svg.lucide { width: 12px; height: 12px; stroke-width: 3; }
-.cbl .cr.on { background: hsla(183, 100%, 33%, 0.06); }
-.cbl .cr.on .bx { background: var(--a-primary); border-color: var(--a-primary); }
-.cbl .cr small { display: block; color: var(--a-text-3); font-size: 12px; margin-top: 2px; line-height: 1.4; }
-.ftag { border: 1.5px solid var(--a-fg); border-radius: 6px; padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; font-family: var(--font); background: #fff; }
-.ftag .tt1 { display: flex; justify-content: space-between; align-items: center; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
-.ftag .mat { font-size: 22px; font-weight: 700; letter-spacing: -.01em; }
-.ftag .cl { display: flex; flex-direction: column; gap: 6px; border-top: 1px dashed var(--a-border); border-bottom: 1px dashed var(--a-border); padding: 9px 0; }
-.ftag .cl div { font-size: 12.5px; line-height: 1.4; }
-.ftag .cl b { font-weight: 700; }
-.ftag .bc { height: 46px; background: repeating-linear-gradient(90deg, #12233e 0 2px, transparent 2px 4px, #12233e 4px 5px, transparent 5px 8px, #12233e 8px 11px, transparent 11px 12px); }
-.ftag .meta { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; font-size: 12px; }
-.ftag .meta small { display: block; color: var(--a-text-3); font-size: 11px; }
 </style>
 
 <div class="wrap">
@@ -381,60 +382,61 @@ td { padding: 0 12px; height: 44px; border-bottom: 1px solid var(--a-border-subt
 
   const ic = (n, extra = '') => `<i data-lucide="${n}" ${extra}></i>`;
 
-  // Sample data (illustrative only). An org keeps one catalog of
-  // finished goods compliance language; each material picks the labels
-  // that apply, and every finished-good tag prints that wording.
+  // Sample data (illustrative only). The organization keeps one catalog of
+  // finished goods compliance language in Inventory Settings → Finished Goods.
+  // `yards: null` means the row names no yards, so it applies to every yard.
   const CL = [
-    { k: 'r2', label: 'R2 Controlled Stream', text: 'R2 CONTROLLED STREAM: Contains focus materials. Ship only to qualified downstream vendors.' },
-    { k: 'pre', label: 'Pre-Sanitization', text: 'PRE-SANITIZATION: Data-bearing devices. Data has not been sanitized.' },
-    { k: 'un', label: 'Unrestricted Stream', text: 'UNRESTRICTED STREAM: No focus materials. Suitable for general downstream recycling.' },
-    { k: 'nd', label: 'No Data', text: 'NO DATA: Contains no data storage devices.' },
+    { k: 'r2', label: 'R2 Controlled Stream', text: 'R2 CONTROLLED STREAM: Contains focus materials', yards: null },
+    { k: 'pre', label: 'Pre-Sanitization', text: 'PRE-SANITIZATION: Data not sanitized', yards: null },
+    { k: 'un', label: 'Unrestricted Stream', text: 'UNRESTRICTED STREAM: No focus materials', yards: ['South Yard'] },
+    { k: 'nd', label: 'No Data', text: 'NO DATA: No data storage devices', yards: null },
   ];
-  const PRE_NEW = 'PRE-SANITIZATION: Data-bearing devices. Data not yet sanitized. Handle under chain of custody.';
-  const textOf = (c, s) => c.k === 'pre' && s.edited ? PRE_NEW : c.text;
-  const MATS = [
-    { n: 'Whole Hard Drives', code: 'ES-HDD', cl: ['r2', 'pre'] },
-    { n: 'Laptops - Complete', code: 'ES-LAP', cl: ['r2', 'pre'] },
-    { n: 'Low Grade Boards', code: 'ES-LGB', cl: ['r2', 'nd'] },
-    { n: 'Desktop CPUs', code: 'ES-CPU', cl: ['pre'] },
-    { n: 'Power Supplies', code: 'ES-PSU', cl: ['un', 'nd'] },
-    { n: 'Insulated Copper Wire', code: 'CU-ICW', cl: ['un', 'nd'] },
-  ];
+  const PRE_NEW = 'PRE-SANITIZATION: Data-bearing devices, data not yet sanitized';
+  const textOf = (c, s) => (c.k === 'pre' && s.edited ? PRE_NEW : c.text);
+  const MAT = { name: 'Whole Hard Drives', commodity: 'Electronics', code: 'ES-HDD', cl: ['r2', 'pre'] };
   const FGS = [
-    { id: 'FG-3318', mat: 'Whole Hard Drives', w: '1,240 lb', type: 'Gaylord' },
-    { id: 'FG-3315', mat: 'Low Grade Boards', w: '980 lb', type: 'Gaylord' },
-    { id: 'FG-3311', mat: 'Power Supplies', w: '1,460 lb', type: 'Pallet' },
-    { id: 'FG-3307', mat: 'Laptops - Complete', w: '720 lb', type: 'Gaylord' },
-    { id: 'FG-3302', mat: 'Insulated Copper Wire', w: '2,110 lb', type: 'Bale' },
+    { tag: '100482', eff: '10/14/2026, 02:35 PM', mat: 'Whole Hard Drives', com: 'Electronics', type: 'Gaylord', wh: 'A-12', net: '1,240 lbs', po: '—' },
+    { tag: '100479', eff: '10/14/2026, 11:02 AM', mat: 'Low Grade Boards', com: 'Electronics', type: 'Gaylord', wh: 'A-07', net: '980 lbs', po: 'PO-2291' },
+    { tag: '100476', eff: '10/13/2026, 04:18 PM', mat: 'Power Supplies', com: 'Electronics', type: 'Pallet', wh: 'B-03', net: '1,460 lbs', po: '—' },
+    { tag: '100471', eff: '10/13/2026, 09:47 AM', mat: 'Laptops - Complete', com: 'Electronics', type: 'Gaylord', wh: 'A-12', net: '720 lbs', po: 'PO-2287' },
+    { tag: '100468', eff: '10/12/2026, 03:05 PM', mat: 'Insulated Copper Wire', com: 'Copper', type: 'Bale', wh: 'C-01', net: '2,110 lbs', po: '—' },
+    { tag: '100463', eff: '10/12/2026, 10:21 AM', mat: 'Desktop CPUs', com: 'Electronics', type: 'Gaylord', wh: 'A-09', net: '1,015 lbs', po: '—' },
   ];
-  const clName = k => CL.find(c => c.k === k).label;
+
+  const SETTINGS_URL = '/app/settings/inventory/finished-goods';
+  const MAT_URL = '/app/commodities/7c1e…/Whole%20Hard%20Drives/4b9d…/overview';
+  const FG_URL = '/app/inventory/finished-goods/list';
 
   // ---------- steps ----------
   const STEPS = [
-    { view: 'org', cover: 'intro', url: '/app/settings/org/inventory/finished-goods' },
-    { view: 'org', t: '#sn-fg', place: 'right', url: '/app/settings/org/inventory/finished-goods',
-      tip: 'In <b>Org Settings</b>, go to <b>Inventory → Finished Goods</b>.' },
-    { view: 'org', t: '#cl-card', place: 'bottom', url: '/app/settings/org/inventory/finished-goods',
-      tip: 'This is your <b>finished goods compliance language</b>. Each label has the exact wording it prints on a tag.' },
-    { view: 'org', t: '#edit-pre', place: 'left', url: '/app/settings/org/inventory/finished-goods',
-      tip: 'Click edit on a label to change its wording.' },
-    { view: 'org', drawer: 'edit', t: '#fld-text', place: 'left', url: '/app/settings/org/inventory/finished-goods',
-      tip: 'Set the label and the exact text to print, then save. You only do this once for your whole organization.' },
-    { view: 'mat', drawer: 'mat', t: '#cl-pick', place: 'left', url: '/app/commodities/materials/es-hdd',
-      tip: 'Open a material’s properties and tick each compliance label that applies. You can pick more than one.' },
-    { view: 'fg', edited: true, t: '#btn-print', place: 'left', url: '/app/inventory/finished-goods',
-      tip: 'Print a finished-good tag for that material as usual.' },
-    { view: 'fg', edited: true, drawer: 'tag', t: '#tag-cl', place: 'left', url: '/app/inventory/finished-goods',
-      tip: 'Each selected label prints its wording right below the material name. No more adding certification text by hand.' },
-    { view: 'yard', edited: true, t: '#yard-col', place: 'left', url: '/app/settings/yard/inventory/finished-goods',
-      tip: 'If one yard needs different labels, open <b>Yard Settings</b> and set them under <b>Inventory → Finished Goods</b>. That yard overrides the organization’s labels.' },
-    { view: 'yard', edited: true, cover: 'outro', url: '/app/settings/yard/inventory/finished-goods' },
+    { view: 'settings', scope: 'org', cover: 'intro', url: SETTINGS_URL },
+    { view: 'settings', scope: 'org', t: '#tab-fg', place: 'bottom', url: SETTINGS_URL,
+      tip: 'In <b>Settings</b>, open <b>Inventory</b> and the <b>Finished Goods</b> tab.' },
+    { view: 'settings', scope: 'org', t: '#cl-sec', place: 'top', url: SETTINGS_URL,
+      tip: '<b>Finished Goods Compliance Language</b> is your list of labels. Each row has a <b>Label</b>, the <b>Print text</b> for the tag, and the <b>Yards</b> it applies to.' },
+    { view: 'settings', scope: 'org', edited: true, t: '#cell-pre', place: 'top', url: SETTINGS_URL,
+      tip: 'Click a <b>Print text</b> cell to change the wording right in the grid. Use <b>Add Compliance Language</b> for a new label, then click <b>Save Changes</b>.' },
+    { view: 'mat', edited: true, t: '#mp-fgcl', place: 'left', url: MAT_URL,
+      tip: 'Open a material from <b>Commodities</b>. Its <b>Compliance</b> section shows the labels it uses.' },
+    { view: 'mat', edited: true, t: '#btn-edit', place: 'bottom', url: MAT_URL,
+      tip: 'Click <b>Edit Properties</b> to change them.' },
+    { view: 'mat', edited: true, wiz: true, t: '#cl-menu', place: 'right', url: MAT_URL,
+      tip: 'On the <b>Compliance</b> step, pick the <b>Labels</b> for this material. You can pick more than one. Then click <b>Save Changes</b>.' },
+    { view: 'fg', edited: true, t: '#row-menu', place: 'bottom', url: FG_URL,
+      tip: 'On <b>Finished Goods</b>, open a row’s actions and click <b>Print tag</b>. To print several, select rows and click <b>Print Tags</b>.' },
+    { view: 'fg', edited: true, print: true, t: '#tag-cl', place: 'bottom', url: FG_URL,
+      tip: 'The <b>Bale Tags</b> print shows the wording for each of the material’s labels under the material name, separated by commas.' },
+    { view: 'settings', scope: 'yard', edited: true, t: '#scope', place: 'bottom', url: SETTINGS_URL,
+      tip: 'To set up one yard, pick it in the <b>Organization</b> / yard control at the top.' },
+    { view: 'settings', scope: 'yard', edited: true, t: '#yard-col', place: 'top', url: SETTINGS_URL,
+      tip: 'Use <b>In this yard</b> to turn each label on or off for this yard. A label that is off doesn’t print on this yard’s tags.' },
+    { view: 'settings', scope: 'yard', edited: true, cover: 'outro', url: SETTINGS_URL },
   ];
 
-  // ---------- chrome ----------
+  // ---------- main app chrome (same as the other inventory walkthroughs) ----------
   function sidebar(active) {
-    const row = (i, l, extra = '', id = '') => `<div class="nrow${active === id && id ? ' active' : ''}">${ic(i)}<span>${l}</span>${extra || ic('chevron-right', 'class="chev"')}</div>`;
-    const sub = (id, l) => `<div class="nrow sub${active === id ? ' active' : ''}" id="nav-${id}"><span>${l}</span></div>`;
+    const row = (i, l, extra = '') => `<div class="nrow">${ic(i)}<span>${l}</span>${extra || ic('chevron-right', 'class="chev"')}</div>`;
+    const sub = (id, l, isNew) => `<div class="nrow sub${active === id ? ' active' : ''}" id="nav-${id}"><span>${l}</span>${isNew ? '<span class="pill">New</span>' : ''}</div>`;
     return `<aside class="side">
       <div class="top">${MARK}<div class="yard"><span>North Yard</span>${ic('chevrons-up-down')}</div></div>
       <div class="nav">
@@ -444,91 +446,206 @@ td { padding: 0 12px; height: 44px; border-bottom: 1px solid var(--a-border-subt
         <div class="nsep"></div>
         ${row('shopping-cart', 'Purchases')}${row('tag', 'Sales')}${row('file-text', 'Contracts')}
         <div class="nrow">${ic('boxes')}<span>Inventory</span>${ic('chevron-down', 'class="chev"')}</div>
-        ${sub('ov', 'Inventory Overview')}${sub('hl', 'Holding Lots')}${sub('pk', 'Packages')}${sub('rg', 'Regrades')}${sub('fg', 'Finished Goods')}${sub('adj', 'Adjustments')}${sub('pic', 'Physical Inventory Count')}
-        ${row('users', 'Customers')}${row('layers', 'Commodities', '', 'mat')}${row('truck', 'Logistics')}${row('clipboard-list', 'Load Board')}${row('warehouse', 'Assets')}${row('chart-column', 'Reports')}${row('landmark', 'Ledger')}
+        ${sub('ov', 'Inventory Overview')}${sub('rg', 'Regrades')}${sub('bp', 'Batch Production')}${sub('fg', 'Finished Goods')}${sub('pl', 'Packing Lists')}${sub('adj', 'Adjustments')}${sub('pic', 'Physical Inventory Count', true)}${sub('pk', 'Packages')}${sub('ni', 'Negative Inventory')}
+        ${row('users', 'Customers')}${row('layers', 'Commodities')}${row('truck', 'Logistics')}${row('clipboard-list', 'Load Board')}${row('warehouse', 'Assets')}${row('chart-column', 'Reports')}${row('landmark', 'Ledger')}
       </div>
       <div class="foot"><div class="av">JP</div><div class="who"><span>Jordan Pike</span><small>General Manager</small></div>
         <div class="ico"><span>${ic('settings')}</span><span>${ic('circle-help')}</span></div></div>
     </aside>`;
   }
+  const spill = `<span class="spill"><span>${ic('search')}</span><span>${ic('id-card')}</span></span>`;
+  const crumbs = parts => `<div class="crow">${ic('arrow-left')}${parts.map((p, i) => `<span class="${i === parts.length - 1 ? 'leaf' : ''}">${p}</span>`).join('<span class="sep">/</span>')}${spill}</div>`;
 
-  const head = (crumbs, title, acts) => `<div class="phead"><div class="left"><div class="crumbs">${crumbs.map(c => `<span>${c}</span>`).join(ic('chevron-right'))}</div><h1>${title}</h1></div><div class="acts">${acts}</div></div>`;
+  // ---------- Settings (AppBar + settings menu + Inventory Settings) ----------
+  function settingsMenu(yard) {
+    const gi = (i, l, on) => `<div class="gi${on ? ' on' : ''}">${ic(i)}<span>${l}</span></div>`;
+    return `<nav class="smenu">
+      <div class="gh">ADMIN</div>
+      ${gi('layout-dashboard', 'Overview')}${yard ? '' : gi('users', 'Users')}${gi('user-cog', 'Roles &amp; Permissions')}${gi('file-text', 'Documents')}
+      <div class="gap"></div>
+      <div class="gh">NOTIFICATIONS</div>
+      ${yard ? '' : gi('sliders-horizontal', 'Definitions')}${gi('shield-check', 'Policies')}
+      <div class="gap"></div>
+      <div class="gh">PRODUCT</div>
+      ${gi('shopping-cart', 'Purchases')}${gi('tag', 'Sales')}${gi('files', 'Contracts')}${gi('list', 'Inventory', true)}${yard ? '' : gi('circle-user', 'Customers') + gi('dollar-sign', 'Ledger')}${gi('monitor-smartphone', 'Hardware')}
+    </nav>`;
+  }
 
   function settings(s) {
-    const yard = s.view === 'yard';
-    const scope = yard ? 'Yard Settings' : 'Org Settings';
-    const nav = `<nav class="snav">
-        <div class="sh">General</div><div class="si">Organization</div><div class="si">Users</div>
-        <div class="sh">Inventory</div><div class="si">Packages</div><div class="si on" id="sn-fg">Finished Goods</div>
-      </nav>`;
-    const rows = CL.map(c => {
-      const act = yard
-        ? `<span class="sw${c.k === 'un' ? '' : ' on'}"><i></i>${c.k === 'un' ? 'Off' : 'On'}</span>`
-        : `<span class="ib"${c.k === 'pre' ? ' id="edit-pre"' : ''}>${ic('pencil')}</span>`;
-      return `<tr${c.k === 'pre' && s.drawer === 'edit' ? ' class="hl"' : ''}><td class="lab">${c.label}</td><td class="wd">${textOf(c, s)}</td><td class="act">${act}</td></tr>`;
+    const yard = s.scope === 'yard';
+    const yardCell = (rowYards, rowName, id) => {
+      if (yard) {
+        const on = !rowYards || rowYards.includes('North Yard');
+        return `<td><span class="cbx${on ? ' on' : ''}" aria-label="${rowName} in this yard">${on ? ic('check') : ''}</span></td>`;
+      }
+      return `<td><div class="ms yardscol">${rowYards ? rowYards.map(y => `<span class="mchip">${y}</span>`).join('') : '<span class="ph">All yards</span>'}${ic('chevron-down')}</div></td>`;
+    };
+    const yardHead = (id = '') => (yard ? `<th style="width:150px"${id ? ` id="${id}"` : ''}>In this yard</th>` : '<th style="width:220px">Yards</th>');
+    const sec = (id, title, sub, add, cols, rows) => `<section class="ssec"${id ? ` id="${id}"` : ''}>
+        <h3>${title}</h3><p>${sub}</p>
+        <div class="addb">${ic('circle-plus')}${add}</div>
+        <div class="sgrid"><table><thead><tr>${cols}<th style="width:48px"></th></tr></thead><tbody>${rows}</tbody></table></div>
+      </section>`;
+    const more = `<td class="more"><span class="mb">${ic('ellipsis')}</span></td>`;
+
+    const fgTypes = [['Gaylord', '65'], ['Bale', '0'], ['Pallet', '45']];
+    const fgSec = sec('', 'Finished Goods', 'List of finished goods', 'Add Finished Good Type',
+      `<th>Display</th><th style="width:180px">Default Tare Weight</th><th style="width:110px">Active</th>${yardHead()}`,
+      fgTypes.map(([d, t]) => `<tr><td>${d}</td><td>${t}</td><td><span class="cbx on">${ic('check')}</span></td>${yardCell(null, d)}${more}</tr>`).join(''));
+    const whSec = sec('', 'Warehouse Codes', 'List of warehouse location codes for finished goods', 'Add Warehouse Code',
+      `<th>Name</th><th style="width:110px">Active</th>${yardHead()}`,
+      ['A-07', 'A-12'].map(n => `<tr><td>${n}</td><td><span class="cbx on">${ic('check')}</span></td>${yardCell(null, n)}${more}</tr>`).join(''));
+    const clRows = CL.map(c => {
+      const editing = c.k === 'pre' && s.edited && !yard;
+      const text = editing ? `<div class="cin" id="cell-pre"><span>${PRE_NEW}</span><i class="caret"></i></div>` : textOf(c, s);
+      return `<tr${editing ? ' class="dirty"' : ''}><td>${c.label}</td><td${editing ? ' class="ed"' : ''}>${text}</td>${yardCell(c.yards, c.label)}${more}</tr>`;
     }).join('');
-    const card = `<div class="scard" id="cl-card">
-        <div class="sct"><div><h3>Finished goods compliance language</h3><p>${yard ? 'Labels used at North Yard. This yard overrides the organization’s labels.' : 'Wording that prints on finished-good tags for the materials you choose.'}</p></div>${yard ? '' : `<span class="rb">${ic('plus')}Add label</span>`}</div>
-        <table class="itab ctab"><thead><tr><th style="width:24%">Label</th><th>Text to print</th><th class="num" style="width:${yard ? 150 : 80}px;text-align:right"${yard ? ' id="yard-col"' : ''}>${yard ? 'At this yard' : ''}</th></tr></thead><tbody>${rows}</tbody></table>
-      </div>`;
-    return `<main class="main">${head(['Settings', scope, 'Inventory', 'Finished Goods'], 'Finished Goods', `<div class="seg"><span${yard ? '' : ' class="on"'}>Org Settings</span><span${yard ? ' class="on"' : ''}>Yard Settings</span></div>`)}
-      <div class="sbody">${nav}<div class="spanel">${card}</div></div>${drawer(s)}</main>`;
+    const clSec = sec('cl-sec', 'Finished Goods Compliance Language', 'Labels and the words that print on a finished good tag. Turn each one on per yard.', 'Add Compliance Language',
+      `<th style="width:230px">Label</th><th>Print text</th>${yardHead('yard-col')}`, clRows);
+
+    const canSave = s.edited && !yard;
+    const save = canSave ? `<span class="rb pri" id="btn-save">${ic('save')}Save Changes</span>` : '<span class="rb dis">No Changes to Save</span>';
+    const scope = `<div class="scope" id="scope"><span${yard ? '' : ' class="on"'}>${ic('building-2')}Organization</span><span${yard ? ' class="on"' : ''}>${ic('map-pin-house')}${yard ? 'North Yard' : 'Yard'}${ic('chevron-down')}</span></div>`;
+    return `<div class="app sapp">
+      <header class="abar"><span class="x">${ic('x')}</span><span class="ttl">Settings</span>
+        <div class="right">${scope}<span class="ib2">${ic('settings')}</span><span class="ib2">${ic('message-square')}</span><span class="ib2">${ic('circle-help')}</span><span class="ib2">${ic('graduation-cap')}</span>
+          <span class="uchip">${ic('user')}jordan@northyardmetals.com</span></div></header>
+      <div class="srow">${settingsMenu(yard)}
+        <main class="smain">
+          <div class="shd"><h1>Inventory Settings</h1>${save}</div>
+          <div class="ntabs"><span>General</span><span class="on" id="tab-fg">Finished Goods</span></div>
+          <div class="scont">${fgSec}${whSec}${clSec}</div>
+        </main>
+      </div>
+      ${s.cover ? cover(s.cover) : ''}
+    </div>`;
   }
 
-  function materials(s) {
-    const rows = MATS.map(m => `<tr${m.code === 'ES-HDD' ? ' class="new"' : ''}><td><span class="link">${m.n}</span></td><td>${m.code}</td><td>${m.cl.map(k => `<span class="badge b-neutral" style="margin-right:4px">${clName(k)}</span>`).join('')}</td></tr>`).join('');
-    return `<main class="main">${head(['Commodities', 'Materials'], 'Materials', `<span class="rb pri">${ic('plus')}Material</span>`)}
-      <div class="ibody">
-        <div class="tcard"><div class="tt"><div class="inp">${ic('search')}Search materials</div><span class="cnt">${MATS.length} materials</span></div>
-          <table class="itab"><thead><tr><th style="width:26%">Material</th><th style="width:14%">Material Code</th><th>Compliance language</th></tr></thead><tbody>${rows}</tbody></table></div>
-      </div>${drawer(s)}</main>`;
+  // ---------- Material Properties overview (+ material wizard) ----------
+  function material(s) {
+    const f = (l, v, extra = '') => `<div class="sf${extra}"><small>${l}</small><div>${v}</div></div>`;
+    const props = [
+      f('Material Name', MAT.name), f('Commodity Name', MAT.commodity),
+      f('Material Code', MAT.code), f('ISRI Code', ''),
+      f('Tare Weight Required?', 'No'), f('Notes', ''),
+      f('Print Settings', ''), f('Default Gross Weight', ''),
+      f('Default Tare Weight', ''), f('Hedge-able Quantity', ''),
+      f('Hedge-able Percent', ''),
+    ].join('');
+    const labels = MAT.cl.map(k => CL.find(c => c.k === k).label).join(', ');
+    const page = `<main class="main">
+        <div class="phd">${crumbs(['Details', '…', 'Overview'])}
+          <div class="trow"><h1>${MAT.name}</h1><span class="rb pri" id="btn-edit">${ic('pencil')}Edit Properties</span></div></div>
+        <div class="ntabs"><span class="on">Overview</span></div>
+        <div class="mcols">
+          <div class="mcol"><div class="sfl"><h4>Material Properties</h4><div class="box">${props}</div></div></div>
+          <div class="mcol">
+            <div class="sfl"><h4>Compliance</h4><div class="box">${f('Payment Hold Time', 'Is not applied')}${f('Inventory Hold Time', 'Is not applied')}<div class="sf full" id="mp-fgcl"><small>Finished Goods Compliance Language</small><div>${labels}</div></div></div></div>
+            <div class="sfl"><h4>Auto-Regrade</h4><div class="box">${f('Enabled', 'No', ' full')}${f('Material', 'None', ' full')}</div></div>
+            <div class="sfl"><h4>Backup Source Material</h4><div class="box">${f('Backup Source Material', 'None', ' full')}</div></div>
+          </div>
+        </div>
+      </main>`;
+    return `<div class="app">${sidebar('')}${page}${s.wiz ? wizard() : ''}${s.cover ? cover(s.cover) : ''}</div>`;
   }
 
-  function finishedGoods(s) {
-    const rows = FGS.map((f, i) => `<tr${i === 0 ? ' class="new"' : ''}><td class="mono">${f.id}</td><td>${f.mat}</td><td>${f.type}</td><td class="num">${f.w}</td><td><span class="badge b-success">In stock</span></td><td style="text-align:right"><span class="rb icon"${i === 0 ? ' id="btn-print"' : ''}>${ic('printer')}</span></td></tr>`).join('');
-    return `<main class="main">${head(['Inventory', 'Finished Goods'], 'Finished Goods', `<span class="rb pri">${ic('plus')}Finished Good</span>`)}
-      <div class="ibody">
-        <div class="tcard"><div class="tt"><div class="inp">${ic('search')}Search finished goods</div><span class="cnt">${FGS.length} finished goods</span></div>
-          <table class="itab"><thead><tr><th style="width:12%">Tag</th><th style="width:28%">Material</th><th>Type</th><th class="num">Weight</th><th>Status</th><th style="width:70px"></th></tr></thead><tbody>${rows}</tbody></table></div>
-      </div>${drawer(s)}</main>`;
-  }
-
-  function drawer(s) {
-    if (!s.drawer) return '';
+  function wizard() {
     const prev = STEPS[step - 1];
-    const still = prev && prev.drawer && prev.view === s.view ? ' still' : '';
-    const shell = (title, body, foot) => `<div class="drawer${still}"><div class="dh"><h3>${title}</h3><span class="x">${ic('x')}</span></div><div class="db">${body}</div>${foot ? `<div class="df">${foot}</div>` : ''}</div>`;
-    if (s.drawer === 'edit') {
-      return shell('Edit compliance label', `
-        <div class="fld"><label>Label</label><div class="in">Pre-Sanitization</div></div>
-        <div class="fld" id="fld-text"><label>Text to print</label><div class="ta open">${PRE_NEW}</div>
-          <div class="hint">Prints word for word on finished-good tags.</div></div>
-        <div class="note">${ic('info')}<span>Materials using <b>Pre-Sanitization</b> print this wording on every finished-good tag from now on.</span></div>`,
-        `<span class="rb">Cancel</span><span class="rb pri">${ic('check')}Save</span>`);
+    const still = prev && prev.wiz ? ' still' : '';
+    const stepRow = (n, l, on) => `<div class="vstep${on ? ' on' : ''}"><i class="n">${n}</i><span>${l}</span></div>`;
+    // Yard mode (North Yard): only labels active at this yard are offered.
+    const options = CL.filter(c => !c.yards || c.yards.includes('North Yard'));
+    const menu = `<div class="mmenu" id="cl-menu">${options.map(c => { const on = MAT.cl.includes(c.k); return `<div class="mi${on ? ' sel' : ''}"><span class="cbx${on ? ' on' : ''}">${on ? ic('check') : ''}</span><span>${c.label}</span></div>`; }).join('')}</div>`;
+    return `<div class="scrim${still}"></div>
+      <div class="wiz${still}">
+        <div class="wh"><h2>${MAT.name}</h2><span class="x">${ic('x')}</span></div>
+        <div class="wb">
+          <div class="wsteps">${stepRow(1, 'General Properties')}<div class="vline"></div>${stepRow(2, 'Inventory')}<div class="vline"></div>${stepRow(3, 'Compliance', true)}</div>
+          <div class="wcont">
+            <h5>Compliance</h5>
+            <div class="hrow"><h6>Bypass Compliance Restrictions</h6><span class="msw"><i></i>Enabled</span></div>
+            <p class="tx2" style="max-width:50%">When enabled this will override <b>required payment fields</b>, <b>FE/NF cost thresholds</b>, <b>daily value of commodity limits</b>, and exclude inbound tickets containing only opted out materials from compliance reporting.</p>
+            <div class="hrow"><h6>Inventory Hold Exempt</h6><span class="msw"><i></i>Enabled</span></div>
+            <p class="tx2">Exempt this material from the inventory hold configured in settings.</p>
+            <div class="hrow"><h6>Payment Hold</h6><span class="msw"><i></i>Override for this yard</span></div>
+            <p class="tx2">Please note that payment holds will only apply to retail customers.</p>
+            <p class="tx2">Inherits the organization default: <strong>No payment hold</strong>. Turn on “Override for this yard” to set a different hold (or no hold) for this yard only.</p>
+            <div class="fgsec">
+              <h6>Finished Goods Compliance Language</h6>
+              <p class="tx2">Select the labels that belong to this material. A finished good tag prints the wording for each selected label that is active at that yard.</p>
+              <div class="msel open"><span class="lab">Labels</span>${MAT.cl.map(k => `<span class="chp">${CL.find(c => c.k === k).label}</span>`).join('')}${ic('chevron-up')}</div>
+              ${menu}
+            </div>
+          </div>
+        </div>
+        <div class="wfoot"><div><span class="rb pri">Save Changes</span><span class="rb">Cancel</span></div><div><span class="rb err">Archive</span></div></div>
+      </div>`;
+  }
+
+  // ---------- Finished Goods list (+ Bale Tags print dialog) ----------
+  function finishedGoods(s) {
+    const menuOpen = !s.print;
+    const rows = FGS.map((f, i) => `<tr${i === 0 && menuOpen ? ' class="hov"' : ''}>
+        <td style="text-align:center"><span class="cbx"></span></td>
+        <td class="fg">${f.tag}</td>
+        <td><span class="badge b-success">Available</span></td>
+        <td>${f.eff}</td>
+        <td><div class="stk"><span>${f.mat}</span><small>${f.com}</small></div></td>
+        <td>${f.type}</td><td>${f.wh}</td><td class="num">${f.net}</td><td>${f.po}</td>
+        <td class="more"><span class="mb"${i === 0 ? ' id="row-more"' : ''}>${ic('ellipsis')}</span></td></tr>`).join('');
+    const rmenu = menuOpen ? `<div class="rmenu" id="row-menu" style="top:84px"><div class="ri hv" id="mi-print">${ic('printer')}Print tag</div><div class="ri dst">${ic('trash-2')}Void</div></div>` : '';
+    const acts = `<span class="rb">${ic('pencil')}Regrade Material</span><span class="rb">${ic('plus')}Finished Good</span><span class="rb">${ic('plus')}Packing List</span><span class="rb">${ic('plus')}Package</span><span class="rb pri">${ic('plus')}Add Adjustment</span>`;
+    const page = `<main class="main">
+        <div class="phd">${crumbs(['Finished Goods', 'List'])}
+          <div class="trow"><h1>Finished Goods</h1>${acts}</div></div>
+        <div class="ntabs"><span class="on">Finished Goods</span><span>Recost History</span></div>
+        <div class="fgbody">
+          <div class="sumbar"><div><small>Finished Goods (AVAILABLE)</small><b>42</b></div><div><small>Total Weight</small><b>48,220 lbs</b></div><div><small>Largest Material By Weight</small><b>Insulated Copper Wire</b></div></div>
+          <div class="gtool"><div class="gsearch">${ic('search')}Search FG, PO, commodity, material, warehouse…</div><span class="fchip">Status: <b>Available</b>${ic('chevron-down')}</span></div>
+          <div class="gcard">
+            <table><thead><tr><th style="width:40px;text-align:center"><span class="cbx"></span></th><th style="width:96px">FG #</th><th style="width:118px">Status</th><th style="width:196px">Effective</th><th>Commodity / Material</th><th style="width:90px">Type</th><th style="width:104px">Warehouse</th><th class="num" style="width:116px">Net Weight</th><th style="width:104px">PO #</th><th style="width:48px"></th></tr></thead>
+            <tbody>${rows}</tbody></table>
+            ${rmenu}
+          </div>
+        </div>
+      </main>`;
+    return `<div class="app">${sidebar('fg')}${page}${s.print ? printDialog(s) : ''}${s.cover ? cover(s.cover) : ''}</div>`;
+  }
+
+  // A stand-in QR code (the real tag encodes the FG tag number).
+  function qr() {
+    const n = 25, cells = [];
+    let seed = 100482;
+    const rnd = () => (seed = (seed * 9301 + 49297) % 233280) / 233280;
+    const finder = (x, y) => [[x, y], [x + 18, y], [x, y + 18]];
+    const inFinder = (x, y) => finder(0, 0).some(([fx, fy]) => x >= fx && x < fx + 7 && y >= fy && y < fy + 7);
+    for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
+      if (inFinder(x, y)) {
+        const fx = x >= 18 ? 18 : 0, fy = y >= 18 ? 18 : 0, dx = x - fx, dy = y - fy;
+        const ring = dx === 0 || dx === 6 || dy === 0 || dy === 6, core = dx >= 2 && dx <= 4 && dy >= 2 && dy <= 4;
+        if (ring || core) cells.push(`M${x} ${y}h1v1h-1z`);
+      } else if (rnd() > 0.52) cells.push(`M${x} ${y}h1v1h-1z`);
     }
-    if (s.drawer === 'mat') {
-      const m = MATS[0];
-      const cr = c => { const on = m.cl.includes(c.k); return `<div class="cr${on ? ' on' : ''}"><span class="bx">${on ? ic('check') : ''}</span><div><b style="font-weight:600">${c.label}</b><small>${textOf(c, { edited: true })}</small></div></div>`; };
-      return shell('Whole Hard Drives', `
-        <div class="row2"><div class="fld"><label>Material</label><div class="in">Whole Hard Drives</div></div><div class="fld"><label>Material Code</label><div class="in">ES-HDD</div></div></div>
-        <div class="fld"><label>Finished goods compliance language</label>
-          <div class="cbl" id="cl-pick">${CL.map(cr).join('')}</div>
-          <div class="hint"><b>2 selected</b> · prints on this material’s finished-good tags</div></div>`,
-        `<span class="rb">Cancel</span><span class="rb pri">${ic('check')}Save</span>`);
-    }
-    if (s.drawer === 'tag') {
-      const f = FGS[0], m = MATS[0];
-      return shell('Print tag · FG-3318', `
-        <div class="ftag">
-          <div class="tt1"><span>Finished good</span><span>${f.id}</span></div>
-          <div class="mat">${f.mat}</div>
-          <div class="cl" id="tag-cl">${m.cl.map(k => `<div>${textOf(CL.find(c => c.k === k), s)}</div>`).join('')}</div>
-          <div class="meta"><div><small>Net weight</small>${f.w}</div><div><small>Type</small>${f.type}</div><div><small>Yard</small>North Yard</div></div>
-          <div class="bc"></div>
-        </div>`,
-        `<span class="rb">Cancel</span><span class="rb pri">${ic('printer')}Print</span>`);
-    }
-    return '';
+    return `<svg class="qr" viewBox="-1 -1 27 27" aria-hidden="true"><rect x="-1" y="-1" width="27" height="27" fill="#fff"/><path d="${cells.join('')}" fill="#000"/></svg>`;
+  }
+
+  function printDialog(s) {
+    const f = FGS[0];
+    const lines = MAT.cl.map(k => textOf(CL.find(c => c.k === k), s)).join(', ');
+    return `<div class="scrim"></div>
+      <div class="pdlg" role="dialog" aria-label="Bale Tags">
+        <div class="pt">Bale Tags</div>
+        <div class="dv"></div>
+        <div class="btag">
+          <div class="tg">#${f.tag}</div>
+          <div class="h6">Effective Date: 10/14/2026</div>
+          <div class="h6 mn">${f.mat}</div>
+          <div class="cl" id="tag-cl">${lines}</div>
+          <div class="dv" style="margin-top:16px"></div>
+          <div class="wts"><div><span>Gross:</span><span>1,305 lbs</span></div><div><span>Tare:</span><span>65 lbs</span></div><div><span>Net:</span><span>1,240 lbs</span></div></div>
+          ${qr()}
+        </div>
+      </div>`;
   }
 
   function cover(kind) {
@@ -542,15 +659,16 @@ td { padding: 0 12px; height: 44px; border-bottom: 1px solid var(--a-border-subt
     }
     return `<div class="cover"><div class="card">
       <div class="eyebrow">${ic('circle-check')}Compliance language on tags</div>
-      <h2>The right certification wording on every tag</h2>
-      <p>Write each label’s wording once in finished goods settings, tick the labels each material needs, and every finished-good tag prints them right below the material name. Any yard with different requirements can set its own labels.</p>
+      <h2>The right compliance wording on every tag</h2>
+      <p>Write each label’s print text once in Inventory Settings, pick the labels each material needs, and finished-good tags print that wording under the material name. Each yard can turn labels on or off for itself.</p>
       <div class="cta"><button class="go sec" type="button" data-go="restart">${ic('rotate-ccw')}Replay</button></div>
     </div></div>`;
   }
 
   function renderApp(s) {
-    const view = s.view === 'mat' ? materials(s) : s.view === 'fg' ? finishedGoods(s) : settings(s);
-    return `<div class="app">${sidebar(s.view)}${view}${s.cover ? cover(s.cover) : ''}</div>`;
+    if (s.view === 'mat') return material(s);
+    if (s.view === 'fg') return finishedGoods(s);
+    return settings(s);
   }
   function anchorMenus() {}
 
@@ -636,7 +754,7 @@ td { padding: 0 12px; height: 44px; border-bottom: 1px solid var(--a-border-subt
     nextBtn.disabled = step === STEPS.length - 1;
     if (s.cover) caption.innerHTML = s.cover === 'intro'
       ? '<span class="n">Intro</span>Set up your compliance wording once and every finished-good tag prints it for you.'
-      : '<span class="n">Done</span>Wording set once, picked per material, printed on every tag. Replay any step with the bars above.';
+      : '<span class="n">Done</span>Print text set once, labels picked per material, printed on every tag. Replay any step with the bars above.';
     scale();
     // Measure only after entrance animations (panels sliding in, menus
     // popping, pins dropping) finish, or the ring lands where the element
