@@ -1,0 +1,694 @@
+<meta charset="utf-8">
+<title>ReSpark Partial Payments</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+<style>
+/* Layout: an Arcade-style player. One framed browser window holds a scaled
+   1440×820 mock of a ReSpark inbound ticket (based on the Inbound Ticket
+   screen) and the Payment Holds report; a pulsing hotspot + tooltip guides each step; step controls sit
+   under the frame. The app mock keeps ReSpark's light theme (it stands in
+   for a screenshot); the page around it follows the viewer's theme. */
+:root {
+  --bg: #f3f5f8;
+  --glow: rgba(0, 168, 176, 0.10);
+  --fg: #12233e;
+  --fg-muted: rgba(18, 35, 62, 0.62);
+  --frame: #ffffff;
+  --frame-bar: #eef1f5;
+  --frame-line: rgba(18, 35, 62, 0.12);
+  --ctl: #ffffff;
+  --ctl-line: rgba(18, 35, 62, 0.16);
+  --teal: #00a3a8;
+  --teal-strong: #008a8f;
+  --tip-bg: #12233e;
+  --tip-fg: #ffffff;
+
+  /* ReSpark app tokens (frontend/client/src/global.css, light mode) */
+  --a-fg: hsl(217 55% 16%);
+  --a-surface: #ffffff;
+  --a-muted: hsla(217, 55%, 16%, 0.03);
+  --a-muted-solid: #f8f9fa;
+  --a-hover: hsla(217, 55%, 16%, 0.06);
+  --a-border: hsla(217, 55%, 16%, 0.14);
+  --a-border-subtle: hsla(217, 55%, 16%, 0.08);
+  --a-text-2: hsla(217, 55%, 16%, 0.75);
+  --a-text-3: hsla(217, 55%, 16%, 0.52);
+  --a-icon-2: hsla(217, 55%, 16%, 0.42);
+  --a-primary: hsl(183 100% 33%);
+  --a-primary-hover: hsl(183 100% 27%);
+  --a-primary-subtle: hsla(183, 100%, 33%, 0.10);
+  --a-success: hsl(162 73% 37%);
+  --a-success-strong: hsl(162 73% 30%);
+  --a-error: hsl(348 81% 48%);
+  --a-error-strong: hsl(348 81% 38%);
+  --a-accent: hsl(252 89% 65%);
+  --a-accent-strong: hsl(252 60% 50%);
+  --a-accent-subtle: hsla(252, 89%, 65%, 0.10);
+  --a-dark: hsl(217 45% 14%);
+  --a-nav-selected: hsl(217 55% 16%);
+
+  --font: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0c1422; --glow: rgba(0, 201, 212, 0.10); --fg: #e8eef7; --fg-muted: rgba(232, 238, 247, 0.62);
+    --frame: #17202f; --frame-bar: #1c2738; --frame-line: rgba(232, 238, 247, 0.12);
+    --ctl: #17202f; --ctl-line: rgba(232, 238, 247, 0.18); --teal: #19c3cb; --teal-strong: #4fd6dc;
+    --tip-bg: #00a3a8; --tip-fg: #ffffff; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0c1422; --glow: rgba(0, 201, 212, 0.10); --fg: #e8eef7; --fg-muted: rgba(232, 238, 247, 0.62);
+  --frame: #17202f; --frame-bar: #1c2738; --frame-line: rgba(232, 238, 247, 0.12);
+  --ctl: #17202f; --ctl-line: rgba(232, 238, 247, 0.18); --teal: #19c3cb; --teal-strong: #4fd6dc;
+  --tip-bg: #00a3a8; --tip-fg: #ffffff; color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--fg); font-family: var(--font);
+  background-image: radial-gradient(60% 50% at 50% 38%, var(--glow), transparent 70%);
+  min-height: 100vh; padding-inline: 16px; padding-block: 28px 40px;
+}
+.wrap { max-width: 1180px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
+.head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 15px; letter-spacing: -0.01em; }
+.brand svg { width: 28px; height: 28px; color: var(--fg); }
+.head .tag { font-size: 12px; color: var(--fg-muted); font-weight: 500; }
+
+.frame { background: var(--frame); border: 1px solid var(--frame-line); border-radius: 12px; overflow: hidden;
+  box-shadow: 0 30px 60px -20px rgba(18, 35, 62, 0.28), 0 8px 18px -8px rgba(18, 35, 62, 0.18); }
+.bar { height: 38px; background: var(--frame-bar); border-bottom: 1px solid var(--frame-line); display: flex; align-items: center; gap: 12px; padding-inline: 14px; position: relative; }
+.dots { display: flex; gap: 6px; }
+.dots i { width: 10px; height: 10px; border-radius: 50%; background: var(--frame-line); display: block; }
+.url { flex: 1; max-width: 460px; margin-inline: auto; height: 24px; border-radius: 6px; background: var(--frame); border: 1px solid var(--frame-line);
+  display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 12px; color: var(--fg-muted); padding-inline: 10px; min-width: 0; overflow: hidden; white-space: nowrap; }
+.url span { overflow: hidden; text-overflow: ellipsis; }
+.url svg { width: 12px; height: 12px; flex-shrink: 0; }
+.progress { position: absolute; left: 0; bottom: -1px; height: 2px; background: var(--teal); transition: width .35s ease; }
+
+.stage { position: relative; width: 100%; aspect-ratio: 1440 / 820; max-width: 100%; overflow: hidden; background: #fff; }
+.canvas { position: absolute; left: 0; top: 0; width: 1440px; height: 820px; transform-origin: 0 0; }
+.overlay { position: absolute; inset: 0; pointer-events: none; }
+
+.ring { position: absolute; border-radius: 6px; box-shadow: 0 0 0 2px var(--a-primary), 0 0 0 6px hsla(183, 100%, 33%, 0.18); transition: all .3s ease; pointer-events: none; }
+.hot { position: absolute; width: 26px; height: 26px; margin: -13px 0 0 -13px; border-radius: 50%; pointer-events: auto; cursor: pointer;
+  background: hsla(183, 100%, 33%, 0.28); border: 0; padding: 0; transition: left .3s ease, top .3s ease; }
+.hot::before { content: ""; position: absolute; inset: 7px; border-radius: 50%; background: var(--a-primary); box-shadow: 0 0 0 2px #fff; }
+.hot::after { content: ""; position: absolute; inset: 0; border-radius: 50%; border: 2px solid var(--a-primary); animation: pulse 1.6s ease-out infinite; }
+.hot:focus-visible { outline: 3px solid var(--teal-strong); outline-offset: 3px; }
+@keyframes pulse { 0% { transform: scale(.7); opacity: .9; } 100% { transform: scale(2.1); opacity: 0; } }
+
+.tip { position: absolute; max-width: 310px; background: var(--tip-bg); color: var(--tip-fg); border-radius: 10px; padding: 12px 14px;
+  font-size: 14px; line-height: 1.45; box-shadow: 0 12px 28px -8px rgba(12, 20, 34, 0.45); pointer-events: auto; animation: tipIn .25s ease; }
+.tip b { font-weight: 600; }
+.tip code, .caption code { font-family: var(--mono); font-size: 12.5px; background: rgba(255, 255, 255, 0.16); padding: 1px 5px; border-radius: 4px; }
+.caption code { background: var(--frame-bar); }
+.tip .n, .caption .n { display: block; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; opacity: .7; margin-bottom: 4px; }
+@keyframes tipIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+.caption { display: none; background: var(--frame); border: 1px solid var(--frame-line); border-radius: 10px; padding: 12px 14px; font-size: 14px; line-height: 1.5; }
+body.narrow .caption { display: block; }
+body.narrow .tip { display: none; }
+
+.controls { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.btn { font: inherit; font-size: 13px; font-weight: 600; height: 36px; padding-inline: 14px; border-radius: 8px; border: 1px solid var(--ctl-line);
+  background: var(--ctl); color: var(--fg); cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+.btn:hover { border-color: var(--teal); }
+.btn:disabled { opacity: .4; cursor: default; border-color: var(--ctl-line); }
+.btn:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+.btn.primary { background: var(--teal); border-color: var(--teal); color: #fff; }
+.btn svg { width: 16px; height: 16px; }
+.count { font-size: 13px; color: var(--fg-muted); font-variant-numeric: tabular-nums; min-width: 48px; text-align: right; }
+.pips { display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; flex: 1; min-width: 0; }
+.pips button { width: 22px; height: 6px; border-radius: 3px; border: 0; padding: 0; background: var(--ctl-line); cursor: pointer; }
+.pips button.on { background: var(--teal); }
+.pips button.done { background: color-mix(in srgb, var(--teal) 45%, transparent); }
+.hint { font-size: 12px; color: var(--fg-muted); text-align: center; }
+kbd { font: inherit; font-size: 11px; border: 1px solid var(--ctl-line); border-radius: 4px; padding: 1px 5px; }
+
+/* ================= ReSpark app mock (fixed light theme) ================= */
+.app { width: 1440px; height: 820px; display: flex; font-family: var(--font); color: var(--a-fg); font-size: 13px; background: var(--a-surface); position: relative; overflow: hidden; }
+.app svg.lucide { width: 16px; height: 16px; stroke-width: 1.75; flex-shrink: 0; }
+.side { width: 236px; flex-shrink: 0; background: var(--a-muted-solid); border-right: 1px solid var(--a-border-subtle); display: flex; flex-direction: column; padding: 12px 10px; gap: 10px; }
+.side .top { display: flex; align-items: center; gap: 8px; padding: 2px 4px; }
+.side .top svg.mark { width: 28px; height: 28px; color: #12233e; }
+.yard { flex: 1; display: flex; align-items: center; justify-content: space-between; border: 1px solid var(--a-border); border-radius: 6px; height: 30px; padding-inline: 8px; background: var(--a-surface); font-weight: 500; font-size: 12.5px; }
+.yard svg.lucide { width: 14px; height: 14px; color: var(--a-icon-2); }
+.cmd { display: flex; align-items: center; gap: 8px; height: 30px; border: 1px solid var(--a-border); border-radius: 6px; padding-inline: 8px; color: var(--a-text-3); background: var(--a-surface); font-size: 12.5px; }
+.cmd kbd { margin-left: auto; font-size: 10.5px; border-color: var(--a-border); color: var(--a-text-3); }
+.nav { display: flex; flex-direction: column; gap: 1px; }
+.nrow { display: flex; align-items: center; gap: 8px; padding: 5px 8px; border-radius: 6px; font-weight: 500; color: hsla(217, 55%, 16%, 0.88); }
+.nrow .chev { margin-left: auto; width: 14px; height: 14px; color: var(--a-icon-2); }
+.nrow.sub { padding-left: 30px; font-weight: 450; font-size: 12.5px; color: var(--a-text-2); }
+.nrow.sub svg.lucide { width: 14px; height: 14px; color: var(--a-icon-2); }
+.nrow.active { background: var(--a-nav-selected); color: #fff; }
+.nrow.active svg.lucide { color: #fff; }
+.pill { margin-left: auto; font-size: 10px; font-weight: 600; color: var(--a-text-2); background: var(--a-hover); padding: 1px 6px; border-radius: 999px; }
+.nsep { height: 1px; background: var(--a-border-subtle); margin: 4px 6px; }
+.foot { margin-top: auto; display: flex; align-items: center; gap: 8px; padding: 8px 4px 0; border-top: 1px solid var(--a-border-subtle); }
+.av { width: 28px; height: 28px; border-radius: 50%; background: var(--a-primary-subtle); color: var(--a-primary-hover); display: grid; place-items: center; font-weight: 600; font-size: 11px; }
+.foot .who { display: flex; flex-direction: column; line-height: 1.25; }
+.foot .who small { color: var(--a-text-3); font-size: 11px; }
+.foot .ico { margin-left: auto; display: flex; gap: 4px; }
+.foot .ico span { width: 28px; height: 28px; border: 1px solid var(--a-border-subtle); border-radius: 6px; display: grid; place-items: center; }
+
+.main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.phead { display: flex; align-items: center; gap: 12px; padding: 14px 22px 12px; border-bottom: 1px solid var(--a-border-subtle); }
+.crumbs { font-size: 12px; color: var(--a-text-3); display: flex; align-items: center; gap: 4px; }
+.crumbs svg.lucide { width: 12px; height: 12px; }
+.phead h1 { font-size: 20px; font-weight: 600; margin: 0; letter-spacing: -0.015em; }
+.phead .left { display: flex; flex-direction: column; gap: 4px; }
+.phead .acts { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+
+.rb { font: inherit; font-size: 13px; font-weight: 500; height: 32px; padding-inline: 12px; border-radius: 6px; display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--a-border); background: var(--a-surface); color: var(--a-fg); cursor: default; white-space: nowrap; }
+.rb.pri { background: var(--a-primary); border-color: var(--a-primary); color: #fff; }
+.rb.icon { width: 32px; padding: 0; justify-content: center; }
+.badge { display: inline-flex; align-items: center; height: 20px; padding-inline: 8px; border-radius: 999px; font-size: 11.5px; font-weight: 500; white-space: nowrap; }
+.b-success { background: hsla(162, 73%, 37%, 0.14); color: var(--a-success-strong); }
+.b-accent { background: hsla(252, 89%, 65%, 0.14); color: var(--a-accent-strong); }
+.b-neutral { background: hsla(217, 55%, 16%, 0.07); color: var(--a-text-2); }
+
+/* inventory pages */
+.phead { padding: 14px 24px 12px; border-bottom: 0; align-items: flex-start; }
+.ibody { flex: 1; min-height: 0; padding: 0 24px 20px; display: flex; flex-direction: column; gap: 14px; position: relative; }
+.kpis { display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid var(--a-border-subtle); border-radius: 10px; }
+.kpis > div { padding: 12px 16px; display: flex; flex-direction: column; gap: 2px; }
+.kpis > div + div { border-left: 1px solid var(--a-border-subtle); }
+.kpis small { font-size: 10.5px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--a-text-3); }
+.kpis b { font-size: 20px; font-weight: 700; letter-spacing: -.01em; }
+.kpis span { font-size: 12px; color: var(--a-text-3); }
+.tcard { border: 1px solid var(--a-border-subtle); border-radius: 10px; overflow: hidden; flex: 1; min-height: 0; }
+.tcard .tt { display: flex; align-items: center; gap: 8px; padding: 10px 12px; }
+.tcard .tt .inp { width: 240px; }
+.tcard .tt .cnt { margin-left: auto; font-size: 12px; color: var(--a-text-3); }
+.inp { height: 32px; border: 1px solid var(--a-border); border-radius: 6px; display: flex; align-items: center; gap: 6px; padding-inline: 9px; color: var(--a-text-3); font-size: 12.5px; background: var(--a-surface); white-space: nowrap; }
+.inp svg.lucide { width: 14px; height: 14px; color: var(--a-icon-2); }
+table { width: 100%; border-collapse: separate; border-spacing: 0; font-variant-numeric: tabular-nums; table-layout: fixed; }
+th { text-align: left; font-weight: 500; font-size: 12.5px; padding: 0 12px; height: 38px; background: var(--a-muted-solid); border-bottom: 1px solid var(--a-border-subtle); white-space: nowrap; }
+td { padding: 0 12px; height: 44px; border-bottom: 1px solid var(--a-border-subtle); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.itab td, .itab th { border-right: 0; }
+.itab th { color: var(--a-text-2); }
+.itab td.num, .itab th.num { text-align: right; }
+.itab tr.new td { background: hsla(183, 100%, 33%, 0.07); }
+.itab .mono { font-family: var(--mono); font-size: 12px; }
+.b-teal { background: hsla(183, 100%, 33%, 0.12); color: var(--a-primary-hover); }
+
+.drawer { position: absolute; top: 0; right: 0; bottom: 0; width: 470px; background: var(--a-surface); border-left: 1px solid var(--a-border); box-shadow: -12px 0 32px rgba(15, 23, 42, 0.12); display: flex; flex-direction: column; z-index: 6; animation: slide .25s ease; }
+.drawer.still { animation: none; }
+@keyframes slide { from { transform: translateX(30px); opacity: 0; } to { transform: none; opacity: 1; } }
+.drawer .dh { display: flex; align-items: center; gap: 10px; padding: 16px 18px 12px; border-bottom: 1px solid var(--a-border-subtle); }
+.drawer .dh h3 { margin: 0; font-size: 16px; font-weight: 600; }
+.drawer .dh .x { margin-left: auto; color: var(--a-text-3); }
+.drawer .db { flex: 1; min-height: 0; padding: 16px 18px; display: flex; flex-direction: column; gap: 14px; position: relative; overflow: hidden; }
+.drawer .df { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 18px; border-top: 1px solid var(--a-border-subtle); }
+.fld { display: flex; flex-direction: column; gap: 5px; }
+.fld label { font-size: 12px; font-weight: 500; color: var(--a-text-2); }
+.fld .in { height: 34px; border: 1px solid var(--a-border); border-radius: 6px; display: flex; align-items: center; gap: 6px; padding-inline: 10px; font-size: 13px; font-variant-numeric: tabular-nums; }
+.fld .in.ph { color: var(--a-text-3); }
+.fld .in.open { border-color: var(--a-primary); box-shadow: 0 0 0 3px hsla(183, 100%, 33%, 0.15); }
+.fld .in .u { margin-left: auto; color: var(--a-text-3); }
+.fld .in svg.lucide { margin-left: auto; width: 14px; height: 14px; color: var(--a-icon-2); }
+.fld .in.ro { background: var(--a-muted-solid); font-weight: 600; }
+.fld .hint { font-size: 12px; color: var(--a-text-3); }
+.fld .hint b { color: var(--a-primary-hover); font-weight: 600; }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+.note { display: flex; gap: 8px; align-items: flex-start; font-size: 12.5px; line-height: 1.45; background: hsla(183, 100%, 33%, 0.07); border: 1px solid hsla(183, 100%, 33%, 0.22); border-radius: 8px; padding: 10px 12px; color: var(--a-text-2); }
+.note svg.lucide { width: 15px; height: 15px; color: var(--a-primary-hover); margin-top: 1px; }
+.note b { color: var(--a-fg); }
+.dd { position: absolute; left: 18px; right: 18px; top: 82px; background: var(--a-surface); border: 1px solid var(--a-border); border-radius: 8px; box-shadow: 0 6px 22px rgba(15, 23, 42, 0.16); padding: 4px; z-index: 5; animation: pop .18s ease; }
+.dd .mh { font-size: 11px; color: var(--a-text-3); padding: 6px 9px 4px; }
+.dd .o { display: flex; align-items: center; gap: 8px; padding: 8px 9px; border-radius: 5px; font-size: 13px; }
+.dd .o span { margin-left: auto; font-size: 12px; color: var(--a-text-3); font-variant-numeric: tabular-nums; }
+.dd .o.hv { background: var(--a-hover); }
+@keyframes pop { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; transform: none; } }
+
+.stepper { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--a-text-3); }
+.stepper span { display: inline-flex; align-items: center; gap: 6px; }
+.stepper i.n { font-style: normal; width: 20px; height: 20px; border-radius: 50%; border: 1px solid var(--a-border); display: grid; place-items: center; font-size: 11px; font-weight: 600; }
+.stepper .on { color: var(--a-fg); font-weight: 600; }
+.stepper .on i.n { background: var(--a-dark); border-color: var(--a-dark); color: #fff; }
+.stepper .done i.n { background: var(--a-primary-subtle); border-color: transparent; color: var(--a-primary-hover); }
+.stepper .ln { flex: 1; height: 1px; background: var(--a-border-subtle); }
+.choice { border: 1px solid var(--a-border); border-radius: 10px; padding: 14px; display: flex; gap: 12px; align-items: flex-start; }
+.choice .ci { width: 34px; height: 34px; border-radius: 8px; display: grid; place-items: center; background: var(--a-hover); flex-shrink: 0; }
+.choice .ci svg.lucide { width: 18px; height: 18px; }
+.choice b { display: block; font-size: 13.5px; font-weight: 600; margin-bottom: 2px; }
+.choice small { font-size: 12.5px; color: var(--a-text-3); line-height: 1.4; }
+.choice.on { border-color: var(--a-primary); box-shadow: 0 0 0 3px hsla(183, 100%, 33%, 0.12); }
+.choice.on .ci { background: var(--a-primary-subtle); color: var(--a-primary-hover); }
+.pkl { border: 1px solid var(--a-border-subtle); border-radius: 8px; overflow: hidden; }
+.pkl .pr { display: flex; align-items: center; gap: 10px; padding: 10px 12px; font-size: 13px; }
+.pkl .pr + .pr { border-top: 1px solid var(--a-border-subtle); }
+.pkl .pr .rd { width: 15px; height: 15px; border-radius: 50%; border: 1.5px solid var(--a-border); flex-shrink: 0; }
+.pkl .pr.on { background: hsla(183, 100%, 33%, 0.06); }
+.pkl .pr.on .rd { border: 5px solid var(--a-primary); }
+.pkl .pr .tx { display: flex; flex-direction: column; }
+.pkl .pr .tx small { color: var(--a-text-3); font-size: 12px; }
+.pkl .pr .w { margin-left: auto; text-align: right; font-variant-numeric: tabular-nums; }
+.pkl .pr .w small { display: block; color: var(--a-text-3); font-size: 12px; }
+.sum { display: grid; grid-template-columns: repeat(3, 1fr); background: var(--a-muted-solid); border-radius: 8px; padding: 10px 12px; font-size: 12px; color: var(--a-text-3); gap: 6px; }
+.sum b { display: block; font-size: 14px; color: var(--a-fg); font-variant-numeric: tabular-nums; }
+.alloc { width: 100%; font-size: 12.5px; }
+.alloc th { height: 32px; font-size: 11.5px; color: var(--a-text-3); background: transparent; border-right: 0; padding: 0 6px; }
+.alloc td { height: 40px; border-right: 0; padding: 0 6px; }
+.alloc td.num, .alloc th.num { text-align: right; }
+.alloc .cell { border: 1px solid var(--a-border); border-radius: 6px; height: 30px; display: flex; align-items: center; justify-content: flex-end; padding: 0 8px; gap: 4px; }
+.alloc .cell .u { color: var(--a-text-3); }
+.alloc tr.waste td { color: var(--a-text-2); background: hsla(38, 92%, 50%, 0.07); }
+.alloc tr.waste .tagw { font-size: 11px; font-weight: 600; color: hsl(32 80% 38%); background: hsla(38, 92%, 50%, 0.16); border-radius: 4px; padding: 1px 6px; }
+.alloc tr.tot td { font-weight: 600; border-bottom: 0; }
+.link { color: var(--a-primary-hover); font-weight: 500; }
+.became .br { display: flex; align-items: center; gap: 10px; padding: 9px 12px; font-size: 13px; border: 1px solid var(--a-border-subtle); border-radius: 8px; }
+.became .br + .br { margin-top: 6px; }
+.became .br span:last-child { margin-left: auto; color: var(--a-text-3); font-variant-numeric: tabular-nums; }
+.became .br svg.lucide { width: 15px; height: 15px; color: var(--a-icon-2); }
+.sec { font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--a-text-3); }
+.kv2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px; font-size: 12.5px; }
+.kv2 small { display: block; color: var(--a-text-3); font-size: 11.5px; }
+.kv2 b { font-weight: 500; font-variant-numeric: tabular-nums; }
+.toast { position: absolute; left: 50%; bottom: 22px; transform: translateX(-50%); background: var(--a-fg); color: #fff; border-radius: 8px; padding: 10px 14px; display: flex; align-items: center; gap: 8px; font-weight: 500; box-shadow: 0 10px 24px rgba(18,35,62,.3); animation: pop2 .3s ease; z-index: 7; }
+.toast svg.lucide { color: hsl(162 73% 55%); }
+@keyframes pop2 { from { opacity: 0; transform: translate(-50%, 8px); } to { opacity: 1; transform: translateX(-50%); } }
+
+/* purchase ticket + payment holds */
+.b-warn { background: hsla(38, 92%, 50%, 0.16); color: hsl(32 80% 34%); }
+.saved { display: inline-flex; align-items: center; gap: 6px; color: var(--a-text-2); font-size: 13px; margin-right: 4px; }
+.cards2 { display: grid; grid-template-columns: 1fr 1.25fr; gap: 14px; }
+.icard { border: 1px solid var(--a-border-subtle); border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; }
+.icard .ct { font-weight: 600; font-size: 13.5px; color: var(--a-text-2); }
+.icard .g3 { display: grid; grid-template-columns: 1.3fr 1.1fr 1fr; gap: 8px 10px; }
+.icard .g4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px 10px; }
+.icard .fld label { font-size: 11.5px; color: var(--a-text-3); }
+.icard .fld .in { height: 30px; font-size: 12.5px; white-space: nowrap; overflow: hidden; }
+.icard .fld .in b { font-weight: 600; }
+.tcard .tt b + .cnt { flex: 1; }
+.tkt td { height: 40px; }
+.tkt td.c { color: var(--a-text-3); }
+.tkt td b { font-weight: 600; }
+.tkt tr.tot td { background: hsla(217, 91%, 60%, 0.07); font-weight: 600; border-bottom: 0; }
+.held { border: 1px solid var(--a-border-subtle); border-radius: 8px; overflow: hidden; }
+.held .hr { display: flex; align-items: center; gap: 10px; padding: 10px 12px; font-size: 13px; }
+.held .hr + .hr { border-top: 1px solid var(--a-border-subtle); }
+.held .hr > svg.lucide { width: 15px; height: 15px; color: hsl(32 80% 40%); }
+.held#rec .hr > svg.lucide { color: var(--a-icon-2); }
+.held .hr .tx { display: flex; flex-direction: column; }
+.held .hr .tx b { font-weight: 600; }
+.held .hr .tx small { color: var(--a-text-3); font-size: 12px; }
+.held .hr > span:not(.bin) { margin-left: auto; font-variant-numeric: tabular-nums; font-weight: 500; }
+.held .hr .bin { width: 30px; height: 30px; border-radius: 6px; display: grid; place-items: center; color: var(--a-error); border: 1px solid hsla(348, 81%, 48%, 0.3); background: hsla(348, 81%, 48%, 0.06); }
+.held .hr .bin svg.lucide { width: 15px; height: 15px; }
+.pm { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.pm .in { height: 34px; border: 1px solid var(--a-border); border-radius: 6px; display: flex; align-items: center; padding-inline: 10px; font-size: 13px; }
+.pm .in svg.lucide { margin-left: auto; width: 14px; height: 14px; color: var(--a-icon-2); }
+.pm .in.amt { justify-content: flex-end; font-variant-numeric: tabular-nums; }
+.pm .in.amt::before { content: "$"; margin-right: auto; color: var(--a-text-3); }
+.rtpc { display: inline-block; padding: 2px 0; font-weight: 500; }
+
+/* intro / outro */
+.cover { position: absolute; inset: 0; background: rgba(248, 250, 252, 0.88); backdrop-filter: blur(3px); display: grid; place-items: center; z-index: 10; }
+.cover .card { width: 700px; display: flex; flex-direction: column; gap: 14px; align-items: flex-start; }
+.cover .eyebrow { font-size: 13px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--a-primary-hover); display: flex; align-items: center; gap: 8px; }
+.cover h2 { margin: 0; font-size: 40px; line-height: 1.12; letter-spacing: -0.025em; font-weight: 700; text-wrap: balance; }
+.cover p { margin: 0; font-size: 17px; line-height: 1.55; color: var(--a-text-2); max-width: 620px; }
+.cover .chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.cover .chips code { font-family: var(--mono); font-size: 14px; padding: 5px 10px; border-radius: 6px; background: var(--a-surface); border: 1px solid var(--a-border); }
+.cover .cta { display: flex; gap: 10px; margin-top: 8px; }
+.cover .go { font: inherit; font-size: 15px; font-weight: 600; height: 44px; padding-inline: 20px; border-radius: 8px; border: 0; background: var(--a-primary); color: #fff; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; text-decoration: none; }
+.cover .go.sec { background: var(--a-surface); color: var(--a-fg); border: 1px solid var(--a-border); }
+.cover .go:hover { background: var(--a-primary-hover); }
+.cover .go.sec:hover { background: var(--a-muted-solid); }
+.cover .go svg.lucide { width: 18px; height: 18px; }
+.cover .go:focus-visible { outline: 3px solid var(--a-primary); outline-offset: 2px; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+</style>
+
+<div class="wrap">
+  <div class="head">
+    <div class="brand" id="brand"></div>
+    <div class="tag">Interactive demo · Web console</div>
+  </div>
+
+  <div class="frame">
+    <div class="bar">
+      <div class="dots"><i></i><i></i><i></i></div>
+      <div class="url"><i data-lucide="lock"></i><span id="url">app.respark.com</span></div>
+      <div style="width:42px"></div>
+      <div class="progress" id="progress"></div>
+    </div>
+    <div class="stage" id="stage">
+      <div class="canvas" id="canvas"></div>
+      <div class="overlay" id="overlay"></div>
+    </div>
+  </div>
+
+  <div class="caption" id="caption" aria-live="polite"></div>
+
+  <div class="controls">
+    <button class="btn" id="back" type="button"><i data-lucide="arrow-left"></i>Back</button>
+    <div class="pips" id="pips" role="tablist" aria-label="Demo steps"></div>
+    <span class="count" id="count"></span>
+    <button class="btn primary" id="next" type="button">Next<i data-lucide="arrow-right"></i></button>
+  </div>
+  <div class="hint">Click the pulsing dot, or use <kbd>←</kbd> <kbd>→</kbd></div>
+</div>
+
+<script>
+(() => {
+  const W = 1440, H = 820;
+  const MARK = '<svg class="mark" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M152.38 13.33C171.29 13.33 186.67 28.71 186.67 47.62V152.38C186.67 171.29 171.29 186.67 152.38 186.67H47.62C28.71 186.67 13.33 171.29 13.33 152.38V47.62C13.33 28.71 28.71 13.33 47.62 13.33H152.38ZM152.38 0H47.62C21.32 0 0 21.32 0 47.62V152.38C0 178.68 21.32 200 47.62 200H152.38C178.68 200 200 178.68 200 152.38V47.62C200 21.32 178.68 0 152.38 0Z" fill="#00C9D4"/><path d="M93.39 62.1C89.98 59.66 84.7 58.7 80.99 58.69L26.11 58.74L44.28 71.71H82.53C83.21 71.71 83.79 71.96 84.24 72.29C85.21 72.98 85.5 74.27 84.5 75.67L72.84 92.1L84.25 100.24L96.2 83.46C101.27 76.35 101.05 67.54 93.42 62.1L93.4 62.08Z" fill="currentColor"/><path d="M49.21 102.91C53.53 102.91 58.53 105.26 61.64 107.48L107.62 140.38H84.65L52.58 117.49C52.03 117.05 51.38 116.94 50.8 116.94C49.57 116.94 48.56 117.84 48.56 119.62L48.53 140.38H34.11V119.16C34.11 110.16 39.55 102.91 49.19 102.91Z" fill="currentColor"/><path d="M166.27 115.45V103.76C166.27 96.91 164.14 91.42 159.86 87.3C155.58 83.18 149.91 81.1 142.82 81.1H133.49C128.74 81.1 124.57 82.06 120.95 83.97C117.32 85.88 114.54 88.56 112.55 92.02C110.56 95.49 109.58 99.5 109.58 104.01V119.65C109.58 123.94 110.56 127.7 112.55 130.98C114.54 134.26 117.3 136.82 120.92 138.62C124.55 140.39 128.72 141.3 133.46 141.3H142.32C149.41 141.3 155.11 139.5 159.47 135.92C163.83 132.34 166.02 127.59 166.02 121.67H152.85C152.85 124.15 151.9 126.15 149.99 127.68C148.08 129.18 145.57 129.95 142.46 129.95H133.49C130.3 129.95 127.76 128.99 125.85 127.14C123.94 125.26 122.99 122.77 122.99 119.66V115.46H166.27ZM122.72 105.4V104.34C122.72 100.76 123.7 97.84 125.69 95.63C127.65 93.42 130.24 92.3 133.43 92.3H142.89C145.94 92.3 148.37 93.36 150.25 95.47C152.13 97.57 153.06 100.36 153.06 103.77V105.41H122.71Z" fill="currentColor"/></svg>';
+  document.getElementById('brand').innerHTML = MARK + '<span>ReSpark</span>';
+
+  const ic = (n, extra = '') => `<i data-lucide="${n}" ${extra}></i>`;
+
+  // Sample data (illustrative). Copper lines are on a payment hold; the rest
+  // of the ticket ($4,553.16) can be paid today.
+  const money = v => '$' + v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const MATS = [
+    { n: 1, mat: 'Shred', g: 38420, t: 14960, adj: 120, net: 23340, p: '$210.00', um: 'NT', v: 2450.70 },
+    { n: 2, mat: '#1 Bare Bright Copper', g: 612, t: 48, adj: 0, net: 564, p: '$3.8000', um: 'LB', v: 2143.20, hold: true, id: 'r-cu' },
+    { n: 3, mat: '#2 Copper', g: 846, t: 52, adj: 12, net: 782, p: '$3.5000', um: 'LB', v: 2737.00, hold: true },
+    { n: 4, mat: 'Aluminum Cans (UBC)', g: 1284, t: 96, adj: 0, net: 1188, p: '$0.5200', um: 'LB', v: 617.76 },
+    { n: 5, mat: 'Yellow Brass', g: 418, t: 36, adj: 0, net: 382, p: '$2.2500', um: 'LB', v: 859.50 },
+    { n: 6, mat: 'Insulated Copper Wire', g: 734, t: 58, adj: 20, net: 656, p: '$1.4500', um: 'LB', v: 951.20, hold: true },
+    { n: 7, mat: '304 Stainless Solids', g: 1126, t: 84, adj: 0, net: 1042, p: '$0.6000', um: 'LB', v: 625.20 },
+  ];
+  const TOTAL = 10384.56, PAYABLE = 4553.16, HOLD_THRU = 'Oct 22, 2026', READY = 'Oct 23, 2026';
+
+  // ---------- steps ----------
+  const STEPS = [
+    { view: 'tk', cover: 'intro', url: '/app/purchases/tickets/48213' },
+    { view: 'tk', t: '#r-cu', place: 'bottom', url: '/app/purchases/tickets/48213',
+      tip: 'Open a purchase ticket that mixes copper with other metals. Here the copper is on a payment hold, and the rest can be paid today.' },
+    { view: 'tk', t: '#btn-pay', place: 'bottom', url: '/app/purchases/tickets/48213',
+      tip: 'Click <b>PAY</b> to open the payment screen.' },
+    { view: 'tk', drawer: 'pay', t: '#held', place: 'left', url: '/app/purchases/tickets/48213',
+      tip: 'Each held material gets its own row with its <b>Hold through</b> date. Held material can’t be paid until its hold ends.' },
+    { view: 'tk', drawer: 'pay', t: '#pays', place: 'left', url: '/app/purchases/tickets/48213',
+      tip: 'The amount fills in with what you can pay now. Split it across payment methods if you like. Fees and promotions for those methods are already counted.' },
+    { view: 'tk', drawer: 'pay', t: '#btn-paynow', place: 'top', url: '/app/purchases/tickets/48213',
+      tip: 'Pay the unheld part of the ticket. You don’t need to build a separate bill first.' },
+    { view: 'tk', paid: 'partial', t: '#status', place: 'bottom', url: '/app/purchases/tickets/48213',
+      tip: 'The ticket now shows <b>Partially Paid</b>. The copper stays unpaid until its hold ends.' },
+    { view: 'tk', paid: 'partial', drawer: 'paid', t: '#void-cash', place: 'bottom', url: '/app/purchases/tickets/48213',
+      tip: 'Need to undo one payment? Click the red bin on that payment to void just that one.' },
+    { view: 'tk', paid: 'voided', drawer: 'paid', t: '#rec', place: 'left', url: '/app/purchases/tickets/48213',
+      tip: 'Only that payment is reversed. The check stays recorded, and the ticket stays <b>Partially Paid</b>.' },
+    { view: 'rp', t: '#rtp', place: 'bottom', url: '/app/reports/payment-holds',
+      tip: 'Open <b>Reports → Payment Holds</b> to see when the held material is <b>Ready to Pay</b>. The dates follow your yard’s own hold days.' },
+    { view: 'rp', cover: 'outro', url: '/app/reports/payment-holds' },
+  ];
+
+  // ---------- chrome ----------
+  function sidebar(active) {
+    const row = (i, l, extra = '', on = false) => `<div class="nrow${on ? ' active' : ''}">${ic(i)}<span>${l}</span>${extra || ic('chevron-right', 'class="chev"')}</div>`;
+    const sub = (id, l) => `<div class="nrow sub${active === id ? ' active' : ''}" id="nav-${id}"><span>${l}</span></div>`;
+    return `<aside class="side">
+      <div class="top">${MARK}<div class="yard"><span>North Yard</span>${ic('chevrons-up-down')}</div></div>
+      <div class="nav">
+        ${row('inbox', 'Inbox', '<span class="pill">4</span>')}
+        ${row('messages-square', 'ScrapChat', ' ')}
+        <div class="cmd" style="margin:2px 0">${ic('search')}<span>Search &amp; actions</span><kbd>⌘K</kbd></div>
+        <div class="nsep"></div>
+        <div class="nrow">${ic('shopping-cart')}<span>Purchases</span>${ic('chevron-down', 'class="chev"')}</div>
+        ${sub('tk', 'Ticket Library')}${sub('ap', 'AP Center')}${sub('bl', 'Bills')}${sub('pl', 'Pending Loads')}
+        ${row('tag', 'Sales')}${row('file-text', 'Contracts')}${row('boxes', 'Inventory')}
+        ${row('users', 'Customers')}${row('layers', 'Commodities')}${row('truck', 'Logistics')}${row('clipboard-list', 'Load Board')}${row('warehouse', 'Assets')}${row('chart-column', 'Reports', '', active === 'rp')}${row('landmark', 'Ledger')}
+      </div>
+      <div class="foot"><div class="av">JP</div><div class="who"><span>Jordan Pike</span><small>General Manager</small></div>
+        <div class="ico"><span>${ic('settings')}</span><span>${ic('circle-help')}</span></div></div>
+    </aside>`;
+  }
+
+  const head = (crumbs, title, acts) => `<div class="phead"><div class="left"><div class="crumbs">${crumbs.map(c => `<span>${c}</span>`).join(ic('chevron-right'))}</div><h1>${title}</h1></div><div class="acts">${acts}</div></div>`;
+
+  function ticket(s) {
+    const status = s.paid
+      ? `<span class="badge b-warn" id="status">Partially Paid</span>`
+      : `<span class="badge b-accent" id="status">Price Complete</span>`;
+    const title = `<span style="display:inline-flex;align-items:center;gap:10px">Inbound Ticket #48213 ${status}</span>`;
+    const fld = (l, v) => `<div class="fld"><label>${l}</label><div class="in">${v}</div></div>`;
+    const rows = MATS.map(m => `<tr${m.id ? ` id="${m.id}"` : ''}><td class="c">${m.n}</td><td>${m.mat}</td><td class="num">${m.g.toLocaleString()}</td><td class="num">${m.t.toLocaleString()}</td><td class="num">${m.adj}</td><td class="num"><b>${m.net.toLocaleString()}</b></td><td class="num">${m.p}</td><td>${m.um}</td><td class="num"><b>${money(m.v)}</b></td></tr>`).join('');
+    const toast = s.paid === 'partial' && !s.drawer ? `<div class="toast">${ic('circle-check')}Payment of ${money(PAYABLE)} recorded</div>`
+      : s.paid === 'voided' ? `<div class="toast">${ic('circle-check')}Cash payment of $553.16 voided</div>` : '';
+    return `<main class="main">${head(['Purchases', 'Ticket Library', 'Inbound Ticket #48213'], title,
+      `<span class="saved">${ic('check')}Saved</span><span class="rb" id="btn-pay">${ic('wallet')}PAY</span><span class="rb">${ic('printer')}SCALE TICKET</span><span class="rb">${ic('printer')}PURCHASE TICKET</span><span class="rb pri">Done</span><span class="rb icon">${ic('ellipsis-vertical')}</span>`)}
+      <div class="ibody">
+        <div class="cards2">
+          <div class="icard"><div class="ct">Customer Information</div><div class="g3">${fld('Supplier Name', '<b>Midwest Auto Salvage</b>')}${fld('Effective Date', '10/16/26 9:42 AM')}${fld('Contact', 'Dana Ruiz')}${fld('Location', 'Gary, IN — Main Lot')}${fld('# Passengers', '1')}${fld('ID Verified', '<span class="badge b-success">Driver license</span>')}</div></div>
+          <div class="icard"><div class="ct">Transportation Info</div><div class="g4">${fld('Carrier', 'Self-delivered')}${fld('Driver Name', 'Luis Ortega')}${fld('Bill of Lading', 'BL-20931')}${fld('Pickup?', 'No')}${fld('Truck #', 'T-114')}${fld('Trailer #', 'TR-22')}${fld('Container #', '40-yd 12')}${fld('Scale', 'Inbound Scale 1')}</div></div>
+        </div>
+        <div class="tcard"><div class="tt"><b style="font-size:14px">Materials (7)</b><span class="cnt"></span><span class="rb">${ic('scale')}Received Weights</span><span class="rb">${ic('plus')}Add Vehicle</span></div>
+          <table class="itab tkt"><thead><tr><th style="width:4%">#</th><th style="width:24%">Material</th><th class="num">Gross (lb)</th><th class="num">Tare (lb)</th><th class="num">Adjustments</th><th class="num">Net (lb)</th><th class="num">Price/UM</th><th style="width:6%">UM</th><th class="num">Value</th></tr></thead>
+          <tbody>${rows}<tr class="tot"><td></td><td>Truck Total</td><td class="num">43,440</td><td class="num">15,334</td><td class="num">152</td><td class="num">27,954</td><td></td><td></td><td class="num">${money(TOTAL)}</td></tr></tbody></table></div>
+        ${toast}
+      </div>${drawer(s)}</main>`;
+  }
+
+  function report() {
+    const R = [
+      ['IBT-48213', 'Midwest Auto Salvage', '#1 Bare Bright Copper', 2143.20, 'Oct 16, 2026', 5, READY, 'On hold'],
+      ['IBT-48213', 'Midwest Auto Salvage', '#2 Copper', 2737.00, 'Oct 16, 2026', 5, READY, 'On hold', 'rtp'],
+      ['IBT-48213', 'Midwest Auto Salvage', 'Insulated Copper Wire', 951.20, 'Oct 16, 2026', 5, READY, 'On hold'],
+      ['IBT-48197', 'Lakeshore Demolition', '#2 Copper', 1314.25, 'Oct 15, 2026', 5, 'Oct 22, 2026', 'On hold'],
+      ['IBT-48164', 'R. Alvarez', '#1 Bare Bright Copper', 486.40, 'Oct 13, 2026', 5, 'Oct 20, 2026', 'On hold'],
+      ['IBT-48122', 'Tri-County Electric', 'Insulated Copper Wire', 1702.60, 'Oct 8, 2026', 5, 'Oct 15, 2026', 'Ready'],
+      ['IBT-48109', 'K. Nguyen', '#2 Copper', 392.00, 'Oct 7, 2026', 5, 'Oct 14, 2026', 'Ready'],
+    ];
+    const rows = R.map(r => `<tr><td class="mono">${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td class="num">${money(r[3])}</td><td>${r[4]}</td><td class="num">${r[5]}</td><td><span${r[8] ? ` id="${r[8]}" class="rtpc"` : ''}>${r[6]}</span></td><td><span class="badge ${r[7] === 'Ready' ? 'b-success' : 'b-warn'}">${r[7]}</span></td></tr>`).join('');
+    return `<main class="main">${head(['Reports', 'Payment Holds'], 'Payment Holds', `<span class="rb">${ic('download')}Export</span>`)}
+      <div class="ibody">
+        <div class="kpis"><div><small>On hold</small><b>$7,632.05</b><span>5 lines · 3 tickets</span></div><div><small>Ready to pay</small><b>$2,094.60</b><span>2 lines</span></div><div><small>Next release</small><b>Oct 20, 2026</b><span>1 line</span></div><div><small>Yard</small><b>North Yard</b><span>5-day copper hold</span></div></div>
+        <div class="tcard"><div class="tt"><div class="inp">${ic('search')}Search tickets</div><div class="inp">Status <b style="color:var(--a-fg);font-weight:500">All</b>${ic('chevron-down')}</div><span class="cnt">7 lines</span></div>
+          <table class="itab"><thead><tr><th style="width:10%">Ticket</th><th style="width:17%">Supplier</th><th style="width:17%">Material</th><th class="num">Value</th><th>Effective date</th><th class="num">Hold days</th><th>Ready to Pay</th><th style="width:9%">Status</th></tr></thead><tbody>${rows}</tbody></table></div>
+      </div></main>`;
+  }
+
+  function drawer(s) {
+    if (!s.drawer) return '';
+    const prev = STEPS[step - 1];
+    const still = prev && prev.drawer && prev.view === s.view ? ' still' : '';
+    const shell = (title, body, foot) => `<div class="drawer${still}"><div class="dh"><h3>${title}</h3><span class="x">${ic('x')}</span></div><div class="db">${body}</div>${foot ? `<div class="df">${foot}</div>` : ''}</div>`;
+    const held = MATS.filter(m => m.hold).map(m => `<div class="hr">${ic('lock')}<div class="tx"><b>${m.mat}</b><small>Hold through ${HOLD_THRU}</small></div><span>${money(m.v)}</span></div>`).join('');
+    if (s.drawer === 'pay') {
+      return shell('Pay Inbound Ticket #48213', `
+        <div class="sum"><div>Ticket total<b>${money(TOTAL)}</b></div><div>On hold<b>$5,831.40</b></div><div>Payable now<b>${money(PAYABLE)}</b></div></div>
+        <div class="sec">On hold</div>
+        <div class="held" id="held">${held}</div>
+        <div class="sec">Payment</div>
+        <div id="pays" style="display:flex;flex-direction:column;gap:8px">
+          <div class="pm"><div class="in">Check${ic('chevron-down')}</div><div class="in amt">4,000.00</div></div>
+          <div class="pm"><div class="in">Cash${ic('chevron-down')}</div><div class="in amt">553.16</div></div>
+          <span class="link" style="font-size:12.5px">${ic('plus')} Add payment method</span>
+        </div>`,
+        `<span class="rb">Cancel</span><span class="rb pri" id="btn-paynow">${ic('wallet')}PAY ${money(PAYABLE)}</span>`);
+    }
+    if (s.drawer === 'paid') {
+      const voided = s.paid === 'voided';
+      const paid = voided ? 4000 : PAYABLE;
+      return shell('Pay Inbound Ticket #48213', `
+        <div class="sum"><div>Paid<b>${money(paid)}</b></div><div>On hold<b>$5,831.40</b></div><div>Payable now<b>${money(PAYABLE - paid)}</b></div></div>
+        <div class="sec">Payments</div>
+        <div class="held" id="rec">
+          <div class="hr">${ic('banknote')}<div class="tx"><b>Check #10482</b><small>Oct 16, 2026 · 10:05 AM</small></div><span>$4,000.00</span><span class="bin">${ic('trash-2')}</span></div>
+          ${voided ? '' : `<div class="hr">${ic('banknote')}<div class="tx"><b>Cash</b><small>Oct 16, 2026 · 10:05 AM</small></div><span>$553.16</span><span class="bin" id="void-cash">${ic('trash-2')}</span></div>`}
+        </div>
+        <div class="sec">On hold</div>
+        <div class="held">${held}</div>`, '');
+    }
+    return '';
+  }
+
+  function cover(kind) {
+    if (kind === 'intro') {
+      return `<div class="cover"><div class="card">
+        <div class="eyebrow">${ic('wallet')}ReSpark Purchases · Rolling out</div>
+        <h2>Partially Pay Inbound Tickets + Payment Holds</h2>
+        <p>Pay the part of an inbound ticket you can pay today. Held material, like copper on a payment hold, stays unpaid until its hold ends, and the payment screen shows what’s paid and what’s still held.</p>
+        <div class="cta"><button class="go" type="button" data-go="next">Get started${ic('arrow-right')}</button></div>
+      </div></div>`;
+    }
+    return `<div class="cover"><div class="card">
+      <div class="eyebrow">${ic('circle-check')}Pay what’s free, hold the rest</div>
+      <h2>Pay mixed tickets without the calculator</h2>
+      <p>Pay part of a ticket, keep held material unpaid until its hold ends, and void payments one at a time. A partially paid ticket can’t be added to a bill. Fees and promotions now have a <b>Scope</b> setting (per ticket or per bill) in Settings → Purchases → Adjustments. Per-payment fees aren’t included yet.</p>
+      <div class="cta"><button class="go sec" type="button" data-go="restart">${ic('rotate-ccw')}Replay</button></div>
+    </div></div>`;
+  }
+
+  function renderApp(s) {
+    const view = s.view === 'rp' ? report() : ticket(s);
+    return `<div class="app">${sidebar(s.view)}${view}${s.cover ? cover(s.cover) : ''}</div>`;
+  }
+  function anchorMenus() {}
+
+  // ---------- player ----------
+  const stage = document.getElementById('stage');
+  const canvas = document.getElementById('canvas');
+  const overlay = document.getElementById('overlay');
+  const caption = document.getElementById('caption');
+  const pips = document.getElementById('pips');
+  const backBtn = document.getElementById('back');
+  const nextBtn = document.getElementById('next');
+  let step = 0;
+  const guided = STEPS.map((s, i) => (s.tip ? i : null)).filter(i => i !== null);
+
+  pips.innerHTML = STEPS.map((_, i) => `<button type="button" role="tab" aria-label="Step ${i + 1}" data-i="${i}"></button>`).join('');
+  pips.addEventListener('click', e => { const b = e.target.closest('button'); if (b) go(+b.dataset.i); });
+
+  function scale() {
+    const k = stage.clientWidth / W;
+    canvas.style.transform = `scale(${k})`;
+    document.body.classList.toggle('narrow', stage.clientWidth < 700);
+    return k;
+  }
+
+  function place() {
+    overlay.innerHTML = '';
+    const s = STEPS[step];
+    anchorMenus(s);
+    if (!s.t) return;
+    const el = canvas.querySelector(s.t);
+    if (!el) return;
+    const sr = stage.getBoundingClientRect();
+    const r = el.getBoundingClientRect();
+    const x = r.left - sr.left, y = r.top - sr.top, w = r.width, h = r.height;
+    const n = guided.indexOf(step) + 1;
+    const label = `<span class="n">Step ${n} of ${guided.length}</span>`;
+
+    const ring = document.createElement('div');
+    ring.className = 'ring';
+    Object.assign(ring.style, { left: x - 3 + 'px', top: y - 3 + 'px', width: w + 6 + 'px', height: h + 6 + 'px' });
+    const hot = document.createElement('button');
+    hot.className = 'hot';
+    hot.type = 'button';
+    hot.setAttribute('aria-label', 'Continue to next step');
+    hot.style.left = x + w / 2 + 'px';
+    hot.style.top = y + h / 2 + 'px';
+    hot.addEventListener('click', () => go(step + 1));
+    overlay.append(ring, hot);
+
+    caption.innerHTML = label + s.tip;
+    if (document.body.classList.contains('narrow')) return;
+
+    const tip = document.createElement('div');
+    tip.className = 'tip';
+    tip.innerHTML = label + s.tip;
+    overlay.append(tip);
+    const tw = tip.offsetWidth, th = tip.offsetHeight, gap = 18;
+    const SW = stage.clientWidth, SH = stage.clientHeight;
+    let tx, ty;
+    const side = s.place || 'right';
+    if (side === 'right') { tx = x + w + gap; ty = y + h / 2 - th / 2; }
+    if (side === 'left') { tx = x - tw - gap; ty = y + h / 2 - th / 2; }
+    if (side === 'bottom') { tx = x + w / 2 - tw / 2; ty = y + h + gap; }
+    if (side === 'top') { tx = x + w / 2 - tw / 2; ty = y - th - gap; }
+    if (side === 'right' && tx + tw > SW - 8) { tx = x - tw - gap; }
+    if (side === 'left' && tx < 8) { tx = x + w + gap; }
+    tx = Math.max(10, Math.min(SW - tw - 10, tx));
+    ty = Math.max(10, Math.min(SH - th - 10, ty));
+    tip.style.left = tx + 'px';
+    tip.style.top = ty + 'px';
+  }
+
+  function render() {
+    const s = STEPS[step];
+    canvas.innerHTML = renderApp(s);
+    if (window.lucide) lucide.createIcons({ attrs: { 'aria-hidden': 'true' } });
+    document.getElementById('url').textContent = 'app.respark.com' + s.url;
+    document.getElementById('progress').style.width = (step / (STEPS.length - 1)) * 100 + '%';
+    [...pips.children].forEach((b, i) => { b.className = i === step ? 'on' : i < step ? 'done' : ''; b.setAttribute('aria-selected', i === step); });
+    const n = guided.indexOf(step);
+    document.getElementById('count').textContent = s.cover === 'intro' ? 'Intro' : s.cover === 'outro' ? 'Done' : `${n + 1} / ${guided.length}`;
+    backBtn.disabled = step === 0;
+    nextBtn.disabled = step === STEPS.length - 1;
+    if (s.cover) caption.innerHTML = s.cover === 'intro'
+      ? '<span class="n">Intro</span>Pay the unheld part of an inbound ticket and leave held copper unpaid until its hold ends.'
+      : '<span class="n">Done</span>Pay what’s free now, hold the rest, void payments one at a time. Replay any step with the bars above.';
+    scale();
+    // Measure only after entrance animations (panels sliding in, menus
+    // popping, pins dropping) finish, or the ring lands where the element
+    // was mid-animation instead of where it ends up.
+    const token = ++renderToken;
+    settle().then(() => { if (token === renderToken) place(); });
+  }
+
+  let renderToken = 0;
+  function settle() {
+    const finite = (canvas.getAnimations ? canvas.getAnimations({ subtree: true }) : [])
+      .filter(a => a.effect && a.effect.getComputedTiming().iterations !== Infinity);
+    const done = Promise.all(finite.map(a => a.finished.catch(() => {})));
+    const timeout = new Promise(r => setTimeout(r, 1200));
+    // If the timeline is throttled (background tab), snap leftovers to their
+    // end state so the measurement still matches the final layout.
+    return Promise.race([done, timeout]).then(() => {
+      finite.forEach(a => { if (a.playState !== 'finished') try { a.finish(); } catch (e) {} });
+      return new Promise(r => setTimeout(r, 30));
+    });
+  }
+
+  // Self-check used before publishing: walks every step and reports any
+  // highlight that doesn't sit on its target, targets that are missing or
+  // clipped, and tooltips that cover the thing they point at.
+  function checkStep() {
+    const s = STEPS[step];
+    if (!s.t) return { step, ok: true };
+    const el = canvas.querySelector(s.t), ring = overlay.querySelector('.ring'), tip = overlay.querySelector('.tip');
+    if (!el) return { step, ok: false, why: `target ${s.t} not found` };
+    if (!ring) return { step, ok: false, why: 'highlight not drawn' };
+    const a = el.getBoundingClientRect(), b = ring.getBoundingClientRect(), st = stage.getBoundingClientRect();
+    const off = Math.max(Math.abs(a.left - 3 - b.left), Math.abs(a.top - 3 - b.top), Math.abs(a.width + 6 - b.width), Math.abs(a.height + 6 - b.height));
+    const issues = [];
+    if (off > 2) issues.push(`highlight off by ${Math.round(off)}px`);
+    if (a.width < 4 || a.height < 4) issues.push('target has no size');
+    if (a.left < st.left - 1 || a.top < st.top - 1 || a.right > st.right + 1 || a.bottom > st.bottom + 1) issues.push('target clipped by frame');
+    if (tip) {
+      const t = tip.getBoundingClientRect();
+      const ix = Math.max(0, Math.min(a.right, t.right) - Math.max(a.left, t.left)), iy = Math.max(0, Math.min(a.bottom, t.bottom) - Math.max(a.top, t.top));
+      if (ix * iy > 0.25 * a.width * a.height) issues.push('tooltip covers target');
+    }
+    return { step, target: s.t, ok: issues.length === 0, issues };
+  }
+  window.walkthroughAudit = async () => {
+    const results = [];
+    for (let i = 0; i < STEPS.length; i++) {
+      go(i);
+      await settle();
+      await new Promise(r => setTimeout(r, 60));
+      results.push(checkStep());
+    }
+    go(0);
+    return { ok: results.every(r => r.ok), problems: results.filter(r => !r.ok), steps: results.length };
+  };
+
+  function go(i) {
+    step = Math.max(0, Math.min(STEPS.length - 1, i));
+    render();
+  }
+
+  canvas.addEventListener('click', e => {
+    const g = e.target.closest('[data-go]');
+    if (g) { go(g.dataset.go === 'restart' ? 0 : step + 1); return; }
+    const s = STEPS[step];
+    if (s.t && e.target.closest(s.t)) go(step + 1);
+  });
+  backBtn.addEventListener('click', () => go(step - 1));
+  nextBtn.addEventListener('click', () => go(step + 1));
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight') go(step + 1);
+    if (e.key === 'ArrowLeft') go(step - 1);
+  });
+  new ResizeObserver(() => { scale(); settle().then(place); }).observe(stage);
+  if (document.fonts) document.fonts.ready.then(place);
+
+  if (window.lucide) lucide.createIcons({ attrs: { 'aria-hidden': 'true' } });
+  render();
+})();
+</script>
