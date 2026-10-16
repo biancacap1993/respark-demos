@@ -325,7 +325,7 @@ td { padding: 0 12px; height: 44px; border-bottom: 1px solid var(--a-border-subt
 .datepop .presets span { font-size: 12px; border: 1px solid var(--a-border); border-radius: 999px; padding: 3px 9px; color: var(--a-text-2); }
 .datepop .pf { display: flex; justify-content: flex-end; font-size: 12.5px; }
 .ltab { width: 100%; font-size: 12.5px; table-layout: fixed; }
-.ltab th { height: 34px; font-size: 12px; color: var(--a-text-2); background: var(--a-muted-solid); padding: 0 10px; }
+.ltab th { height: 34px; white-space: nowrap; font-size: 12px; color: var(--a-text-2); background: var(--a-muted-solid); padding: 0 10px; }
 .ltab td { height: 38px; padding: 0 10px; }
 .ltab td.num, .ltab th.num { text-align: right; }
 .ltab tr.bal td { background: hsla(217, 55%, 16%, 0.035); height: 46px; }
@@ -432,17 +432,17 @@ td { padding: 0 12px; height: 44px; border-bottom: 1px solid var(--a-border-subt
   // code's prefixes (IBT, OBT, Regrade, Tag).
   const WIP_COST = 0.61, FG_COST = 0.66;
   const WIP = { open: 4180, rows: [
-    { d: '09/03/2026', tk: 'IBT 48211', mv: 'Inbound', c: 'in', w: 6240, cu: 'Coastal Demolition' },
-    { d: '09/09/2026', tk: 'OBT 48407', mv: 'Outbound', c: 'out', w: -9800, cu: 'Delta Aluminum Mill' },
-    { d: '09/12/2026', tk: 'Regrade 311', mv: 'Regrade', c: 'rg', w: 1120, no: 'From Painted Siding' },
-    { d: '09/18/2026', tk: 'IBT 48690', mv: 'Inbound', c: 'in', w: 3410, cu: 'Ridgeview Contractors' },
-    { d: '09/24/2026', tk: 'OBT 48903', mv: 'Outbound', c: 'out', w: -8600, cu: 'Delta Aluminum Mill', id: 'tk-out' },
-    { d: '10/06/2026', tk: 'IBT 49188', mv: 'Inbound', c: 'in', w: 2940, cu: 'Coastal Demolition', oct: true },
-    { d: '10/13/2026', tk: 'OBT 49342', mv: 'Outbound', c: 'out', w: -1850, cu: 'Harbor Export Co.', oct: true },
+    { d: '09/03/2026 8:42 AM', tk: 'IBT 48211', mv: 'Inbound', c: 'in', w: 6240, cu: 'Coastal Demolition' },
+    { d: '09/09/2026 2:15 PM', tk: 'OBT 48407', mv: 'Outbound', c: 'out', w: -9800, cu: 'Delta Aluminum Mill' },
+    { d: '09/12/2026 10:05 AM', tk: 'Regrade 311', mv: 'Regrade', c: 'rg', w: 1120, no: 'From Painted Siding' },
+    { d: '09/18/2026 9:30 AM', tk: 'IBT 48690', mv: 'Inbound', c: 'in', w: 3410, cu: 'Ridgeview Contractors' },
+    { d: '09/24/2026 3:48 PM', tk: 'OBT 48903', mv: 'Outbound', c: 'out', w: -8600, cu: 'Delta Aluminum Mill', id: 'tk-out' },
+    { d: '10/06/2026 11:20 AM', tk: 'IBT 49188', mv: 'Inbound', c: 'in', w: 2940, cu: 'Coastal Demolition', oct: true },
+    { d: '10/13/2026 1:56 PM', tk: 'OBT 49342', mv: 'Outbound', c: 'out', w: -1850, cu: 'Harbor Export Co.', oct: true },
   ] };
   const FG = { open: 15600, rows: [
-    { d: '09/05/2026', tk: 'Tag 8841', mv: 'FG Produced', c: 'nt', w: 12400 },
-    { d: '09/20/2026', tk: 'Tag 8790', mv: 'FG Shipped', c: 'nt', w: -9600, cu: 'Delta Aluminum Mill' },
+    { d: '09/05/2026 7:55 AM', tk: 'Tag 8841', mv: 'FG Produced', c: 'nt', w: 12400 },
+    { d: '09/20/2026 4:10 PM', tk: 'Tag 8790', mv: 'FG Shipped', c: 'nt', w: -9600, cu: 'Delta Aluminum Mill' },
   ] };
 
   // ---------- steps ----------
@@ -457,11 +457,11 @@ td { padding: 0 12px; height: 44px; border-bottom: 1px solid var(--a-border-subt
       tip: 'Old Sheet’s WIP is below zero. Click the material name to see the transactions behind it.' },
     { cols: true, q: 'AL-OSH', drawer: 'ledger', side: 'wip', to: true, datepop: true, t: '#datepop', place: 'left', url: URL_,
       tip: 'The <b>Inventory Ledger</b> opens on the same page, showing <b>WIP</b> for last month. Click <b>Date</b> to change the range.' },
-    { cols: true, q: 'AL-OSH', drawer: 'ledger', side: 'wip', to: true, t: '#open-row', place: 'bottom', url: URL_,
-      tip: 'The first row is the <b>Opening Balance</b>: everything before the start date. The transactions in the range follow, oldest first.' },
+    { cols: true, q: 'AL-OSH', drawer: 'ledger', side: 'wip', to: true, t: '#open-row', place: 'top', url: URL_,
+      tip: 'The ledger opens newest first. The <b>Opening Balance</b>, everything before the start date, is at the bottom, and the <b>Closing Balance</b> is at the top.' },
     { cols: true, q: 'AL-OSH', drawer: 'ledger', side: 'wip', to: true, t: '#tk-out', place: 'bottom', url: URL_,
       tip: 'Each row shows the date, ticket, movement, weight, cost, customer and notes. Click a ticket to open its source document in a new tab.' },
-    { cols: true, q: 'AL-OSH', drawer: 'ledger', side: 'wip', to: false, t: '#close-row', place: 'top', url: URL_,
+    { cols: true, q: 'AL-OSH', drawer: 'ledger', side: 'wip', to: false, t: '#close-row', place: 'bottom', url: URL_,
       tip: 'Clear the <b>To</b> date. The <b>Closing Balance</b> now reads <b>Today</b> and matches Old Sheet’s WIP on the commodity page.' },
     { cols: true, q: 'AL-OSH', drawer: 'ledger', side: 'fg', to: false, t: '#seg', place: 'bottom', url: URL_,
       tip: 'Switch between <b>WIP</b>, <b>FG</b> and <b>All</b>. <b>FG</b> shows the finished goods produced and shipped for this material.' },
@@ -526,7 +526,7 @@ td { padding: 0 12px; height: 44px; border-bottom: 1px solid var(--a-border-subt
     const L = s.side === 'fg' ? FG : WIP, cost = s.side === 'fg' ? FG_COST : WIP_COST;
     const rows = L.rows.filter(r => !(s.to && r.oct));
     const close = L.open + rows.reduce((a, r) => a + r.w, 0);
-    const lines = rows.map(r => `<tr><td>${r.d}</td><td><span class="tlink"${r.id ? ` id="${r.id}"` : ''}>${r.tk}${ic('external-link')}</span></td><td><span class="mv ${r.c}">${r.mv}</span></td>
+    const lines = rows.slice().reverse().map(r => `<tr><td>${r.d}</td><td><span class="tlink"${r.id ? ` id="${r.id}"` : ''}>${r.tk}${ic('external-link')}</span></td><td><span class="mv ${r.c}">${r.mv}</span></td>
         <td class="num">${W_(r.w)}</td><td class="num">${C_(r.w * cost)}</td><td>${r.cu || ''}</td><td class="muted">${r.no || ''}</td></tr>`).join('');
     const seg = ['WIP', 'FG', 'All'].map((l, i) => `<span${(s.side === 'fg' ? 1 : 0) === i ? ' class="on"' : ''}>${l}</span>`).join('');
     const dateBtn = s.to ? 'Sep 1 – Sep 30' : '&gt;= Sep 1';
@@ -542,9 +542,9 @@ td { padding: 0 12px; height: 44px; border-bottom: 1px solid var(--a-border-subt
           <span class="fbtn">${ic('list-filter')}Movement</span>
         </div>
         <table class="ltab"><thead><tr><th style="width:13%">Date</th><th style="width:13%">Ticket</th><th style="width:13%">Movement</th><th class="num" style="width:12%">Weight</th><th class="num" style="width:13%">Cost</th><th style="width:17%">Customer</th><th>Notes</th></tr></thead>
-          <tbody><tr class="bal" id="open-row"><td colspan="3"><b>Opening Balance</b><small>Before Sep 1, 2026</small></td><td class="num">${W_(L.open)}</td><td class="num">${C_(L.open * cost)}</td><td></td><td></td></tr>
+          <tbody><tr class="bal close" id="close-row"><td colspan="3"><b>Closing Balance</b><small>${s.to ? 'Through Sep 30, 2026' : 'Today'}</small></td><td class="num">${W_(close)}</td><td class="num">${C_(close * cost)}</td><td></td><td></td></tr>
           ${lines}
-          <tr class="bal close" id="close-row"><td colspan="3"><b>Closing Balance</b><small>${s.to ? 'Through Sep 30, 2026' : 'Today'}</small></td><td class="num">${W_(close)}</td><td class="num">${C_(close * cost)}</td><td></td><td></td></tr></tbody></table>
+          <tr class="bal" id="open-row"><td colspan="3"><b>Opening Balance</b><small>Before Sep 1, 2026</small></td><td class="num">${W_(L.open)}</td><td class="num">${C_(L.open * cost)}</td><td></td><td></td></tr></tbody></table>
         <div class="mtot">${ic('chevron-right')}Total Weight by Movement</div>
       </div></div>`;
   }
