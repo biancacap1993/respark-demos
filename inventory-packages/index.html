@@ -6,8 +6,8 @@
 <script src="https://cdn.jsdelivr.net/npm/lucide@0.460.0/dist/umd/lucide.min.js"></script>
 <style>
 /* Layout: an Arcade-style player. One framed browser window holds a scaled
-   1440×820 mock of ReSpark Inventory (based on the Inventory Overview
-   screen) for packages and finished goods; a pulsing hotspot + tooltip guides each step; step controls sit
+   1440×820 mock of ReSpark Inventory (Packages, Finished Goods and the
+   Inventory Overview); a pulsing hotspot + tooltip guides each step; step controls sit
    under the frame. The app mock keeps ReSpark's light theme (it stands in
    for a screenshot); the page around it follows the viewer's theme. */
 :root {
@@ -174,104 +174,175 @@ kbd { font: inherit; font-size: 11px; border: 1px solid var(--ctl-line); border-
 .b-neutral { background: hsla(217, 55%, 16%, 0.07); color: var(--a-text-2); }
 
 /* inventory pages */
-.phead { padding: 14px 24px 12px; border-bottom: 0; align-items: flex-start; }
-.ibody { flex: 1; min-height: 0; padding: 0 24px 20px; display: flex; flex-direction: column; gap: 14px; position: relative; }
-.kpis { display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid var(--a-border-subtle); border-radius: 10px; }
-.kpis > div { padding: 12px 16px; display: flex; flex-direction: column; gap: 2px; }
-.kpis > div + div { border-left: 1px solid var(--a-border-subtle); }
-.kpis small { font-size: 10.5px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--a-text-3); }
-.kpis b { font-size: 20px; font-weight: 700; letter-spacing: -.01em; }
-.kpis span { font-size: 12px; color: var(--a-text-3); }
-.tcard { border: 1px solid var(--a-border-subtle); border-radius: 10px; overflow: hidden; flex: 1; min-height: 0; }
-.tcard .tt { display: flex; align-items: center; gap: 8px; padding: 10px 12px; }
-.tcard .tt .inp { width: 240px; }
-.tcard .tt .cnt { margin-left: auto; font-size: 12px; color: var(--a-text-3); }
-.inp { height: 32px; border: 1px solid var(--a-border); border-radius: 6px; display: flex; align-items: center; gap: 6px; padding-inline: 9px; color: var(--a-text-3); font-size: 12.5px; background: var(--a-surface); white-space: nowrap; }
-.inp svg.lucide { width: 14px; height: 14px; color: var(--a-icon-2); }
-table { width: 100%; border-collapse: separate; border-spacing: 0; font-variant-numeric: tabular-nums; table-layout: fixed; }
-th { text-align: left; font-weight: 500; font-size: 12.5px; padding: 0 12px; height: 38px; background: var(--a-muted-solid); border-bottom: 1px solid var(--a-border-subtle); white-space: nowrap; }
-td { padding: 0 12px; height: 44px; border-bottom: 1px solid var(--a-border-subtle); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.itab td, .itab th { border-right: 0; }
-.itab th { color: var(--a-text-2); }
-.itab td.num, .itab th.num { text-align: right; }
-.itab tr.new td { background: hsla(183, 100%, 33%, 0.07); }
-.itab .mono { font-family: var(--mono); font-size: 12px; }
-.b-teal { background: hsla(183, 100%, 33%, 0.12); color: var(--a-primary-hover); }
+.muted { color: var(--a-text-3); }
+.link { color: var(--a-primary-hover); font-weight: 500; }
+/* list-page header (ContentLayout, depth <= 2): title + actions on one row */
+.lhead { display: flex; align-items: center; gap: 12px; padding: 18px 24px 6px; }
+.lhead h1, .thead h1 { font-size: 20px; font-weight: 600; margin: 0; letter-spacing: -0.015em; }
+.lhead .acts, .thead .acts { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+/* deeper pages: back arrow + breadcrumbs, then title row, divider */
+.thead { display: flex; flex-direction: column; gap: 8px; padding: 18px 24px 12px; border-bottom: 1px solid var(--a-border-subtle); }
+.thead .crumbs { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--a-text-3); }
+.thead .crumbs svg.lucide { width: 18px; height: 18px; color: var(--a-fg); }
+.thead .crumbs .leaf { color: var(--a-fg); }
+.thead .trow { display: flex; align-items: center; gap: 12px; }
+.ntabs { display: flex; gap: 22px; padding: 0 24px; border-bottom: 1px solid var(--a-border-subtle); }
+.ntabs span { font-size: 13px; font-weight: 500; color: var(--a-text-2); padding: 11px 0 10px; border-bottom: 2px solid transparent; }
+.ntabs span.on { color: var(--a-primary-hover); border-bottom-color: var(--a-primary); }
+.ibody { flex: 1; min-height: 0; padding: 0 24px 20px; display: flex; flex-direction: column; position: relative; }
+.ibody.tabbed { padding-top: 4px; }
 
-.drawer { position: absolute; top: 0; right: 0; bottom: 0; width: 470px; background: var(--a-surface); border-left: 1px solid var(--a-border); box-shadow: -12px 0 32px rgba(15, 23, 42, 0.12); display: flex; flex-direction: column; z-index: 6; animation: slide .25s ease; }
-.drawer.still { animation: none; }
+/* InventorySummaryBar */
+.sbar { display: flex; border: 1px solid var(--a-border-subtle); border-radius: 6px; margin: 12px 0 8px; }
+.sbar > div { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 10px 16px; text-align: center; }
+.sbar > i { width: 1px; height: 27px; align-self: center; background: var(--a-border-subtle); }
+.sbar small { font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--a-text-2); opacity: .85; }
+.sbar b { font-size: 18px; font-weight: 600; letter-spacing: -.01em; line-height: 1.2; }
+.sbar span { font-size: 12px; color: var(--a-text-2); opacity: .8; }
+
+/* ResparkGrid */
+.gtb { display: flex; align-items: center; gap: 8px; margin: 4px 0 12px; }
+.inp { height: 36px; border: 1px solid var(--a-border); border-radius: 6px; display: flex; align-items: center; gap: 6px; padding-inline: 10px; color: var(--a-text-3); font-size: 13px; background: var(--a-surface); white-space: nowrap; overflow: hidden; }
+.inp svg.lucide { width: 16px; height: 16px; color: var(--a-text-2); }
+.inp.sel { color: var(--a-fg); justify-content: space-between; }
+.inp.sel svg.lucide { width: 14px; height: 14px; color: var(--a-icon-2); }
+.segt { display: inline-flex; border: 1px solid var(--a-border-subtle); border-radius: 8px; padding: 2px; gap: 2px; height: 36px; }
+.segt span { display: inline-flex; align-items: center; padding-inline: 12px; border-radius: 6px; font-size: 12.5px; font-weight: 600; color: var(--a-text-2); }
+.segt span.on { background: var(--a-surface); color: var(--a-fg); box-shadow: 0 1px 3px rgba(15, 23, 42, 0.14); }
+.segt.inv span.on { background: var(--a-dark); color: #fff; box-shadow: none; }
+.tcard { border: 1px solid var(--a-border-subtle); border-radius: 8px; overflow: hidden; flex: 1; min-height: 0; position: relative; }
+table { width: 100%; border-collapse: separate; border-spacing: 0; font-variant-numeric: tabular-nums; table-layout: fixed; }
+th { text-align: left; font-weight: 500; font-size: 12px; padding: 0 10px; height: 38px; background: var(--a-muted-solid); border-bottom: 1px solid var(--a-border-subtle); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--a-text-2); }
+td { padding: 0 10px; height: 46px; border-bottom: 1px solid var(--a-border-subtle); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 12.5px; }
+td.num, th.num { text-align: right; }
+td.c, th.c { padding: 0; text-align: center; }
+tr.new td { background: hsla(183, 100%, 33%, 0.07); }
+.stk { display: flex; flex-direction: column; line-height: 1.3; }
+.stk small { font-size: 11.5px; color: var(--a-text-3); overflow: hidden; text-overflow: ellipsis; }
+.cb { width: 15px; height: 15px; border-radius: 4px; border: 1.5px solid var(--a-border); display: inline-block; vertical-align: middle; }
+.kb { color: var(--a-icon-2); display: inline-grid; place-items: center; }
+.chip { display: inline-flex; align-items: center; height: 22px; padding-inline: 8px; border-radius: 6px; border: 1px solid; font-size: 12px; font-weight: 500; white-space: nowrap; }
+.c-success { background: hsla(162, 73%, 37%, 0.10); border-color: hsla(162, 73%, 37%, 0.30); color: var(--a-success-strong); }
+.c-neutral { background: hsla(217, 55%, 16%, 0.08); border-color: var(--a-border); color: var(--a-text-2); }
+.c-error { background: hsla(348, 81%, 48%, 0.08); border-color: hsla(348, 81%, 48%, 0.28); color: var(--a-error-strong); }
+.c-info { background: hsla(212, 90%, 50%, 0.08); border-color: hsla(212, 90%, 50%, 0.28); color: hsl(212 80% 40%); }
+
+/* Drawer primitive: floats 30px in from the edges over a dimmed backdrop */
+.scrim { position: absolute; inset: 0; background: rgba(15, 23, 42, 0.30); z-index: 5; animation: fade .2s ease; }
+.drawer { position: absolute; top: 30px; right: 30px; bottom: 30px; background: var(--a-surface); border: 1px solid var(--a-border); border-radius: 8px; box-shadow: -12px 12px 40px rgba(15, 23, 42, 0.22); display: flex; flex-direction: column; z-index: 6; overflow: hidden; animation: slide .25s ease; }
+.drawer.still, .scrim.still { animation: none; }
 @keyframes slide { from { transform: translateX(30px); opacity: 0; } to { transform: none; opacity: 1; } }
-.drawer .dh { display: flex; align-items: center; gap: 10px; padding: 16px 18px 12px; border-bottom: 1px solid var(--a-border-subtle); }
-.drawer .dh h3 { margin: 0; font-size: 16px; font-weight: 600; }
-.drawer .dh .x { margin-left: auto; color: var(--a-text-3); }
-.drawer .db { flex: 1; min-height: 0; padding: 16px 18px; display: flex; flex-direction: column; gap: 14px; position: relative; overflow: hidden; }
-.drawer .df { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 18px; border-top: 1px solid var(--a-border-subtle); }
-.fld { display: flex; flex-direction: column; gap: 5px; }
-.fld label { font-size: 12px; font-weight: 500; color: var(--a-text-2); }
-.fld .in { height: 34px; border: 1px solid var(--a-border); border-radius: 6px; display: flex; align-items: center; gap: 6px; padding-inline: 10px; font-size: 13px; font-variant-numeric: tabular-nums; }
+@keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+.drawer .dh { display: flex; flex-direction: column; gap: 12px; padding: 16px 20px 12px; border-bottom: 1px solid var(--a-border-subtle); }
+.drawer .dt { display: flex; align-items: center; gap: 10px; }
+.drawer .dt h3 { margin: 0; flex: 1; min-width: 0; font-size: 16px; font-weight: 600; line-height: 24px; }
+.drawer .dt .x, .drawer .dt .bk { color: var(--a-text-2); display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 6px; }
+.drawer .dt .bk svg.lucide { width: 18px; height: 18px; }
+.drawer .db { flex: 1; min-height: 0; padding: 20px; display: flex; flex-direction: column; gap: 20px; position: relative; overflow: hidden; }
+.drawer .db.end { justify-content: flex-end; }
+.drawer .db > * { flex-shrink: 0; }
+.drawer .df { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 20px; border-top: 1px solid var(--a-border-subtle); background: hsla(217, 55%, 16%, 0.02); }
+.fsec { display: flex; flex-direction: column; gap: 12px; }
+.fsec > h4, .h4 { margin: 0; font-size: 14px; font-weight: 600; }
+.fld { display: flex; flex-direction: column; gap: 4px; position: relative; }
+.fld label { font-size: 12px; font-weight: 500; }
+.fld label .req { color: var(--a-error); margin-left: 2px; }
+.fld .desc { font-size: 12px; color: var(--a-text-2); }
+.fld .in { height: 36px; border: 1px solid var(--a-border); border-radius: 6px; display: flex; align-items: center; gap: 6px; padding-inline: 10px; font-size: 13px; font-variant-numeric: tabular-nums; background: var(--a-surface); }
 .fld .in.ph { color: var(--a-text-3); }
+.fld .in.r { justify-content: flex-end; }
 .fld .in.open { border-color: var(--a-primary); box-shadow: 0 0 0 3px hsla(183, 100%, 33%, 0.15); }
-.fld .in .u { margin-left: auto; color: var(--a-text-3); }
-.fld .in svg.lucide { margin-left: auto; width: 14px; height: 14px; color: var(--a-icon-2); }
-.fld .in.ro { background: var(--a-muted-solid); font-weight: 600; }
-.fld .hint { font-size: 12px; color: var(--a-text-3); }
-.fld .hint b { color: var(--a-primary-hover); font-weight: 600; }
-.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
-.note { display: flex; gap: 8px; align-items: flex-start; font-size: 12.5px; line-height: 1.45; background: hsla(183, 100%, 33%, 0.07); border: 1px solid hsla(183, 100%, 33%, 0.22); border-radius: 8px; padding: 10px 12px; color: var(--a-text-2); }
-.note svg.lucide { width: 15px; height: 15px; color: var(--a-primary-hover); margin-top: 1px; }
-.note b { color: var(--a-fg); }
-.dd { position: absolute; left: 18px; right: 18px; top: 82px; background: var(--a-surface); border: 1px solid var(--a-border); border-radius: 8px; box-shadow: 0 6px 22px rgba(15, 23, 42, 0.16); padding: 4px; z-index: 5; animation: pop .18s ease; }
-.dd .mh { font-size: 11px; color: var(--a-text-3); padding: 6px 9px 4px; }
-.dd .o { display: flex; align-items: center; gap: 8px; padding: 8px 9px; border-radius: 5px; font-size: 13px; }
-.dd .o span { margin-left: auto; font-size: 12px; color: var(--a-text-3); font-variant-numeric: tabular-nums; }
+.fld .in.dis { background: var(--a-muted-solid); color: var(--a-text-2); }
+.fld .in .u { color: var(--a-text-3); }
+.fld .in > svg.lucide { margin-left: auto; width: 14px; height: 14px; color: var(--a-icon-2); }
+.fld .ta { height: 60px; border: 1px solid var(--a-border); border-radius: 6px; padding: 8px 10px; font-size: 13px; color: var(--a-text-3); }
+.g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.g3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+.dd { position: absolute; left: 0; right: 0; top: 62px; background: var(--a-surface); border: 1px solid var(--a-border); border-radius: 8px; box-shadow: 0 6px 22px rgba(15, 23, 42, 0.16); padding: 4px; z-index: 5; animation: pop .18s ease; }
+.dd .o { display: flex; align-items: center; gap: 10px; padding: 7px 9px; border-radius: 5px; }
+.dd .o .tx { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.dd .o .tx small { font-size: 12px; color: var(--a-text-3); }
+.dd .o > span:last-child { font-size: 12px; color: var(--a-text-3); }
 .dd .o.hv { background: var(--a-hover); }
 @keyframes pop { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; transform: none; } }
+.tog { display: inline-flex; border: 1px solid var(--a-border-subtle); border-radius: 8px; padding: 2px; gap: 2px; }
+.tog span { padding: 5px 12px; border-radius: 6px; font-size: 12.5px; font-weight: 600; color: var(--a-text-2); }
+.tog span.on { background: var(--a-dark); color: #fff; }
 
-.stepper { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--a-text-3); }
-.stepper span { display: inline-flex; align-items: center; gap: 6px; }
-.stepper i.n { font-style: normal; width: 20px; height: 20px; border-radius: 50%; border: 1px solid var(--a-border); display: grid; place-items: center; font-size: 11px; font-weight: 600; }
-.stepper .on { color: var(--a-fg); font-weight: 600; }
-.stepper .on i.n { background: var(--a-dark); border-color: var(--a-dark); color: #fff; }
-.stepper .done i.n { background: var(--a-primary-subtle); border-color: transparent; color: var(--a-primary-hover); }
-.stepper .ln { flex: 1; height: 1px; background: var(--a-border-subtle); }
-.choice { border: 1px solid var(--a-border); border-radius: 10px; padding: 14px; display: flex; gap: 12px; align-items: flex-start; }
-.choice .ci { width: 34px; height: 34px; border-radius: 8px; display: grid; place-items: center; background: var(--a-hover); flex-shrink: 0; }
-.choice .ci svg.lucide { width: 18px; height: 18px; }
-.choice b { display: block; font-size: 13.5px; font-weight: 600; margin-bottom: 2px; }
-.choice small { font-size: 12.5px; color: var(--a-text-3); line-height: 1.4; }
-.choice.on { border-color: var(--a-primary); box-shadow: 0 0 0 3px hsla(183, 100%, 33%, 0.12); }
-.choice.on .ci { background: var(--a-primary-subtle); color: var(--a-primary-hover); }
-.pkl { border: 1px solid var(--a-border-subtle); border-radius: 8px; overflow: hidden; }
-.pkl .pr { display: flex; align-items: center; gap: 10px; padding: 10px 12px; font-size: 13px; }
-.pkl .pr + .pr { border-top: 1px solid var(--a-border-subtle); }
-.pkl .pr .rd { width: 15px; height: 15px; border-radius: 50%; border: 1.5px solid var(--a-border); flex-shrink: 0; }
-.pkl .pr.on { background: hsla(183, 100%, 33%, 0.06); }
-.pkl .pr.on .rd { border: 5px solid var(--a-primary); }
-.pkl .pr .tx { display: flex; flex-direction: column; }
-.pkl .pr .tx small { color: var(--a-text-3); font-size: 12px; }
-.pkl .pr .w { margin-left: auto; text-align: right; font-variant-numeric: tabular-nums; }
-.pkl .pr .w small { display: block; color: var(--a-text-3); font-size: 12px; }
-.sum { display: grid; grid-template-columns: repeat(3, 1fr); background: var(--a-muted-solid); border-radius: 8px; padding: 10px 12px; font-size: 12px; color: var(--a-text-3); gap: 6px; }
-.sum b { display: block; font-size: 14px; color: var(--a-fg); font-variant-numeric: tabular-nums; }
-.alloc { width: 100%; font-size: 12.5px; }
-.alloc th { height: 32px; font-size: 11.5px; color: var(--a-text-3); background: transparent; border-right: 0; padding: 0 6px; }
-.alloc td { height: 40px; border-right: 0; padding: 0 6px; }
-.alloc td.num, .alloc th.num { text-align: right; }
-.alloc .cell { border: 1px solid var(--a-border); border-radius: 6px; height: 30px; display: flex; align-items: center; justify-content: flex-end; padding: 0 8px; gap: 4px; }
-.alloc .cell .u { color: var(--a-text-3); }
-.alloc tr.waste td { color: var(--a-text-2); background: hsla(38, 92%, 50%, 0.07); }
-.alloc tr.waste .tagw { font-size: 11px; font-weight: 600; color: hsl(32 80% 38%); background: hsla(38, 92%, 50%, 0.16); border-radius: 4px; padding: 1px 6px; }
-.alloc tr.tot td { font-weight: 600; border-bottom: 0; }
-.link { color: var(--a-primary-hover); font-weight: 500; }
-.became .br { display: flex; align-items: center; gap: 10px; padding: 9px 12px; font-size: 13px; border: 1px solid var(--a-border-subtle); border-radius: 8px; }
-.became .br + .br { margin-top: 6px; }
-.became .br span:last-child { margin-left: auto; color: var(--a-text-3); font-variant-numeric: tabular-nums; }
-.became .br svg.lucide { width: 15px; height: 15px; color: var(--a-icon-2); }
-.sec { font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--a-text-3); }
-.kv2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px; font-size: 12.5px; }
-.kv2 small { display: block; color: var(--a-text-3); font-size: 11.5px; }
-.kv2 b { font-weight: 500; font-variant-numeric: tabular-nums; }
+/* Stepper primitive */
+.stepper { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.stepper .s { display: inline-flex; align-items: center; gap: 8px; font-weight: 500; color: var(--a-text-2); }
+.stepper .s i { font-style: normal; width: 22px; height: 22px; border-radius: 50%; border: 1px solid var(--a-border); display: grid; place-items: center; font-size: 11px; font-weight: 600; color: var(--a-text-3); background: var(--a-surface); }
+.stepper .s i svg.lucide { width: 13px; height: 13px; stroke-width: 3; }
+.stepper .s.on { color: var(--a-fg); font-weight: 600; }
+.stepper .s.on i { border-color: var(--a-primary); background: var(--a-primary-subtle); color: var(--a-primary-hover); }
+.stepper .s.done i { border-color: var(--a-primary); background: var(--a-primary); color: #fff; }
+.stepper .ln { width: 24px; height: 1px; background: var(--a-border); }
+
+/* RadioGroup card variant */
+.rcard { display: flex; align-items: flex-start; gap: 12px; border: 1px solid var(--a-border); border-radius: 6px; padding: 12px 16px; }
+.rcard .rd { width: 15px; height: 15px; border-radius: 50%; border: 1.5px solid var(--a-border); margin-top: 2px; flex-shrink: 0; }
+.rcard b { display: block; font-size: 13.5px; font-weight: 600; margin-bottom: 2px; }
+.rcard small { font-size: 12.5px; color: var(--a-text-2); line-height: 1.45; }
+.rcard.on { border-color: var(--a-primary); background: var(--a-primary-subtle); }
+.rcard.on .rd { border: 4.5px solid var(--a-primary); background: #fff; }
+
+/* package picker rows (toggle buttons) */
+.pick { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid var(--a-border); border-radius: 6px; }
+.pick > svg.lucide { width: 18px; height: 18px; color: var(--a-text-3); }
+.pick .tx { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.pick .tx b { font-weight: 600; font-size: 13px; }
+.pick .tx b em { font-style: normal; font-weight: 400; color: var(--a-text-3); margin-left: 8px; }
+.pick .tx small { font-size: 12px; color: var(--a-text-2); }
+.pick .w { font-weight: 500; font-variant-numeric: tabular-nums; }
+.pick.on { border-color: var(--a-primary); background: var(--a-primary-subtle); box-shadow: inset 0 0 0 1px var(--a-primary); }
+
+/* Banner, finished good cards, summary box */
+.banner { display: flex; gap: 10px; align-items: flex-start; border: 1px solid hsla(212, 90%, 50%, 0.28); background: hsla(212, 90%, 50%, 0.07); border-radius: 6px; padding: 10px 12px; font-size: 13px; line-height: 1.4; }
+.banner > svg.lucide { color: hsl(212 80% 45%); margin-top: 2px; }
+.banner b { display: block; font-weight: 600; margin-bottom: 2px; }
+.fgc { border: 1px solid var(--a-border); border-radius: 6px; overflow: hidden; }
+.fgc .fh { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: var(--a-muted-solid); }
+.fgc .fh .tg { font-size: 12px; font-weight: 600; color: var(--a-text-2); background: hsla(217, 55%, 16%, 0.08); border-radius: 4px; padding: 2px 8px; }
+.fgc .fh .sm { font-size: 13px; color: var(--a-text-2); font-variant-numeric: tabular-nums; }
+.fgc .fh .tr { margin-left: auto; color: var(--a-error); display: inline-grid; }
+.fgc .fb { padding: 12px; display: flex; flex-direction: column; gap: 12px; }
+.coll { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; color: var(--a-text-2); }
+.coll svg.lucide { width: 14px; height: 14px; }
+.sumbox { border: 1px solid var(--a-border); border-radius: 6px; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
+.sumbox .sh { display: flex; align-items: center; justify-content: space-between; }
+.sumbox .sh > span:first-child { font-size: 12px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--a-text-3); }
+.sumbox .sr { display: flex; justify-content: space-between; font-size: 13px; }
+.sumbox .sr span:first-child { color: var(--a-text-2); }
+.sumbox .sr span:last-child { font-weight: 500; font-variant-numeric: tabular-nums; }
+.sumbox .sr.rule { border-top: 1px solid var(--a-border-subtle); padding-top: 8px; margin-top: 2px; }
+
+/* buttons */
+.rb { font: inherit; font-size: 13px; font-weight: 500; height: 32px; padding-inline: 12px; border-radius: 6px; display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--a-border); background: var(--a-surface); color: var(--a-fg); cursor: default; white-space: nowrap; }
+.rb.out { border-color: hsla(183, 100%, 33%, 0.55); color: var(--a-primary-hover); }
+.rb.pri { background: var(--a-primary); border-color: var(--a-primary); color: #fff; }
+.rb.md { height: 36px; padding-inline: 14px; }
+.rb.dash { border-style: dashed; }
+.rb.danger { color: var(--a-error-strong); border-color: hsla(348, 81%, 48%, 0.4); }
+
+/* detail drawer (DetailSection / DetailField) */
+.dsec { border: 1px solid var(--a-border); border-radius: 8px; padding: 16px 18px; }
+.dsec h4 { margin: 0 0 14px; font-size: 15px; font-weight: 600; }
+.dgrid { display: grid; gap: 14px 24px; }
+.dgrid.c2 { grid-template-columns: 1fr 1fr; }
+.dgrid.c3 { grid-template-columns: 1fr 1fr 1fr; }
+.dgrid .span2 { grid-column: span 2; }
+.df2 { display: flex; flex-direction: column; min-width: 0; }
+.df2 > small { font-size: 11.5px; font-weight: 500; letter-spacing: .04em; text-transform: uppercase; color: var(--a-text-2); }
+.df2 > span { margin-top: 4px; font-size: 13.5px; font-variant-numeric: tabular-nums; }
+.fgl { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 4px; }
+.fgl > div { display: flex; align-items: center; justify-content: space-between; gap: 12px; border: 1px solid var(--a-border); border-radius: 6px; padding: 8px 12px; }
+.fgl .l, .fgl .r { display: flex; flex-direction: column; }
+.fgl .r { align-items: flex-end; }
+.fgl .l b { font-size: 13px; font-weight: 600; color: var(--a-primary-hover); }
+.fgl small { font-size: 12px; color: var(--a-text-2); }
+.fgl .r span { font-size: 13px; font-weight: 500; }
+
 .toast { position: absolute; left: 50%; bottom: 22px; transform: translateX(-50%); background: var(--a-fg); color: #fff; border-radius: 8px; padding: 10px 14px; display: flex; align-items: center; gap: 8px; font-weight: 500; box-shadow: 0 10px 24px rgba(18,35,62,.3); animation: pop2 .3s ease; z-index: 7; }
 .toast svg.lucide { color: hsl(162 73% 55%); }
 @keyframes pop2 { from { opacity: 0; transform: translate(-50%, 8px); } to { opacity: 1; transform: translateX(-50%); } }
@@ -335,63 +406,72 @@ td { padding: 0 12px; height: 44px; border-bottom: 1px solid var(--a-border-subt
 
   const ic = (n, extra = '') => `<i data-lucide="${n}" ${extra}></i>`;
 
-  // Sample data (illustrative). UBC loose WIP averages $0.5200/lb, so a
-  // 1,400 lb bale costs $728.00; its finished goods carry that full cost.
-  const money = v => '$' + v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  const lb = v => v.toLocaleString('en-US') + ' lb';
+  // Sample data (illustrative). Loose WIP for UBC averages $0.5200/lbs, so a
+  // 1,400 lbs package costs $728.00. Its finished goods split that cost by
+  // weight and the 50 lbs left over goes to Waste at no cost.
+  const LB = v => v.toLocaleString('en-US') + ' lbs';
+  const M2 = v => '$' + v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const M4 = v => '$' + v.toLocaleString('en-US', { minimumFractionDigits: 4, maximumFractionDigits: 4 });
   const PKGS = [
-    { id: 'PKG-1041', mat: 'Cast Aluminum', type: 'Gaylord', net: 1180, cost: 778.80, st: 'Active', src: 'Loose WIP' },
-    { id: 'PKG-1039', mat: '6063 Extrusion', type: 'Bale', net: 1320, cost: 1399.20, st: 'Active', src: 'Ticket IBT-30412' },
-    { id: 'PKG-1036', mat: 'Painted Siding', type: 'Bale', net: 1090, cost: 850.20, st: 'Active', src: 'Loose WIP' },
-    { id: 'PKG-1033', mat: 'Clean Aluminum Wheels', type: 'Drum', net: 860, cost: 877.20, st: 'Active', src: 'Ticket IBT-30377' },
-    { id: 'PKG-1030', mat: 'Aluminum Cans (UBC)', type: 'Bale', net: 1250, cost: 650.00, st: 'Active', src: 'Ticket IBT-30351' },
-    { id: 'PKG-1027', mat: 'Old Sheet', type: 'Bale', net: 1410, cost: 860.10, st: 'Active', src: 'Loose WIP' },
+    { n: 'NY-PKG-000047', src: 'Loose WIP', eff: '10/15/2026, 03:18 PM', mat: 'Cast Aluminum', type: 'Gaylord', sup: '', ibt: '', po: '', net: 1180 },
+    { n: 'NY-PKG-000046', src: 'Inbound ticket', eff: '10/15/2026, 11:02 AM', mat: '6063 Extrusion', type: 'Bale', sup: 'Coastal Demolition', ibt: '30412', po: '5521', net: 1320 },
+    { n: 'NY-PKG-000045', src: 'Loose WIP', eff: '10/14/2026, 04:40 PM', mat: 'Painted Siding', type: 'Bale', sup: '', ibt: '', po: '', net: 1090 },
+    { n: 'NY-PKG-000044', src: 'Inbound ticket', eff: '10/14/2026, 09:15 AM', mat: 'Clean Aluminum Wheels', type: 'Gaylord', sup: 'Harbor Metals', ibt: '30377', po: '', net: 860 },
+    { n: 'NY-PKG-000043', src: 'Inbound ticket', eff: '10/13/2026, 02:26 PM', mat: 'Aluminum Cans (UBC)', type: 'Bale', sup: 'Riverside Recycling', ibt: '30351', po: '5498', net: 1250 },
+    { n: 'NY-PKG-000042', src: 'Loose WIP', eff: '10/13/2026, 10:05 AM', mat: 'Old Sheet', type: 'Bale', sup: '', ibt: '', po: '', net: 1410 },
   ];
-  const NEW = { id: 'PKG-1048', mat: 'Aluminum Cans (UBC)', type: 'Bale', net: 1400, cost: 728.00, st: 'Active', src: 'Loose WIP' };
+  const NEW = { n: 'NY-PKG-000048', src: 'Loose WIP', eff: '10/16/2026, 09:42 AM', mat: 'Aluminum Cans (UBC)', type: 'Bale', sup: '', ibt: '', po: '', net: 1400 };
+  const DONE = [
+    { n: 'NY-PKG-000039', src: 'Inbound ticket', eff: '10/09/2026, 01:47 PM', mat: '6063 Extrusion', type: 'Bale', sup: 'Coastal Demolition', ibt: '30288', po: '5476', net: 1290 },
+    { n: 'NY-PKG-000037', src: 'Loose WIP', eff: '10/08/2026, 10:12 AM', mat: 'Cast Aluminum', type: 'Gaylord', sup: '', ibt: '', po: '', net: 1150 },
+    { n: 'NY-PKG-000034', src: 'Inbound ticket', eff: '10/06/2026, 03:55 PM', mat: 'Aluminum Cans (UBC)', type: 'Bale', sup: 'Riverside Recycling', ibt: '30241', po: '', net: 1210 },
+    { n: 'NY-PKG-000031', src: 'Loose WIP', eff: '10/02/2026, 09:30 AM', mat: 'Old Sheet', type: 'Bale', sup: '', ibt: '', po: '', net: 1380 },
+  ];
+  const MATS = [['Old Sheet', 'AL-OSH', 61940], ['Aluminum Cans (UBC)', 'AL-UBC', 48220], ['Cast Aluminum', 'AL-CST', 39310], ['6063 Extrusion', 'AL-6063', 22480], ['Painted Siding', 'AL-SID', 14870]];
   const FGS = [
-    { id: 'FG-2204', mat: '6063 Extrusion', w: 2480, cost: 2628.80, from: 'Regrade RG-118' },
-    { id: 'FG-2201', mat: 'Aluminum Cans (UBC)', w: 3100, cost: 1612.00, from: 'Loose WIP' },
-    { id: 'FG-2198', mat: 'Clean Aluminum Wheels', w: 1960, cost: 1999.20, from: 'Loose WIP' },
-    { id: 'FG-2195', mat: 'Painted Siding', w: 2240, cost: 1747.20, from: 'Regrade RG-115' },
-    { id: 'FG-2190', mat: 'Litho Plates', w: 1480, cost: 1391.20, from: 'Loose WIP' },
+    { tag: '24309', eff: '10/15/2026, 02:10 PM', mat: '6063 Extrusion', com: 'Aluminum', type: 'Bale', wh: 'A-1', w: 2480, po: '5512' },
+    { tag: '24308', eff: '10/15/2026, 09:44 AM', mat: 'Aluminum Cans (UBC)', com: 'Aluminum', type: 'Bale', wh: 'A-2', w: 1240, po: '' },
+    { tag: '24305', eff: '10/14/2026, 03:31 PM', mat: 'Clean Aluminum Wheels', com: 'Aluminum', type: 'Gaylord', wh: 'B-1', w: 1960, po: '5503' },
+    { tag: '24302', eff: '10/14/2026, 11:05 AM', mat: 'Painted Siding', com: 'Aluminum', type: 'Bale', wh: 'A-1', w: 2240, po: '' },
+    { tag: '24298', eff: '10/13/2026, 04:20 PM', mat: '#1 Bare Bright', com: 'Copper', type: 'Box', wh: 'C-3', w: 1480, po: '5490' },
+    { tag: '24296', eff: '10/13/2026, 10:52 AM', mat: 'Yellow Brass', com: 'Brass', type: 'Box', wh: 'C-2', w: 1820, po: '' },
+    { tag: '24291', eff: '10/12/2026, 01:16 PM', mat: 'Old Sheet', com: 'Aluminum', type: 'Bale', wh: 'A-3', w: 2610, po: '5481' },
   ];
-  const NEW_FG = [
-    { id: 'FG-2210', w: 900, cost: 485.33 },
-    { id: 'FG-2211', w: 450, cost: 242.67 },
-  ];
+  const NEW_FG = [{ tag: '24310', type: 'Bale', w: 900, cost: 485.33 }, { tag: '24311', type: 'Bale', w: 450, cost: 242.67 }];
 
   // ---------- steps ----------
+  const PK = '/app/inventory/packages';
   const STEPS = [
-    { view: 'pk', cover: 'intro', url: '/app/inventory/packages' },
-    { view: 'ov', t: '#nav-pk', place: 'right', url: '/app/inventory/overview',
-      tip: 'Go to <b>Inventory → Packages</b>. You can now package material any time after it comes in, not just at the scale.' },
-    { view: 'pk', t: '#btn-pkg', place: 'bottom', url: '/app/inventory/packages',
-      tip: 'Click <b>+ Package</b> to package material from loose inventory.' },
-    { view: 'pk', drawer: 'pkg', dd: true, t: '#opt-ubc', place: 'left', url: '/app/inventory/packages',
-      tip: 'Pick the material. Each one shows how much loose inventory you have for it.' },
-    { view: 'pk', drawer: 'pkg', filled: true, t: '#wts', place: 'left', url: '/app/inventory/packages',
-      tip: 'Pick the package type and enter gross and tare weight, or net weight only. ReSpark takes the net weight out of your loose inventory.' },
-    { view: 'pk', drawer: 'pkg', filled: true, t: '#btn-save', place: 'top', url: '/app/inventory/packages',
-      tip: 'Save the package and print its tag.' },
-    { view: 'pk', saved: true, t: '#row-new', place: 'bottom', url: '/app/inventory/packages',
-      tip: 'The new package keeps its own weight and cost from here on. When it’s ready to sell, head to <b>Finished Goods</b>.' },
-    { view: 'fg', t: '#btn-fg', place: 'bottom', url: '/app/inventory/finished-goods',
-      tip: 'On the Finished Goods page, click <b>+ Finished Good</b>.' },
-    { view: 'fg', drawer: 'src', t: '#ch-pkg', place: 'left', url: '/app/inventory/finished-goods',
-      tip: 'Choose <b>Packages</b> as the source. There’s no need to break the package back down into loose inventory first.' },
-    { view: 'fg', drawer: 'sel', t: '#pr-new', place: 'left', url: '/app/inventory/finished-goods',
-      tip: 'Pick the package you want to turn into finished goods.' },
-    { view: 'fg', drawer: 'det', t: '#waste', place: 'left', url: '/app/inventory/finished-goods',
-      tip: 'Enter the weight of each finished good. Anything left over goes to <b>Waste</b>, and the finished goods carry the full cost of the package.' },
-    { view: 'pk', drawer: 'view', t: '#became', place: 'left', url: '/app/inventory/packages',
-      tip: 'Open the package to see the finished goods it became. Each finished good links back to its package too.' },
-    { view: 'pk', drawer: 'view', cover: 'outro', url: '/app/inventory/packages' },
+    { view: 'pk', cover: 'intro', url: PK },
+    { view: 'ov', t: '#nav-pk', place: 'right', url: '/app/inventory/overview/commodities',
+      tip: 'Under <b>Inventory</b>, open <b>Packages</b>. The overview now splits WIP into <b>Loose WIP</b> and <b>Packaged WIP</b>.' },
+    { view: 'pk', t: '#btn-pkg', place: 'bottom', url: PK,
+      tip: 'Click <b>Package</b> in the page header to package some loose WIP.' },
+    { view: 'pk', drawer: 'pkg', dd: true, t: '#opt-ubc', place: 'left', url: PK + '/new',
+      tip: 'Pick a <b>Material</b>. Each one shows how much loose WIP it has.' },
+    { view: 'pk', drawer: 'pkg', filled: true, t: '#wts', place: 'left', url: PK + '/new',
+      tip: 'Enter <b>Gross</b> and <b>Tare</b>, or switch to <b>Net only</b>. <b>Loose WIP</b> shows how much is available.' },
+    { view: 'pk', drawer: 'pkg', filled: true, t: '#lbls', place: 'left', url: PK + '/new',
+      tip: 'Add a <b>Package Type</b> or <b>External Package #</b> if you need one, then click <b>Create Package</b>.' },
+    { view: 'pk', saved: true, t: '#row-new', place: 'bottom', url: PK,
+      tip: 'The new package is <b>Active</b>, with <b>Loose WIP</b> as its source. <b>Print label</b> in the row menu prints its tag.' },
+    { view: 'fg', t: '#btn-fg', place: 'bottom', url: '/app/inventory/finished-goods/list',
+      tip: 'When the material is ready to sell, click <b>Finished Good</b>.' },
+    { view: 'fg', drawer: 'src', t: '#ch-pkg', place: 'left', url: '/app/inventory/finished-goods/list',
+      tip: 'Choose <b>Packaged WIP</b>, then click <b>Continue</b>.' },
+    { view: 'fg', drawer: 'sel', t: '#pr-new', place: 'left', url: '/app/inventory/finished-goods/list',
+      tip: 'Pick the package to consume. Only active packages are listed.' },
+    { view: 'fg', drawer: 'alloc', t: '#alloc', place: 'left', url: '/app/inventory/finished-goods/list',
+      tip: 'Enter the weights of each finished good. What you don’t allocate goes to <b>Remainder to Waste</b>, and the finished goods share the <b>Package cost basis</b> by weight. Then click <b>Create finished goods</b>.' },
+    { view: 'pk', processed: true, drawer: 'view', t: '#consumption', place: 'left', url: PK,
+      tip: 'The package is now <b>Processed</b>. Filter to <b>Processed</b> and open it: <b>Consumption</b> lists the finished goods it became and the weight <b>Written Off To Waste</b>.' },
+    { view: 'pk', processed: true, drawer: 'view', cover: 'outro', url: PK },
   ];
 
   // ---------- chrome ----------
   function sidebar(active) {
     const row = (i, l, extra = '') => `<div class="nrow">${ic(i)}<span>${l}</span>${extra || ic('chevron-right', 'class="chev"')}</div>`;
-    const sub = (id, l) => `<div class="nrow sub${active === id ? ' active' : ''}" id="nav-${id}"><span>${l}</span></div>`;
+    const sub = (id, l, isNew) => `<div class="nrow sub${active === id ? ' active' : ''}" id="nav-${id}"><span>${l}</span>${isNew ? '<span class="pill">New</span>' : ''}</div>`;
     return `<aside class="side">
       <div class="top">${MARK}<div class="yard"><span>North Yard</span>${ic('chevrons-up-down')}</div></div>
       <div class="nav">
@@ -401,7 +481,7 @@ td { padding: 0 12px; height: 44px; border-bottom: 1px solid var(--a-border-subt
         <div class="nsep"></div>
         ${row('shopping-cart', 'Purchases')}${row('tag', 'Sales')}${row('file-text', 'Contracts')}
         <div class="nrow">${ic('boxes')}<span>Inventory</span>${ic('chevron-down', 'class="chev"')}</div>
-        ${sub('ov', 'Inventory Overview')}${sub('hl', 'Holding Lots')}${sub('pk', 'Packages')}${sub('rg', 'Regrades')}${sub('fg', 'Finished Goods')}${sub('adj', 'Adjustments')}${sub('pic', 'Physical Inventory Count')}
+        ${sub('ov', 'Inventory Overview')}${sub('rg', 'Regrades')}${sub('bp', 'Batch Production')}${sub('fg', 'Finished Goods')}${sub('pl', 'Packing Lists')}${sub('adj', 'Adjustments')}${sub('pic', 'Physical Inventory Count', true)}${sub('pk', 'Packages')}${sub('ni', 'Negative Inventory')}
         ${row('users', 'Customers')}${row('layers', 'Commodities')}${row('truck', 'Logistics')}${row('clipboard-list', 'Load Board')}${row('warehouse', 'Assets')}${row('chart-column', 'Reports')}${row('landmark', 'Ledger')}
       </div>
       <div class="foot"><div class="av">JP</div><div class="who"><span>Jordan Pike</span><small>General Manager</small></div>
@@ -409,117 +489,137 @@ td { padding: 0 12px; height: 44px; border-bottom: 1px solid var(--a-border-subt
     </aside>`;
   }
 
-  const head = (crumbs, title, acts) => `<div class="phead"><div class="left"><div class="crumbs">${crumbs.map(c => `<span>${c}</span>`).join(ic('chevron-right'))}</div><h1>${title}</h1></div><div class="acts">${acts}</div></div>`;
+  // Shared inventory header actions (utils/ui/actions.tsx): four outlined, Add Adjustment contained.
+  const ACTS = `<span class="rb out">${ic('pencil')}Regrade Material</span><span class="rb out" id="btn-fg">${ic('plus')}Finished Good</span><span class="rb out">${ic('plus')}Packing List</span><span class="rb out" id="btn-pkg">${ic('plus')}Package</span><span class="rb pri">${ic('plus')}Add Adjustment</span>`;
+  // ContentLayout: depth <= 2 (and overview) is a single title row; deeper paths add back arrow + breadcrumbs.
+  const listHead = title => `<div class="lhead"><h1>${title}</h1><div class="acts">${ACTS}</div></div>`;
+  const tallHead = (crumbs, title) => `<div class="thead"><div class="crumbs">${ic('arrow-left')}${crumbs.map((c, i) => `<span${i === crumbs.length - 1 ? ' class="leaf"' : ''}>${c}</span>`).join('<span>/</span>')}</div>
+      <div class="trow"><h1>${title}</h1><div class="acts">${ACTS}</div></div></div>`;
+  const sbar = items => `<div class="sbar">${items.map(([l, v, a]) => `<div><small>${l}</small><b>${v}</b>${a ? `<span>${a}</span>` : ''}</div>`).join('<i></i>')}</div>`;
+  const chip = (label, c) => `<span class="chip c-${c}">${label}</span>`;
+  const PK_STATUS = { Active: 'success', Processed: 'neutral', Voided: 'error' };
 
   function overview() {
-    const rows = [['Aluminum Cans (UBC)', 'AL-UBC', 48220, 21600, 64800], ['6063 Extrusion', 'AL-6063', 22480, 9840, 31200], ['Old Sheet', 'AL-OSH', 61940, 0, 18400],
-      ['Cast Aluminum', 'AL-CST', 39310, 12200, 0], ['Painted Siding', 'AL-SID', 14870, 4100, 8600], ['Clean Aluminum Wheels', 'AL-WHL', 9630, 6040, 12480], ['Litho Plates', 'AL-LTH', 6210, 0, 4960]];
-    return `<main class="main">${head(['Inventory', 'Inventory Overview'], 'Inventory Overview', `<span class="rb">${ic('plus')}Finished Good</span><span class="rb">${ic('plus')}Package</span><span class="rb pri">${ic('plus')}Add Adjustment</span>`)}
+    const rows = [['Aluminum', 186420, 21600, 64800, 0.6120], ['Copper', 38240, 0, 18400, 3.4150], ['Brass', 24710, 0, 9600, 2.1080],
+      ['Stainless Steel', 31880, 4100, 8600, 0.4870], ['Insulated Wire', 19630, 0, 6040, 1.1260], ['Electric Motors', 22410, 0, 0, 0.1840], ['Steel', 96350, 0, 12480, 0.0960]];
+    const tr = r => { const tot = r[1] + r[2] + r[3]; return `<tr><td>${r[0]}</td><td class="num">${LB(r[1])}</td><td class="num">${LB(r[2])}</td><td class="num">${LB(r[3])}</td><td class="num">${LB(tot)}</td><td class="num">${M4(r[4])}/lbs</td><td class="num">${M4(tot * r[4])}</td></tr>`; };
+    const totW = rows.reduce((a, r) => a + r[1] + r[2] + r[3], 0), totV = rows.reduce((a, r) => a + (r[1] + r[2] + r[3]) * r[4], 0);
+    return `<main class="main">${listHead('Commodities')}
       <div class="ibody">
-        <div class="kpis"><div><small>WIP inventory</small><b>$194,166</b><span>300,770 lb</span></div><div><small>FG inventory</small><b>$102,092</b><span>140,440 lb</span></div><div><small>Total inventory</small><b>$296,258</b><span>441,210 lb</span></div><div><small>Expected inventory</small><b>$38,940</b><span>52,300 lb</span></div></div>
-        <div class="tcard"><div class="tt"><div class="inp">${ic('search')}Search</div><span class="cnt">10 materials</span></div>
-          <table class="itab"><thead><tr><th style="width:26%">Material</th><th>Material Code</th><th class="num">Loose WIP (lb)</th><th class="num">Packaged WIP (lb)</th><th class="num">Finished Goods (lb)</th></tr></thead>
-          <tbody>${rows.map(r => `<tr><td><span class="link">${r[0]}</span></td><td>${r[1]}</td><td class="num">${r[2].toLocaleString()}</td><td class="num">${r[3].toLocaleString()}</td><td class="num">${r[4].toLocaleString()}</td></tr>`).join('')}</tbody></table></div>
+        ${sbar([['TOTAL WEIGHT', LB(totW)], ['TOTAL COST', M4(totV)], ['LARGEST MATERIAL BY WEIGHT', 'Old Sheet'], ['LARGEST MATERIAL BY VALUE', '#1 Bare Bright'], ['RECEIVED YESTERDAY', '18,640 lbs'], ['SHIPPED YESTERDAY', '22,100 lbs']])}
+        <div class="gtb"><div class="segt"><span class="on">Commodities</span><span>Materials</span></div><div class="inp" style="width:220px">${ic('search')}Search</div></div>
+        <div class="tcard"><table><thead><tr><th style="width:19%">Commodities</th><th class="num">Loose WIP</th><th class="num">Packaged WIP</th><th class="num">Finished Goods</th><th class="num">Total Weight</th><th class="num">Avg. Cost</th><th class="num">Total Value</th></tr></thead>
+          <tbody>${rows.map(tr).join('')}</tbody></table></div>
       </div></main>`;
   }
 
   function packages(s) {
-    const list = (s.saved || s.drawer === 'view') ? [NEW, ...PKGS] : PKGS;
+    const isNew = s.drawer === 'pkg';
+    let list, filter, counts;
+    if (s.processed) { list = [NEW, ...DONE]; filter = 'Processed'; counts = [6, 7110, 32, 40040, 40]; }
+    else if (s.saved) { list = [NEW, ...PKGS]; filter = 'Active'; counts = [7, 8510, 31, 38640, 40]; }
+    else { list = PKGS; filter = 'Active'; counts = [6, 7110, 31, 38640, 39]; }
     const rows = list.map(p => {
-      const used = s.drawer === 'view' && p.id === NEW.id;
-      return `<tr${p.id === NEW.id && s.saved ? ' class="new" id="row-new"' : ''}><td class="mono">${p.id}</td><td>${p.mat}</td><td>${p.type}</td><td class="num">${lb(p.net)}</td><td class="num">${money(p.cost)}</td><td>${p.src}</td><td><span class="badge ${used ? 'b-neutral' : 'b-success'}">${used ? 'Used' : p.st}</span></td></tr>`;
+      const hl = p === NEW && s.saved;
+      return `<tr${hl ? ' class="new" id="row-new"' : ''}><td class="c"><span class="cb"></span></td><td><span class="link">${p.n}</span></td><td>${chip(filter, PK_STATUS[filter])}</td><td>${p.src}</td><td>${p.eff}</td><td>${p.mat}</td><td>${p.type || '—'}</td><td>${p.sup || '—'}</td>
+        <td><div class="stk"><span>${p.ibt ? 'IBT ' + p.ibt : 'IBT —'}</span><small>${p.po ? 'PO ' + p.po : 'PO —'}</small></div></td><td class="num">${LB(p.net)}</td><td class="c"><span class="kb">${ic('ellipsis')}</span></td></tr>`;
     }).join('');
-    return `<main class="main">${head(['Inventory', 'Packages'], 'Packages', `<span class="rb pri" id="btn-pkg">${ic('plus')}Package</span>`)}
+    return `<main class="main">${isNew ? tallHead(['Packages', 'New'], 'Packages') : listHead('Packages')}
       <div class="ibody">
-        <div class="tcard"><div class="tt"><div class="inp">${ic('search')}Search packages</div><div class="inp">Status <b style="color:var(--a-fg);font-weight:500">Active</b>${ic('chevron-down')}</div><span class="cnt">${list.length} packages</span></div>
-          <table class="itab"><thead><tr><th style="width:12%">Package</th><th style="width:22%">Material</th><th>Type</th><th class="num">Net weight</th><th class="num">Cost</th><th style="width:18%">Source</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table></div>
-        ${s.saved ? `<div class="toast">${ic('circle-check')}PKG-1048 created · tag sent to printer</div>` : ''}
+        ${sbar([['ACTIVE PACKAGES', counts[0], LB(counts[1])], ['PROCESSED PACKAGES', counts[2], LB(counts[3])], ['TOTAL PACKAGES', counts[4]]])}
+        <div class="gtb"><div class="inp" style="width:360px">${ic('search')}Search package #, material, supplier, IBT, PO…</div><div class="inp sel" style="width:170px">${filter}${ic('chevron-down')}</div></div>
+        <div class="tcard"><table><thead><tr><th class="c" style="width:3%"><span class="cb"></span></th><th style="width:12%">Package #</th><th style="width:9%">Status</th><th style="width:10%">Source</th><th style="width:14.5%">Effective</th><th style="width:12.5%">Material</th><th style="width:8.5%">Package Type</th><th style="width:10%">Supplier</th><th style="width:8%">IBT / PO</th><th class="num" style="width:9.5%">Net Weight</th><th class="c" style="width:3%"></th></tr></thead><tbody>${rows}</tbody></table></div>
+        ${s.saved ? `<div class="toast">${ic('circle-check')}Package ${NEW.n} created</div>` : ''}
       </div>${drawer(s)}</main>`;
   }
 
   function finishedGoods(s) {
-    const rows = FGS.map(f => `<tr><td class="mono">${f.id}</td><td>${f.mat}</td><td class="num">${lb(f.w)}</td><td class="num">${money(f.cost)}</td><td>${f.from}</td><td><span class="badge b-success">In stock</span></td></tr>`).join('');
-    return `<main class="main">${head(['Inventory', 'Finished Goods'], 'Finished Goods', `<span class="rb pri" id="btn-fg">${ic('plus')}Finished Good</span>`)}
-      <div class="ibody">
-        <div class="tcard"><div class="tt"><div class="inp">${ic('search')}Search finished goods</div><span class="cnt">${FGS.length} finished goods</span></div>
-          <table class="itab"><thead><tr><th style="width:12%">Tag</th><th style="width:26%">Material</th><th class="num">Weight</th><th class="num">Cost</th><th>Made from</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table></div>
+    const rows = FGS.map(f => `<tr><td class="c"><span class="cb"></span></td><td><span class="link">${f.tag}</span></td><td>${chip('Available', 'success')}</td><td>${f.eff}</td>
+        <td><div class="stk"><span>${f.mat}</span><small>${f.com}</small></div></td><td>${f.type}</td><td>${f.wh}</td><td class="num">${LB(f.w)}</td><td>${f.po || '—'}</td><td class="c"><span class="kb">${ic('ellipsis')}</span></td></tr>`).join('');
+    return `<main class="main">${tallHead(['Finished Goods', 'List'], 'Finished Goods')}
+      <div class="ntabs"><span class="on">Finished Goods</span><span>Recost History</span></div>
+      <div class="ibody tabbed">
+        ${sbar([['FINISHED GOODS (AVAILABLE)', 128], ['TOTAL WEIGHT', '140,440 lbs'], ['LARGEST MATERIAL BY WEIGHT', 'Aluminum Cans (UBC)']])}
+        <div class="gtb"><div class="inp" style="width:360px">${ic('search')}Search FG, PO, commodity, material, warehouse…</div><div class="inp sel" style="width:170px">Available${ic('chevron-down')}</div></div>
+        <div class="tcard"><table><thead><tr><th class="c" style="width:3.5%"><span class="cb"></span></th><th style="width:10%">FG #</th><th style="width:10%">Status</th><th style="width:15%">Effective</th><th style="width:19%">Commodity / Material</th><th style="width:9%">Type</th><th style="width:9%">Warehouse</th><th class="num" style="width:11%">Net Weight</th><th style="width:10%">PO #</th><th class="c" style="width:3.5%"></th></tr></thead><tbody>${rows}</tbody></table></div>
       </div>${drawer(s)}</main>`;
   }
 
   function stepper(n) {
-    const lab = ['Source', 'Select', 'Details'];
-    return `<div class="stepper">${lab.map((l, i) => `<span class="${i === n ? 'on' : i < n ? 'done' : ''}"><i class="n">${i < n ? '✓' : i + 1}</i>${l}</span>`).join('<span class="ln"></span>')}</div>`;
+    return `<div class="stepper">${['Source', 'Select', 'Allocate'].map((l, i) => `<span class="s${i === n ? ' on' : i < n ? ' done' : ''}"><i>${i < n ? ic('check') : i + 1}</i>${l}</span>`).join('<span class="ln"></span>')}</div>`;
   }
+
+  const fld = (label, inner, o = {}) => `<div class="fld"${o.id ? ` id="${o.id}"` : ''}><label>${label}${o.req ? '<span class="req">*</span>' : ''}</label>${inner}${o.desc ? `<span class="desc">${o.desc}</span>` : ''}${o.after || ''}</div>`;
+  const box = (v, o = {}) => `<div class="in${o.ph ? ' ph' : ''}${o.r ? ' r' : ''}${o.dis ? ' dis' : ''}${o.open ? ' open' : ''}">${v}${o.u ? `<span class="u">${o.u}</span>` : ''}${o.icon ? ic(o.icon) : ''}</div>`;
 
   function drawer(s) {
     if (!s.drawer) return '';
     const prev = STEPS[step - 1];
     const still = prev && prev.drawer && prev.view === s.view ? ' still' : '';
-    const shell = (title, body, foot) => `<div class="drawer${still}"><div class="dh"><h3>${title}</h3><span class="x">${ic('x')}</span></div><div class="db">${body}</div>${foot ? `<div class="df">${foot}</div>` : ''}</div>`;
+    const shell = (width, title, body, foot, o = {}) => `<div class="scrim${still}"></div><div class="drawer${still}" style="width:${width}px"><div class="dh"><div class="dt">${o.back ? `<span class="bk">${ic('arrow-left')}</span>` : ''}<h3>${title}</h3><span class="x">${ic('x')}</span></div>${o.head || ''}</div><div class="db${o.end ? ' end' : ''}">${body}</div>${foot ? `<div class="df">${foot}</div>` : ''}</div>`;
+
     if (s.drawer === 'pkg') {
       const f = s.filled;
-      const dd = s.dd ? `<div class="dd"><div class="mh">Sorted by loose WIP available</div>
-          <div class="o">Old Sheet<span>61,940 lb</span></div>
-          <div class="o hv" id="opt-ubc">Aluminum Cans (UBC)<span>48,220 lb</span></div>
-          <div class="o">Cast Aluminum<span>39,310 lb</span></div>
-          <div class="o">Irony Aluminum<span>27,120 lb</span></div>
-          <div class="o">6063 Extrusion<span>22,480 lb</span></div></div>` : '';
-      return shell('New package', `
-        <div class="fld"><label>Material</label><div class="in${f ? '' : ' ph'}${s.dd ? ' open' : ''}">${f ? 'Aluminum Cans (UBC)' : 'Select a material'}${ic('chevron-down')}</div>
-          ${f ? '<div class="hint"><b>48,220 lb</b> loose inventory available</div>' : ''}</div>
-        ${dd}
-        <div id="wts" style="display:flex;flex-direction:column;gap:12px">
-          <div class="fld"><label>Package type</label><div class="in${f ? '' : ' ph'}">${f ? 'Bale' : 'Select a type'}${ic('chevron-down')}</div></div>
-          <div class="row3">
-            <div class="fld"><label>Gross weight</label><div class="in${f ? '' : ' ph'}">${f ? '1,420' : '0'}<span class="u">lb</span></div></div>
-            <div class="fld"><label>Tare weight</label><div class="in${f ? '' : ' ph'}">${f ? '20' : '0'}<span class="u">lb</span></div></div>
-            <div class="fld"><label>Net weight</label><div class="in ro">${f ? '1,400' : '0'}<span class="u">lb</span></div></div>
-          </div>
-        </div>
-        <div class="row2">
-          <div class="fld"><label>External package # <span style="color:var(--a-text-3)">(optional)</span></label><div class="in ph">e.g. B-5521</div></div>
-          <div class="fld"><label>Effective date</label><div class="in">Oct 13, 2026${ic('calendar')}</div></div>
-        </div>
-        ${f ? `<div class="note">${ic('info')}<span>Saving takes <b>1,400 lb</b> out of loose Aluminum Cans (UBC), leaving <b>46,820 lb</b>.</span></div>` : ''}`,
-        `<span class="rb">Cancel</span><span class="rb">Save</span><span class="rb pri" id="btn-save">${ic('printer')}Save &amp; print tag</span>`);
+      const dd = s.dd ? `<div class="dd">${MATS.map(m => `<div class="o${m[1] === 'AL-UBC' ? ' hv" id="opt-ubc' : ''}"><div class="tx"><span>${m[0]}</span><small>${m[2].toLocaleString('en-US')} lbs loose WIP</small></div><span>${m[1]}</span></div>`).join('')}</div>` : '';
+      return shell(640, 'Create Package', `
+        <section class="fsec"><h4>Material</h4>
+          ${fld('Material', box(f ? 'Aluminum Cans (UBC)' : 'Select a material', { ph: !f, open: s.dd, icon: 'chevron-down' }), { req: true, after: dd })}
+          ${fld('Loose WIP', box(f ? '48,220 lbs available' : 'Pick a material to see its loose WIP', { dis: true }))}
+          ${fld('Effective Date', box('10/16/2026, 09:42 AM', { icon: 'calendar' }))}
+        </section>
+        <section class="fsec" id="wts"><h4>Weight</h4>
+          <div><span class="tog"><span class="on">Gross / Tare</span><span>Net only</span></span></div>
+          <div class="g3">${fld('Gross', box(f ? '1420' : '0', { ph: !f, r: true, u: 'lbs' }), { req: true })}${fld('Tare', box(f ? '20' : '0', { ph: !f, r: true, u: 'lbs' }))}${fld('Net', box(f ? '1,400' : '', { r: true, dis: true, u: 'lbs' }))}</div>
+        </section>
+        <section class="fsec" id="lbls"><h4>Labels</h4>
+          <div class="g2">${fld('Package Type', box(f ? 'Bale' : 'None', { ph: !f, icon: 'chevron-down' }))}${fld('External Package #', box('Optional', { ph: true }), { desc: 'Printed on the tag.' })}</div>
+          ${fld('Notes', '<div class="ta">Optional</div>')}
+        </section>`,
+        `<span class="rb md">Cancel</span><span class="rb md pri" id="btn-save">Create Package</span>`);
     }
+    const fgTitle = 'Create finished goods';
     if (s.drawer === 'src') {
-      return shell('New finished good', `${stepper(0)}
-        <div class="sec">Where is it coming from?</div>
-        <div class="choice"><span class="ci">${ic('layers')}</span><div><b>Loose WIP</b><small>Make finished goods from loose inventory of a material.</small></div></div>
-        <div class="choice on" id="ch-pkg"><span class="ci">${ic('package')}</span><div><b>Packages</b><small>Turn a package into one or more finished goods of its material.</small></div></div>`,
-        `<span class="rb">Cancel</span><span class="rb pri">Next${ic('arrow-right')}</span>`);
+      const card = (on, id, l, d) => `<div class="rcard${on ? ' on' : ''}"${id ? ` id="${id}"` : ''}><span class="rd"></span><div><b>${l}</b><small>${d}</small></div></div>`;
+      return shell(720, fgTitle, `<div class="fsec"><h4>Where is the material coming from?</h4>
+          ${card(false, '', 'Loose WIP', 'Draw from the loose pool for a material. One finished good at a time, priced at the material’s average cost.')}
+          ${card(true, 'ch-pkg', 'Packaged WIP', 'Consume a whole package into one or more finished goods, which carry the package’s own cost. Anything left over is written off to Waste.')}</div>`,
+        `<span class="rb md pri">Continue</span>`, { head: stepper(0) });
     }
     if (s.drawer === 'sel') {
-      const pr = (p, on) => `<div class="pr${on ? ' on' : ''}"${on ? ' id="pr-new"' : ''}><span class="rd"></span><div class="tx"><b style="font-weight:600">${p.id}</b><small>${p.mat} · ${p.type}</small></div><div class="w">${lb(p.net)}<small>${money(p.cost)}</small></div></div>`;
-      return shell('New finished good', `${stepper(1)}
-        <div class="inp">${ic('search')}Search active packages</div>
-        <div class="pkl">${pr(NEW, true)}${pr(PKGS[0])}${pr(PKGS[1])}${pr(PKGS[2])}${pr(PKGS[4])}</div>`,
-        `<span class="rb">Back</span><span class="rb pri">Next${ic('arrow-right')}</span>`);
+      const pr = (p, on) => `<div class="pick${on ? ' on' : ''}"${on ? ' id="pr-new"' : ''}>${ic('package')}<div class="tx"><b>${p.n}</b><small>${[p.mat, p.type, p.eff.split(',')[0]].join(' · ')}</small></div><span class="w">${LB(p.net)}</span></div>`;
+      return shell(720, fgTitle, `<div class="fsec"><h4>Choose the package to consume</h4>
+          <div class="inp">${ic('search')}Search by package #, material, or type</div>
+          ${pr(NEW, true)}${PKGS.slice(0, 5).map(p => pr(p)).join('')}</div>`,
+        `<span class="rb md pri">Continue</span>`, { head: stepper(1), back: true });
     }
-    if (s.drawer === 'det') {
-      return shell('New finished good', `${stepper(2)}
-        <div class="sum"><div>Package<b>PKG-1048</b></div><div>Net weight<b>1,400 lb</b></div><div>Package cost<b>$728.00</b></div></div>
-        <table class="alloc"><thead><tr><th style="width:34%">Finished good</th><th class="num">Weight</th><th class="num">Cost</th></tr></thead><tbody>
-          <tr><td>FG-2210 · UBC</td><td class="num"><div class="cell">900<span class="u">lb</span></div></td><td class="num">$485.33</td></tr>
-          <tr><td>FG-2211 · UBC</td><td class="num"><div class="cell">450<span class="u">lb</span></div></td><td class="num">$242.67</td></tr>
-          <tr><td colspan="3"><span class="link">${ic('plus')} Add finished good</span></td></tr>
-          <tr class="waste" id="waste"><td><span class="tagw">Waste</span> leftover</td><td class="num">50 lb</td><td class="num">$0.00</td></tr>
-          <tr class="tot"><td>Total</td><td class="num">1,400 lb</td><td class="num">$728.00</td></tr>
-        </tbody></table>
-        <div class="note">${ic('info')}<span>The whole package is used. The finished goods carry its full <b>$728.00</b> cost.</span></div>`,
-        `<span class="rb">Back</span><span class="rb pri">${ic('check')}Create finished goods</span>`);
+    if (s.drawer === 'alloc') {
+      const card = (i, fg) => `<div class="fgc"><div class="fh"><span class="tg">FG 0${i}</span><span class="sm">${LB(fg.w)} · ${M2(fg.cost)}</span><span class="tr">${ic('trash-2')}</span></div><div class="fb">
+          <div class="g2">${fld('Finished good type', box(fg.type, { icon: 'chevron-down' }), { req: true })}${fld('Warehouse', box('None', { ph: true, icon: 'chevron-down' }))}</div>
+          <div class="g3">${fld('Gross weight (lbs)', box(String(fg.w + 40), { r: true }), { req: true })}${fld('Tare weight (lbs)', box('40', { r: true }))}${fld('Net weight (lbs)', box(fg.w.toLocaleString('en-US'), { r: true, dis: true }))}</div>
+          ${fld('Photos', `<div><span class="rb md">${ic('camera')}Take photo</span></div>`)}
+          <div class="coll">${ic('chevron-right')}Additional information</div></div></div>`;
+      return shell(720, fgTitle, `
+          <div class="banner">${ic('info')}<div><b>The whole package is consumed</b>All 1,400 lbs of Aluminum Cans (UBC) leaves packaged WIP. Split it across as many finished goods as you need — whatever you don't allocate is written off to Waste.</div></div>
+          <div style="max-width:400px">${fld('Effective date', box('10/16/2026, 10:15 AM', { icon: 'calendar' }), { req: true, desc: 'Cannot be earlier than the package’s own effective date.' })}</div>
+          <div class="fsec"><h4>Finished goods</h4>${card(1, NEW_FG[0])}${card(2, NEW_FG[1])}<div><span class="rb md dash">${ic('plus')}Add finished good</span></div></div>
+          <div class="sumbox" id="alloc"><div class="sh"><span>Allocation</span>${chip('Partially allocated', 'info')}</div>
+            <div class="sr"><span>Package net weight</span><span>1,400 lbs</span></div>
+            <div class="sr"><span>Allocated to finished goods</span><span>1,350 lbs</span></div>
+            <div class="sr"><span>Remainder to Waste</span><span>50 lbs</span></div>
+            <div class="sr rule"><span>Package cost basis</span><span>$728.00</span></div></div>`,
+        `<span class="rb md pri">Create finished goods</span>`, { head: stepper(2), back: true, end: true });
     }
     if (s.drawer === 'view') {
-      return shell(`PKG-1048 <span class="badge b-neutral" style="vertical-align:2px;margin-left:6px">Used</span>`, `
-        <div class="kv2"><div><small>Material</small><b>Aluminum Cans (UBC)</b></div><div><small>Package type</small><b>Bale</b></div>
-          <div><small>Net weight</small><b>1,400 lb</b></div><div><small>Cost</small><b>$728.00</b></div>
-          <div><small>Source</small><b>Loose WIP</b></div><div><small>Effective date</small><b>Oct 13, 2026</b></div></div>
-        <div class="sec">Became</div>
-        <div class="became" id="became">
-          ${NEW_FG.map(f => `<div class="br">${ic('tag')}<span class="link">${f.id}</span><span>${lb(f.w)} · ${money(f.cost)}</span></div>`).join('')}
-          <div class="br">${ic('trash-2')}<span>Waste</span><span>50 lb · $0.00</span></div>
-        </div>`, '');
+      const F = (l, v, cls = '') => `<div class="df2${cls}"><small>${l}</small><span>${v}</span></div>`;
+      return shell(680, NEW.n, `
+          <div style="display:flex;align-items:center;gap:8px">${chip('Processed', 'neutral')}<span class="muted">${NEW.mat} · ${NEW.eff}</span><span class="rb" style="margin-left:auto">${ic('printer')}Print label</span></div>
+          <div class="dsec"><h4>Basic Information</h4><div class="dgrid c3">${F('Package #', NEW.n)}${F('Material', NEW.mat)}${F('Effective', NEW.eff)}${F('Source', 'Loose WIP')}${F('Package Type', 'Bale')}${F('External Package #', '—')}</div></div>
+          <div class="dsec"><h4>Weight</h4><div class="dgrid c3">${F('Gross Weight', '1,420 lbs')}${F('Tare Weight', '20 lbs')}${F('Net Weight', '<span class="link">1,400 lbs</span>')}</div></div>
+          <div class="dsec"><h4>Financial</h4><div class="dgrid c2">${F('Net Cost', '$728.00')}${F('Cost per Unit', '$0.5200/lbs')}</div></div>
+          <div class="dsec"><h4>Related</h4><div class="dgrid c2">${F('Supplier', '—')}${F('Inbound Ticket', '—')}${F('PO #', '—')}</div></div>
+          <div class="dsec" id="consumption"><h4>Consumption</h4><div class="dgrid c2">${F('Consumed By', 'Finished goods')}${F('Written Off To Waste', '50 lbs')}
+            <div class="df2 span2"><small>Finished Goods</small><div class="fgl">${NEW_FG.map(f => `<div><div class="l"><b>#${f.tag}</b><small>${f.type}</small></div><div class="r"><span>${LB(f.w)}</span><small>${M2(f.cost)}</small></div></div>`).join('')}</div></div></div></div>
+          <div class="dsec"><h4>Notes</h4><div class="dgrid c2">${F('Notes', '—')}</div></div>`, '', { end: true });
     }
     return '';
   }
@@ -528,15 +628,15 @@ td { padding: 0 12px; height: 44px; border-bottom: 1px solid var(--a-border-subt
     if (kind === 'intro') {
       return `<div class="cover"><div class="card">
         <div class="eyebrow">${ic('package')}ReSpark Inventory · Now live for everyone</div>
-        <h2>Package your material whenever you pack it</h2>
-        <p>Create a package from loose inventory at any point after intake, then turn it straight into finished goods without breaking it back down first. Each package keeps its own weight and cost the whole way through.</p>
+        <h2>Package loose WIP, then turn whole packages into finished goods</h2>
+        <p>Take weight out of loose WIP and track it as a package with its own weight and cost. When it’s ready, consume the whole package into one or more finished goods that carry the package’s cost. Anything left over is written off to Waste.</p>
         <div class="cta"><button class="go" type="button" data-go="next">Get started${ic('arrow-right')}</button></div>
       </div></div>`;
     }
     return `<div class="cover"><div class="card">
       <div class="eyebrow">${ic('circle-check')}Package to finished goods</div>
       <h2>Every package, traced from loose weight to finished goods</h2>
-      <p>Bale, box or drum material whenever it suits you, then sell it as finished goods that carry the package’s exact cost. You can also use packages as the inputs to a batch production run.</p>
+      <p>Package loose WIP with your yard’s own package types, print its label, then turn it into finished goods that carry the package’s cost. You can also use packages as the inputs to a batch production run.</p>
       <div class="cta"><button class="go sec" type="button" data-go="restart">${ic('rotate-ccw')}Replay</button></div>
     </div></div>`;
   }
@@ -628,8 +728,8 @@ td { padding: 0 12px; height: 44px; border-bottom: 1px solid var(--a-border-subt
     backBtn.disabled = step === 0;
     nextBtn.disabled = step === STEPS.length - 1;
     if (s.cover) caption.innerHTML = s.cover === 'intro'
-      ? '<span class="n">Intro</span>Package material from loose inventory and turn it straight into finished goods.'
-      : '<span class="n">Done</span>From loose weight to package to finished goods. Replay any step with the bars above.';
+      ? '<span class="n">Intro</span>Package loose WIP, then turn whole packages into finished goods.'
+      : '<span class="n">Done</span>From loose WIP to package to finished goods. Replay any step with the bars above.';
     scale();
     // Measure only after entrance animations (panels sliding in, menus
     // popping, pins dropping) finish, or the ring lands where the element
