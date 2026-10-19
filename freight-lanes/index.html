@@ -396,6 +396,9 @@ tr.new td { background: hsla(183, 100%, 33%, 0.07); }
 .same .v { flex: 1; display: flex; align-items: center; gap: 4px; padding: 0 8px; opacity: .6; font-variant-numeric: tabular-nums; }
 .same .v b { flex: 1; text-align: right; font-weight: 400; }
 .same .v span { color: var(--a-text-2); }
+.same.off { background: var(--a-surface); }
+.same.off .v { opacity: 1; }
+.same.off .v b { color: var(--a-text-3); }
 .trn { display: inline-flex; align-items: center; gap: 6px; }
 .trn svg.lucide { width: 16px; height: 16px; }
 .badge.nb { background: hsla(217, 55%, 16%, 0.07); color: var(--a-text-2); }
@@ -570,10 +573,8 @@ tr.new td { background: hsla(183, 100%, 33%, 0.07); }
       tip: 'Set the <b>Origin</b> and <b>Destination</b>. Pick a yard or customer <b>Location</b>, or enter a <b>State</b> and <b>City</b>. The chip shows the direction ReSpark works out, here <b>Outbound</b>.' },
     { view: 'fl', drawer: 'create', part: 'seg', t: '#seg-top', place: 'left', url: FL,
       tip: 'Choose the <b>Transportation Type</b> and the <b>Carrier</b>. Pick several carriers to create one lane per carrier, or <b>Any carrier</b> for a lane that fits every carrier.' },
-    { view: 'fl', drawer: 'create', part: 'seg', t: '#rate', place: 'left', url: FL,
-      tip: 'Enter the rate. <b>Min Chargeback</b> and <b>Chargeback/UM</b> stay the same as the price unless you uncheck them to bill the customer a different amount.' },
-    { view: 'fl', drawer: 'create', part: 'sched', t: '#btn-save', place: 'top', url: FL,
-      tip: 'Set the <b>Effective Date</b>. Leave <b>Expiration Date</b> blank for an open-ended rate. Then click <b>Create Freight Lane</b>.' },
+    { view: 'fl', drawer: 'create', part: 'sched', t: '#create-body', place: 'left', url: FL,
+      tip: 'Enter the rate. <b>Min Chargeback</b> and <b>Chargeback/UM</b> stay the same as the price unless you uncheck them. Set the <b>Effective Date</b>, leaving <b>Expiration Date</b> blank for an open-ended rate, then click <b>Create Freight Lane</b>.' },
     { view: 'lane', toast: true, t: '#cli', place: 'bottom', url: LANE,
       tip: 'The new lane opens on <b>Freight Info &amp; Prices</b>. Its carrier, ends and transportation type are shown read-only here.' },
     { view: 'lane', t: '#btn-addprice', place: 'right', url: LANE,
@@ -591,7 +592,7 @@ tr.new td { background: hsla(183, 100%, 33%, 0.07); }
     { view: 'fl', withNew: true, selected: true, t: '#sel-addrate', place: 'top', url: FL,
       tip: 'To reprice several lanes at once, like a fuel surcharge change, select them in <b>View</b> mode and click <b>Add Rate</b>.' },
     { view: 'fl', withNew: true, selected: true, drawer: 'addrate', t: '#ar-fuel', place: 'left', url: FL,
-      tip: 'Enter the new rate and its <b>Effective Date</b>, then click <b>Add Rate to 3 lanes</b>.' },
+      tip: 'Enter the new rate, such as the <b>Fuel Surcharge</b>. <b>Effective Date</b> and <b>Effective Time</b> start at now; change them to start the rate later. Then click <b>Add Rate to 3 lanes</b>.' },
     { view: 'fl', withNew: true, cover: 'outro', url: FL },
   ];
 
@@ -619,7 +620,7 @@ tr.new td { background: hsla(183, 100%, 33%, 0.07); }
   const fld = (label, inner, o = {}) => `<div class="fld"${o.id ? ` id="${o.id}"` : ''}><label>${label}${o.req ? '<span class="req">*</span>' : ''}</label>${inner}${o.after || ''}</div>`;
   const box = (v, o = {}) => `<div class="in${o.ph ? ' ph' : ''}${o.r ? ' r' : ''}${o.dis ? ' dis' : ''}${o.open ? ' open' : ''}">${o.pre ? `<span class="u">${o.pre}</span>` : ''}${o.r ? `<span style="flex:1;text-align:right">${v}</span>` : v}${o.u ? `<span class="u">${o.u}</span>` : ''}${o.icon ? ic(o.icon) : ''}</div>`;
   const ck = (label, on) => `<span class="ck"><span class="cb${on ? ' on' : ''}"></span>${label}</span>`;
-  const same = (label, v, unit = '') => `<div class="same">${ck(label, true)}<i class="dv"></i><div class="v"><span>$</span><b>${v}</b>${unit ? `<span>/${unit}</span>` : ''}</div></div>`;
+  const same = (label, v, unit = '', on = true) => `<div class="same${on ? '' : ' off'}">${ck(label, on)}<i class="dv"></i><div class="v"><span>$</span><b>${v}</b>${unit ? `<span>/${unit}</span>` : ''}</div></div>`;
   const trn = t => `<span class="trn">${ic(TR[t])}${t}</span>`;
 
   // ---------- Freight Lanes list ----------
@@ -705,22 +706,22 @@ tr.new td { background: hsla(183, 100%, 33%, 0.07); }
         ${fld('Expiration Date', box('mm/dd/yyyy', { ph: true, icon: 'calendar' }))}${fld('Expiration Time', box('--:-- --', { ph: true, icon: 'clock' }))}</div></section>`;
     const body = p === 'stops' ? itin : p === 'seg' ? seg : seg + sched;
     return `<div class="scrim${still}"></div><div class="drawer${still}" style="width:600px"><div class="dh"><div class="dt"><h3>Create Freight Lane</h3><span class="x">${ic('x')}</span></div></div>
-      <div class="db${p === 'sched' ? ' end' : ''}">${body}</div><div class="df"><span class="rb md pri" id="btn-save">Create Freight Lane</span></div></div>`;
+      <div class="db${p === 'sched' ? ' end' : ''}"${p === 'sched' ? ' id="create-body"' : ''}>${body}</div><div class="df"><span class="rb md pri" id="btn-save">Create Freight Lane</span></div></div>`;
   }
 
   // MultiLaneAddRateDrawer
   function addRateDrawer(s) {
     if (s.drawer !== 'addrate') return '';
     const sel = [NEW, LANES[1], LANES[5]];
-    return `<div class="scrim"></div><div class="drawer" style="width:560px"><div class="dh"><div class="dt"><h3>Add Rate (3 lanes)</h3><span class="x">${ic('x')}</span></div></div>
+    return `<div class="scrim"></div><div class="drawer" style="width:600px"><div class="dh"><div class="dt"><h3>Add Rate (3 lanes)</h3><span class="x">${ic('x')}</span></div></div>
       <div class="db">
         <section class="fsec"><h4>Lanes</h4><div class="lst">${sel.map(l => `<div><b>${l.c}</b><span>${l.d}</span>${trn(l.t)}</div>`).join('')}</div></section>
         <section class="fsec"><h4>Rate Info</h4>
           <div class="g2">${fld('Min Price', box('0.00', { ph: true, r: true, pre: '$' }))}<div class="gpu" style="grid-template-columns:minmax(0,1fr) 88px">${fld('Price/UM', box('0.00', { ph: true, r: true, pre: '$' }))}${fld('UM', box('lbs', { icon: 'chevron-down' }))}</div></div>
-          <div class="g2">${fld('Min Chargeback', same('Same as Min Price', '0.00'))}${fld('Chargeback/UM', same('Same as Price/UM', '0.00', 'lbs'))}</div>
+          <div class="g2">${fld('Min Chargeback', same('Same as Min Price', '0.00', '', false))}${fld('Chargeback/UM', same('Same as Price/UM', '0.00', 'lbs', false))}</div>
           ${fld('Fuel Surcharge', box('4.5', { r: true, u: '%', open: true }), { id: 'ar-fuel' })}</section>
         <section class="fsec"><h4>Schedule</h4><div class="g2">
-          ${fld('Effective Date', box('11/01/2026', { icon: 'calendar' }), { req: true })}${fld('Effective Time', box('12:00 AM', { icon: 'clock' }), { req: true })}
+          ${fld('Effective Date', box('10/19/2026', { icon: 'calendar' }), { req: true })}${fld('Effective Time', box('02:30 PM', { icon: 'clock' }), { req: true })}
           ${fld('Expiration Date', box('mm/dd/yyyy', { ph: true, icon: 'calendar' }))}${fld('Expiration Time', box('--:-- --', { ph: true, icon: 'clock' }))}</div></section>
       </div><div class="df"><span class="rb md">Cancel</span><span class="rb md pri" id="ar-apply">Add Rate to 3 lanes</span></div></div>`;
   }
