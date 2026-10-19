@@ -1,0 +1,775 @@
+<meta charset="utf-8">
+<title>ReSpark Price Lists</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+<style>
+/* Layout: an Arcade-style player. One framed browser window holds a scaled
+   1440×820 mock of ReSpark Commodities (the new Price Lists page)
+   for Pricing Management Updates; a pulsing hotspot + tooltip guides each step; step controls sit
+   under the frame. The app mock keeps ReSpark's light theme (it stands in
+   for a screenshot); the page around it follows the viewer's theme. */
+:root {
+  --bg: #f3f5f8;
+  --glow: rgba(0, 168, 176, 0.10);
+  --fg: #12233e;
+  --fg-muted: rgba(18, 35, 62, 0.62);
+  --frame: #ffffff;
+  --frame-bar: #eef1f5;
+  --frame-line: rgba(18, 35, 62, 0.12);
+  --ctl: #ffffff;
+  --ctl-line: rgba(18, 35, 62, 0.16);
+  --teal: #00a3a8;
+  --teal-strong: #008a8f;
+  --tip-bg: #12233e;
+  --tip-fg: #ffffff;
+
+  /* ReSpark app tokens (frontend/client/src/global.css, light mode) */
+  --a-fg: hsl(217 55% 16%);
+  --a-surface: #ffffff;
+  --a-muted: hsla(217, 55%, 16%, 0.03);
+  --a-muted-solid: #f8f9fa;
+  --a-hover: hsla(217, 55%, 16%, 0.06);
+  --a-border: hsla(217, 55%, 16%, 0.14);
+  --a-border-subtle: hsla(217, 55%, 16%, 0.08);
+  --a-text-2: hsla(217, 55%, 16%, 0.75);
+  --a-text-3: hsla(217, 55%, 16%, 0.52);
+  --a-icon-2: hsla(217, 55%, 16%, 0.42);
+  --a-primary: hsl(183 100% 33%);
+  --a-primary-hover: hsl(183 100% 27%);
+  --a-primary-subtle: hsla(183, 100%, 33%, 0.10);
+  --a-success: hsl(162 73% 37%);
+  --a-success-strong: hsl(162 73% 30%);
+  --a-error: hsl(348 81% 48%);
+  --a-error-strong: hsl(348 81% 38%);
+  --a-accent: hsl(252 89% 65%);
+  --a-accent-strong: hsl(252 60% 50%);
+  --a-accent-subtle: hsla(252, 89%, 65%, 0.10);
+  --a-dark: hsl(217 45% 14%);
+  --a-nav-selected: hsl(217 55% 16%);
+
+  --font: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0c1422; --glow: rgba(0, 201, 212, 0.10); --fg: #e8eef7; --fg-muted: rgba(232, 238, 247, 0.62);
+    --frame: #17202f; --frame-bar: #1c2738; --frame-line: rgba(232, 238, 247, 0.12);
+    --ctl: #17202f; --ctl-line: rgba(232, 238, 247, 0.18); --teal: #19c3cb; --teal-strong: #4fd6dc;
+    --tip-bg: #00a3a8; --tip-fg: #ffffff; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0c1422; --glow: rgba(0, 201, 212, 0.10); --fg: #e8eef7; --fg-muted: rgba(232, 238, 247, 0.62);
+  --frame: #17202f; --frame-bar: #1c2738; --frame-line: rgba(232, 238, 247, 0.12);
+  --ctl: #17202f; --ctl-line: rgba(232, 238, 247, 0.18); --teal: #19c3cb; --teal-strong: #4fd6dc;
+  --tip-bg: #00a3a8; --tip-fg: #ffffff; color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--fg); font-family: var(--font);
+  background-image: radial-gradient(60% 50% at 50% 38%, var(--glow), transparent 70%);
+  min-height: 100vh; padding-inline: 16px; padding-block: 28px 40px;
+}
+.wrap { max-width: 1180px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
+.head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 15px; letter-spacing: -0.01em; }
+.brand svg { width: 28px; height: 28px; color: var(--fg); }
+.head .tag { font-size: 12px; color: var(--fg-muted); font-weight: 500; }
+
+.frame { background: var(--frame); border: 1px solid var(--frame-line); border-radius: 12px; overflow: hidden;
+  box-shadow: 0 30px 60px -20px rgba(18, 35, 62, 0.28), 0 8px 18px -8px rgba(18, 35, 62, 0.18); }
+.bar { height: 38px; background: var(--frame-bar); border-bottom: 1px solid var(--frame-line); display: flex; align-items: center; gap: 12px; padding-inline: 14px; position: relative; }
+.dots { display: flex; gap: 6px; }
+.dots i { width: 10px; height: 10px; border-radius: 50%; background: var(--frame-line); display: block; }
+.url { flex: 1; max-width: 460px; margin-inline: auto; height: 24px; border-radius: 6px; background: var(--frame); border: 1px solid var(--frame-line);
+  display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 12px; color: var(--fg-muted); padding-inline: 10px; min-width: 0; overflow: hidden; white-space: nowrap; }
+.url span { overflow: hidden; text-overflow: ellipsis; }
+.url svg { width: 12px; height: 12px; flex-shrink: 0; }
+.progress { position: absolute; left: 0; bottom: -1px; height: 2px; background: var(--teal); transition: width .35s ease; }
+
+.stage { position: relative; width: 100%; aspect-ratio: 1440 / 820; max-width: 100%; overflow: hidden; background: #fff; }
+.canvas { position: absolute; left: 0; top: 0; width: 1440px; height: 820px; transform-origin: 0 0; }
+.overlay { position: absolute; inset: 0; pointer-events: none; }
+
+.ring { position: absolute; border-radius: 6px; box-shadow: 0 0 0 2px var(--a-primary), 0 0 0 6px hsla(183, 100%, 33%, 0.18); transition: all .3s ease; pointer-events: none; }
+.hot { position: absolute; width: 26px; height: 26px; margin: -13px 0 0 -13px; border-radius: 50%; pointer-events: auto; cursor: pointer;
+  background: hsla(183, 100%, 33%, 0.28); border: 0; padding: 0; transition: left .3s ease, top .3s ease; }
+.hot::before { content: ""; position: absolute; inset: 7px; border-radius: 50%; background: var(--a-primary); box-shadow: 0 0 0 2px #fff; }
+.hot::after { content: ""; position: absolute; inset: 0; border-radius: 50%; border: 2px solid var(--a-primary); animation: pulse 1.6s ease-out infinite; }
+.hot:focus-visible { outline: 3px solid var(--teal-strong); outline-offset: 3px; }
+@keyframes pulse { 0% { transform: scale(.7); opacity: .9; } 100% { transform: scale(2.1); opacity: 0; } }
+
+.tip { position: absolute; max-width: 310px; background: var(--tip-bg); color: var(--tip-fg); border-radius: 10px; padding: 12px 14px;
+  font-size: 14px; line-height: 1.45; box-shadow: 0 12px 28px -8px rgba(12, 20, 34, 0.45); pointer-events: auto; animation: tipIn .25s ease; }
+.tip b { font-weight: 600; }
+.tip code, .caption code { font-family: var(--mono); font-size: 12.5px; background: rgba(255, 255, 255, 0.16); padding: 1px 5px; border-radius: 4px; }
+.caption code { background: var(--frame-bar); }
+.tip .n, .caption .n { display: block; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; opacity: .7; margin-bottom: 4px; }
+@keyframes tipIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+.caption { display: none; background: var(--frame); border: 1px solid var(--frame-line); border-radius: 10px; padding: 12px 14px; font-size: 14px; line-height: 1.5; }
+body.narrow .caption { display: block; }
+body.narrow .tip { display: none; }
+
+.controls { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.btn { font: inherit; font-size: 13px; font-weight: 600; height: 36px; padding-inline: 14px; border-radius: 8px; border: 1px solid var(--ctl-line);
+  background: var(--ctl); color: var(--fg); cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+.btn:hover { border-color: var(--teal); }
+.btn:disabled { opacity: .4; cursor: default; border-color: var(--ctl-line); }
+.btn:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+.btn.primary { background: var(--teal); border-color: var(--teal); color: #fff; }
+.btn svg { width: 16px; height: 16px; }
+.count { font-size: 13px; color: var(--fg-muted); font-variant-numeric: tabular-nums; min-width: 48px; text-align: right; }
+.pips { display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; flex: 1; min-width: 0; }
+.pips button { width: 22px; height: 6px; border-radius: 3px; border: 0; padding: 0; background: var(--ctl-line); cursor: pointer; }
+.pips button.on { background: var(--teal); }
+.pips button.done { background: color-mix(in srgb, var(--teal) 45%, transparent); }
+.hint { font-size: 12px; color: var(--fg-muted); text-align: center; }
+kbd { font: inherit; font-size: 11px; border: 1px solid var(--ctl-line); border-radius: 4px; padding: 1px 5px; }
+
+/* ================= ReSpark app mock (fixed light theme) ================= */
+.app { width: 1440px; height: 820px; display: flex; font-family: var(--font); color: var(--a-fg); font-size: 13px; background: var(--a-surface); position: relative; overflow: hidden; }
+.app table { color: inherit; } /* pages render without a doctype, where tables don't inherit text color; keeps the app mock readable in dark mode */
+.app svg.lucide { width: 16px; height: 16px; stroke-width: 1.75; flex-shrink: 0; }
+.side { width: 236px; flex-shrink: 0; background: var(--a-muted-solid); border-right: 1px solid var(--a-border-subtle); display: flex; flex-direction: column; padding: 12px 10px; gap: 10px; }
+.side .top { display: flex; align-items: center; gap: 8px; padding: 2px 4px; }
+.side .top svg.mark { width: 28px; height: 28px; color: #12233e; }
+.yard { flex: 1; display: flex; align-items: center; justify-content: space-between; border: 1px solid var(--a-border); border-radius: 6px; height: 30px; padding-inline: 8px; background: var(--a-surface); font-weight: 500; font-size: 12.5px; }
+.yard svg.lucide { width: 14px; height: 14px; color: var(--a-icon-2); }
+.cmd { display: flex; align-items: center; gap: 8px; height: 30px; border: 1px solid var(--a-border); border-radius: 6px; padding-inline: 8px; color: var(--a-text-3); background: var(--a-surface); font-size: 12.5px; }
+.cmd kbd { margin-left: auto; font-size: 10.5px; border-color: var(--a-border); color: var(--a-text-3); }
+.nav { display: flex; flex-direction: column; gap: 1px; }
+.nrow { display: flex; align-items: center; gap: 8px; padding: 5px 8px; border-radius: 6px; font-weight: 500; color: hsla(217, 55%, 16%, 0.88); }
+.nrow .chev { margin-left: auto; width: 14px; height: 14px; color: var(--a-icon-2); }
+.nrow.sub { padding-left: 30px; font-weight: 450; font-size: 12.5px; color: var(--a-text-2); }
+.nrow.sub svg.lucide { width: 14px; height: 14px; color: var(--a-icon-2); }
+.nrow.active { background: var(--a-nav-selected); color: #fff; }
+.nrow.active svg.lucide { color: #fff; }
+.pill { margin-left: auto; font-size: 10px; font-weight: 600; color: var(--a-text-2); background: var(--a-hover); padding: 1px 6px; border-radius: 999px; }
+.nsep { height: 1px; background: var(--a-border-subtle); margin: 4px 6px; }
+.foot { margin-top: auto; display: flex; align-items: center; gap: 8px; padding: 8px 4px 0; border-top: 1px solid var(--a-border-subtle); }
+.av { width: 28px; height: 28px; border-radius: 50%; background: var(--a-primary-subtle); color: var(--a-primary-hover); display: grid; place-items: center; font-weight: 600; font-size: 11px; }
+.foot .who { display: flex; flex-direction: column; line-height: 1.25; }
+.foot .who small { color: var(--a-text-3); font-size: 11px; }
+.foot .ico { margin-left: auto; display: flex; gap: 4px; }
+.foot .ico span { width: 28px; height: 28px; border: 1px solid var(--a-border-subtle); border-radius: 6px; display: grid; place-items: center; }
+
+.main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.phead { display: flex; align-items: center; gap: 12px; padding: 14px 22px 12px; border-bottom: 1px solid var(--a-border-subtle); }
+.crumbs { font-size: 12px; color: var(--a-text-3); display: flex; align-items: center; gap: 4px; }
+.crumbs svg.lucide { width: 12px; height: 12px; }
+.phead h1 { font-size: 20px; font-weight: 600; margin: 0; letter-spacing: -0.015em; }
+.phead .left { display: flex; flex-direction: column; gap: 4px; }
+.phead .acts { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+
+.rb { font: inherit; font-size: 13px; font-weight: 500; height: 32px; padding-inline: 12px; border-radius: 6px; display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--a-border); background: var(--a-surface); color: var(--a-fg); cursor: default; white-space: nowrap; }
+.rb.pri { background: var(--a-primary); border-color: var(--a-primary); color: #fff; }
+.rb.icon { width: 32px; padding: 0; justify-content: center; }
+.badge { display: inline-flex; align-items: center; height: 20px; padding-inline: 8px; border-radius: 999px; font-size: 11.5px; font-weight: 500; white-space: nowrap; }
+.b-success { background: hsla(162, 73%, 37%, 0.14); color: var(--a-success-strong); }
+.b-accent { background: hsla(252, 89%, 65%, 0.14); color: var(--a-accent-strong); }
+.b-neutral { background: hsla(217, 55%, 16%, 0.07); color: var(--a-text-2); }
+
+
+/* price lists page (modules/commodities/_components/price-lists) */
+.muted { color: var(--a-text-3); }
+.link { color: var(--a-primary-hover); font-weight: 500; }
+.plv { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 12px; padding: 16px 16px 8px; }
+.plv h1 { font-size: 20px; font-weight: 600; margin: 0; letter-spacing: -0.015em; }
+.fbar { display: flex; align-items: center; gap: 8px; }
+.inp { height: 32px; border: 1px solid var(--a-border); border-radius: 6px; display: flex; align-items: center; gap: 6px; padding-inline: 9px; color: var(--a-text-3); font-size: 12.5px; background: var(--a-surface); white-space: nowrap; }
+.inp svg.lucide { width: 14px; height: 14px; color: var(--a-icon-2); }
+.inp .chv { margin-left: auto; }
+.inp.sm { height: 28px; font-size: 12px; }
+.plbody { flex: 1; min-height: 0; display: flex; gap: 12px; }
+
+/* side panel */
+.spanel { width: 300px; flex-shrink: 0; border: 1px solid var(--a-border-subtle); border-radius: 10px; background: var(--a-muted-solid); display: flex; flex-direction: column; overflow: hidden; }
+.spanel .st { display: flex; gap: 6px; padding: 10px 10px 8px; }
+.spanel .st .rb.pri { flex: 1; justify-content: center; }
+.spanel .ss { display: flex; gap: 6px; padding: 0 10px 10px; }
+.spanel .ss .inp:first-child { flex: 1; }
+.spanel .ss .inp:last-child { width: 96px; color: var(--a-fg); }
+.defs { border-top: 1px solid var(--a-border-subtle); border-bottom: 1px solid var(--a-border-subtle); }
+.defs .dr { display: flex; align-items: center; justify-content: space-between; padding: 11px 14px; font-weight: 600; font-size: 13px; }
+.defs .dr + .dr { border-top: 1px solid var(--a-border-subtle); }
+.defs .dr svg.lucide { color: var(--a-primary); width: 15px; height: 15px; }
+.defs .dr.on { background: var(--a-dark); color: #fff; }
+.defs .dr.on svg.lucide { color: hsl(183 80% 60%); }
+.cards .pc { padding: 10px 14px; display: flex; flex-direction: column; gap: 2px; }
+.cards .pc + .pc { border-top: 1px solid var(--a-border-subtle); }
+.cards .pc b { font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+.cards .pc b svg.lucide { width: 13px; height: 13px; color: var(--a-icon-2); }
+.cards .pc small { font-size: 12px; color: hsla(217, 55%, 16%, 0.6); }
+.cards .pc.on { background: var(--a-dark); color: #fff; }
+.cards .pc.on small { color: rgba(255,255,255,.62); }
+
+/* details card */
+.dwrap { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.banner { display: flex; align-items: center; gap: 8px; background: var(--a-accent); color: #fff; border-radius: 10px 10px 0 0; padding: 7px 12px 14px; margin-bottom: -8px; font-size: 12.5px; font-weight: 500; }
+.banner svg.lucide { width: 15px; height: 15px; }
+.banner .ub { margin-left: auto; height: 26px; padding-inline: 10px; border: 1px solid rgba(255,255,255,.7); border-radius: 6px; display: inline-flex; align-items: center; font-size: 12px; font-weight: 600; }
+.dcard { flex: 1; min-height: 0; border: 1px solid var(--a-border-subtle); border-radius: 10px; background: var(--a-surface); display: flex; flex-direction: column; overflow: hidden; position: relative; z-index: 1; }
+.dhead { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-bottom: 1px solid var(--a-border-subtle); background: var(--a-muted-solid); }
+.dhead .tl { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.dhead .tr1 { display: flex; align-items: center; gap: 8px; }
+.dhead h2 { margin: 0; font-size: 16px; font-weight: 600; letter-spacing: -0.01em; }
+.dhead .meta { display: flex; align-items: center; gap: 12px; font-size: 12px; color: var(--a-text-2); }
+.dhead .meta span { display: inline-flex; align-items: center; gap: 5px; }
+.dhead .meta svg.lucide { width: 13px; height: 13px; color: var(--a-icon-2); }
+.dhead .meta .dash { opacity: .5; }
+.dhead .meta u { text-underline-offset: 2px; }
+.dhead .ra { margin-left: auto; display: flex; align-items: center; gap: 8px; position: relative; }
+.dhead .ra .inp { width: 180px; }
+.rb.sm { height: 30px; font-size: 12.5px; padding-inline: 10px; }
+.bgroup { display: inline-flex; }
+.bgroup .rb { border-radius: 0; }
+.bgroup .rb:first-child { border-radius: 6px 0 0 6px; }
+.bgroup .rb:last-child { border-radius: 0 6px 6px 0; margin-left: -1px; width: 30px; padding: 0; justify-content: center; }
+.rb.open { border-color: var(--a-primary); box-shadow: 0 0 0 3px hsla(183, 100%, 33%, 0.15); }
+.b-info { background: hsla(210, 90%, 50%, 0.12); color: hsl(210 80% 38%); }
+
+/* formula bar */
+.fx { height: 64px; flex-shrink: 0; border-bottom: 1px solid var(--a-border-subtle); display: flex; align-items: center; gap: 10px; padding-inline: 16px; }
+.fx .idle { font-style: italic; color: var(--a-text-3); font-size: 12.5px; }
+.sw { display: inline-flex; align-items: center; gap: 8px; font-size: 12.5px; font-weight: 500; white-space: nowrap; }
+.sw i.k { font-style: normal; width: 30px; height: 18px; border-radius: 999px; background: hsla(217, 55%, 16%, 0.18); position: relative; flex-shrink: 0; }
+.sw i.k::after { content: ""; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.2); }
+.sw.on i.k { background: var(--a-primary); }
+.sw.on i.k::after { left: 14px; }
+.slots { display: flex; align-items: flex-end; gap: 6px; position: relative; }
+.slot { display: flex; flex-direction: column; gap: 3px; }
+.slot small { font-size: 10px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--a-text-3); }
+.slot .in { height: 30px; border: 1px solid var(--a-border); border-radius: 6px; display: flex; align-items: center; gap: 4px; padding-inline: 8px; font-size: 12.5px; font-variant-numeric: tabular-nums; background: var(--a-surface); }
+.slot .in .pf { color: var(--a-text-3); }
+.slot .in.ref { width: 208px; justify-content: space-between; }
+.slot .in.ref.ph { color: var(--a-text-3); }
+.slot .in.ref.open { border-color: var(--a-primary); box-shadow: 0 0 0 3px hsla(183, 100%, 33%, 0.15); }
+.slot .in.n { width: 76px; }
+.slot .in.dis { background: var(--a-muted-solid); font-weight: 600; width: 84px; }
+.op { height: 30px; display: grid; place-items: center; color: var(--a-text-3); font-size: 15px; font-weight: 500; }
+.op svg.lucide { width: 14px; height: 14px; }
+.combo { position: absolute; left: 14px; top: 58px; width: 260px; background: var(--a-surface); border: 1px solid var(--a-border); border-radius: 8px; box-shadow: 0 6px 22px rgba(15, 23, 42, 0.16); padding: 4px; z-index: 6; animation: pop .18s ease; }
+.combo .o { display: flex; align-items: center; justify-content: space-between; padding: 7px 9px; border-radius: 5px; font-size: 12.5px; }
+.combo .o span { font-size: 11.5px; color: var(--a-text-3); font-variant-numeric: tabular-nums; }
+.combo .o.hv { background: var(--a-hover); }
+@keyframes pop { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; transform: none; } }
+
+/* grid */
+.gwrap { flex: 1; min-height: 0; position: relative; overflow: hidden; }
+table.pg { width: 100%; border-collapse: separate; border-spacing: 0; font-variant-numeric: tabular-nums; table-layout: fixed; font-size: 12.5px; }
+.pg th { text-align: left; font-weight: 500; font-size: 12px; color: var(--a-text-2); padding: 0 8px; height: 34px; background: var(--a-muted-solid); border-bottom: 1px solid var(--a-border-subtle); white-space: nowrap; }
+.pg td { padding: 0 8px; height: 40px; border-bottom: 1px solid var(--a-border-subtle); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pg td.c, .pg th.c { padding: 0; text-align: center; }
+.pg .grip svg.lucide { width: 13px; height: 13px; color: var(--a-icon-2); }
+.pg tr.grp td { background: hsla(217, 55%, 16%, 0.025); height: 36px; }
+.pg tr.grp .gn { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; font-size: 13px; }
+.pg tr.grp .gn svg.lucide { width: 14px; height: 14px; color: var(--a-icon-2); }
+.tagn { display: inline-flex; align-items: center; height: 18px; padding-inline: 6px; border-radius: 4px; font-size: 11px; font-weight: 500; background: hsla(217, 55%, 16%, 0.07); color: var(--a-text-2); }
+.tagp { display: inline-flex; align-items: center; height: 18px; padding-inline: 6px; border-radius: 4px; font-size: 11px; font-weight: 600; background: var(--a-primary-subtle); color: var(--a-primary-hover); }
+.pg tr.tier td { background: hsla(183, 100%, 33%, 0.05); }
+.pg tr.tier.newr td { background: hsla(252, 89%, 65%, 0.07); }
+.pg .mn { display: flex; align-items: center; gap: 6px; }
+.pg .mn .nm { overflow: hidden; text-overflow: ellipsis; }
+.pg tr.tier .mn .nm { font-style: italic; color: var(--a-text-2); }
+.pg .mn svg.lucide { width: 13px; height: 13px; color: var(--a-icon-2); }
+.cell { height: 28px; border: 1px solid transparent; border-radius: 5px; display: flex; align-items: center; padding-inline: 6px; gap: 3px; }
+.cell.ed { border-color: var(--a-border-subtle); }
+.cell .pf { color: var(--a-text-3); }
+.cell.sel { border-color: var(--a-primary); box-shadow: 0 0 0 2px hsla(183, 100%, 33%, 0.2); }
+.cell.ph { color: var(--a-text-3); }
+.pcell { position: relative; display: flex; flex-direction: column; justify-content: center; height: 34px; padding-inline: 6px; border: 1px solid var(--a-border-subtle); border-radius: 5px; line-height: 1.15; }
+.pcell .yr { font-size: 11px; color: var(--a-text-3); }
+.pcell.sel { border-color: var(--a-primary); box-shadow: 0 0 0 2px hsla(183, 100%, 33%, 0.2); }
+.pcell.fm::after { content: ""; position: absolute; top: 0; right: 0; border-style: solid; border-width: 0 8px 8px 0; border-color: transparent var(--a-accent) transparent transparent; border-top-right-radius: 4px; }
+.pcell.lone { height: 28px; }
+.ra2 { display: flex; align-items: center; gap: 2px; justify-content: flex-end; }
+.ib { width: 26px; height: 26px; border-radius: 6px; display: inline-grid; place-items: center; color: var(--a-icon-2); }
+.ib svg.lucide { width: 14px; height: 14px; }
+.ib.dg { color: hsla(348, 81%, 48%, 0.8); }
+.ib.hv { background: var(--a-primary-subtle); color: var(--a-primary-hover); }
+.cbx { width: 15px; height: 15px; border-radius: 4px; border: 1.5px solid var(--a-border); display: inline-block; vertical-align: middle; }
+.tb { display: inline-flex; align-items: center; height: 18px; padding-inline: 6px; border-radius: 4px; font-size: 11px; font-weight: 600; background: var(--a-primary-subtle); color: var(--a-primary-hover); flex-shrink: 0; }
+
+/* edit bar */
+.ebar { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); width: 760px; background: var(--a-dark); color: #fff; border-radius: 10px; box-shadow: 0 14px 30px rgba(12, 20, 34, 0.35); padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; z-index: 4; animation: up .25s ease; }
+.ebar.still { animation: none; }
+@keyframes up { from { opacity: 0; transform: translate(-50%, 8px); } to { opacity: 1; transform: translateX(-50%); } }
+.ebar .er { display: flex; align-items: center; gap: 10px; font-size: 12.5px; }
+.ebar .er .ar { opacity: .6; }
+.ebar .er .rt { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+.ebar .sw i.k { background: rgba(255,255,255,.25); }
+.ebar .gh { font-weight: 600; opacity: .9; }
+.ebar .bt { display: flex; justify-content: flex-end; gap: 8px; }
+.eb { height: 30px; padding-inline: 11px; border-radius: 6px; display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; border: 1px solid rgba(255,255,255,.3); color: #fff; }
+.eb svg.lucide { width: 14px; height: 14px; }
+.eb.dg { border-color: hsla(348, 81%, 60%, .7); color: hsl(348 90% 75%); }
+.eb.pri { background: var(--a-primary); border-color: var(--a-primary); }
+.eb.open { box-shadow: 0 0 0 3px hsla(183, 100%, 50%, 0.35); }
+
+/* popovers */
+.popv { position: absolute; background: var(--a-surface); color: var(--a-fg); border: 1px solid var(--a-border); border-radius: 8px; box-shadow: 0 8px 26px rgba(15, 23, 42, 0.2); padding: 12px; z-index: 7; display: flex; flex-direction: column; gap: 10px; animation: pop .18s ease; }
+.popv.nv { width: 360px; right: 120px; bottom: 112px; }
+.popv.vs { width: 400px; right: 0; top: 40px; padding: 8px; gap: 6px; }
+.fld { display: flex; flex-direction: column; gap: 5px; }
+.fld label { font-size: 12px; font-weight: 500; color: var(--a-text-2); }
+.fld .in { height: 34px; border: 1px solid var(--a-border); border-radius: 6px; display: flex; align-items: center; gap: 8px; padding-inline: 10px; font-size: 13px; font-variant-numeric: tabular-nums; }
+.fld .in svg.lucide { width: 14px; height: 14px; color: var(--a-icon-2); }
+.fld .in.ph { color: var(--a-text-3); }
+.popv .pb { display: flex; justify-content: flex-end; gap: 8px; }
+.vh { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--a-text-3); padding: 4px 6px 2px; }
+.vr { display: flex; align-items: center; gap: 8px; border: 1px solid var(--a-border-subtle); border-radius: 7px; padding: 8px 8px 8px 10px; }
+.vr b { font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.vr.on { border-color: var(--a-primary); background: hsla(183, 100%, 33%, 0.1); }
+.vr .va { margin-left: auto; display: flex; gap: 2px; }
+.vr .ib.off { opacity: .35; }
+.tg { display: inline-flex; align-items: center; height: 19px; padding-inline: 7px; border-radius: 4px; font-size: 11px; font-weight: 500; }
+.tg.ok { background: hsla(162, 73%, 37%, 0.14); color: var(--a-success-strong); }
+.tg.up { background: hsla(210, 90%, 50%, 0.12); color: hsl(210 80% 38%); }
+.tg.ps { background: hsla(217, 55%, 16%, 0.07); color: var(--a-text-2); }
+.toast { position: absolute; left: 50%; bottom: 22px; transform: translateX(-50%); background: var(--a-fg); color: #fff; border-radius: 8px; padding: 10px 14px; display: flex; align-items: center; gap: 8px; font-weight: 500; box-shadow: 0 10px 24px rgba(18,35,62,.3); animation: pop2 .3s ease; z-index: 7; }
+.toast svg.lucide { color: hsl(162 73% 55%); }
+@keyframes pop2 { from { opacity: 0; transform: translate(-50%, 8px); } to { opacity: 1; transform: translateX(-50%); } }
+
+/* intro / outro */
+.cover { position: absolute; inset: 0; background: rgba(248, 250, 252, 0.88); backdrop-filter: blur(3px); display: grid; place-items: center; z-index: 10; }
+.cover .card { width: 700px; display: flex; flex-direction: column; gap: 14px; align-items: flex-start; }
+.cover .eyebrow { font-size: 13px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--a-primary-hover); display: flex; align-items: center; gap: 8px; }
+.cover h2 { margin: 0; font-size: 40px; line-height: 1.12; letter-spacing: -0.025em; font-weight: 700; text-wrap: balance; }
+.cover p { margin: 0; font-size: 17px; line-height: 1.55; color: var(--a-text-2); max-width: 620px; }
+.cover .chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.cover .chips code { font-family: var(--mono); font-size: 14px; padding: 5px 10px; border-radius: 6px; background: var(--a-surface); border: 1px solid var(--a-border); }
+.cover .cta { display: flex; gap: 10px; margin-top: 8px; }
+.cover .go { font: inherit; font-size: 15px; font-weight: 600; height: 44px; padding-inline: 20px; border-radius: 8px; border: 0; background: var(--a-primary); color: #fff; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; text-decoration: none; }
+.cover .go.sec { background: var(--a-surface); color: var(--a-fg); border: 1px solid var(--a-border); }
+.cover .go:hover { background: var(--a-primary-hover); }
+.cover .go.sec:hover { background: var(--a-muted-solid); }
+.cover .go svg.lucide { width: 18px; height: 18px; }
+.cover .go:focus-visible { outline: 3px solid var(--a-primary); outline-offset: 2px; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+</style>
+
+<div class="wrap">
+  <div class="head">
+    <div class="brand" id="brand"></div>
+    <div class="tag">Interactive demo · Web console</div>
+  </div>
+
+  <div class="frame">
+    <div class="bar">
+      <div class="dots"><i></i><i></i><i></i></div>
+      <div class="url"><i data-lucide="lock"></i><span id="url">app.respark.com</span></div>
+      <div style="width:42px"></div>
+      <div class="progress" id="progress"></div>
+    </div>
+    <div class="stage" id="stage">
+      <div class="canvas" id="canvas"></div>
+      <div class="overlay" id="overlay"></div>
+    </div>
+  </div>
+
+  <div class="caption" id="caption" aria-live="polite"></div>
+
+  <div class="controls">
+    <button class="btn" id="back" type="button"><i data-lucide="arrow-left"></i>Back</button>
+    <div class="pips" id="pips" role="tablist" aria-label="Demo steps"></div>
+    <span class="count" id="count"></span>
+    <button class="btn primary" id="next" type="button">Next<i data-lucide="arrow-right"></i></button>
+  </div>
+  <div class="hint">Click the pulsing dot, or use <kbd>←</kbd> <kbd>→</kbd></div>
+</div>
+
+<script>
+(() => {
+  const W = 1440, H = 820;
+  const MARK = '<svg class="mark" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M152.38 13.33C171.29 13.33 186.67 28.71 186.67 47.62V152.38C186.67 171.29 171.29 186.67 152.38 186.67H47.62C28.71 186.67 13.33 171.29 13.33 152.38V47.62C13.33 28.71 28.71 13.33 47.62 13.33H152.38ZM152.38 0H47.62C21.32 0 0 21.32 0 47.62V152.38C0 178.68 21.32 200 47.62 200H152.38C178.68 200 200 178.68 200 152.38V47.62C200 21.32 178.68 0 152.38 0Z" fill="#00C9D4"/><path d="M93.39 62.1C89.98 59.66 84.7 58.7 80.99 58.69L26.11 58.74L44.28 71.71H82.53C83.21 71.71 83.79 71.96 84.24 72.29C85.21 72.98 85.5 74.27 84.5 75.67L72.84 92.1L84.25 100.24L96.2 83.46C101.27 76.35 101.05 67.54 93.42 62.1L93.4 62.08Z" fill="currentColor"/><path d="M49.21 102.91C53.53 102.91 58.53 105.26 61.64 107.48L107.62 140.38H84.65L52.58 117.49C52.03 117.05 51.38 116.94 50.8 116.94C49.57 116.94 48.56 117.84 48.56 119.62L48.53 140.38H34.11V119.16C34.11 110.16 39.55 102.91 49.19 102.91Z" fill="currentColor"/><path d="M166.27 115.45V103.76C166.27 96.91 164.14 91.42 159.86 87.3C155.58 83.18 149.91 81.1 142.82 81.1H133.49C128.74 81.1 124.57 82.06 120.95 83.97C117.32 85.88 114.54 88.56 112.55 92.02C110.56 95.49 109.58 99.5 109.58 104.01V119.65C109.58 123.94 110.56 127.7 112.55 130.98C114.54 134.26 117.3 136.82 120.92 138.62C124.55 140.39 128.72 141.3 133.46 141.3H142.32C149.41 141.3 155.11 139.5 159.47 135.92C163.83 132.34 166.02 127.59 166.02 121.67H152.85C152.85 124.15 151.9 126.15 149.99 127.68C148.08 129.18 145.57 129.95 142.46 129.95H133.49C130.3 129.95 127.76 128.99 125.85 127.14C123.94 125.26 122.99 122.77 122.99 119.66V115.46H166.27ZM122.72 105.4V104.34C122.72 100.76 123.7 97.84 125.69 95.63C127.65 93.42 130.24 92.3 133.43 92.3H142.89C145.94 92.3 148.37 93.36 150.25 95.47C152.13 97.57 153.06 100.36 153.06 103.77V105.41H122.71Z" fill="currentColor"/></svg>';
+  document.getElementById('brand').innerHTML = MARK + '<span>ReSpark</span>';
+
+  const ic = (n, extra = '') => `<i data-lucide="${n}" ${extra}></i>`;
+
+
+
+  // Sample data (illustrative). Copper, brass and aluminum on a customer price
+  // list at North Yard. Everything on screen follows greenspark-aws (Oct 19, 2026,
+  // develop 557bb32c4b), modules/commodities/_components/price-lists/*:
+  //  - page + side panel: _PriceListsView, PriceListsFilterBar, PriceListsSidePanel, PriceListCard
+  //  - details: price-list-details/PriceListDetailsHeader, PriceListEffectivePeriod,
+  //    PriceListUpcomingVersionBanner, PriceListMaterialsEditBar (+ respark-grid ResparkGridEditBar)
+  //  - grid: price-list-materials-grid/_hooks/usePriceListMaterialColumns, PriceListDefaultPriceCell,
+  //    PriceListMaterialRowActions, PriceListCommodityGroupHeader, TierBadge
+  //  - formulas: formula/PriceListFormulaBar, PriceListFormulaReferenceField
+  //  - versions: versions/PriceListVersionsPopover, PriceListVersionRow(Actions), PriceListApplyNewVersionPopover
+  // LayersPlus (the code's Add price tier icon) isn't in lucide 0.460, so it's inline.
+  // Prices in edit mode render as "$3.72"; the yard default sits above the
+  // Target Price as "$3.62 + $0.10" (formatYardPriceReference).
+  const $ = v => '$' + v.toFixed(2);
+  const yref = (y, p) => { const d = Math.round((p - y) * 100) / 100; return d === 0 ? $(y) : `${$(y)} ${d > 0 ? '+' : '-'} ${$(Math.abs(d))}`; };
+  // [id, commodity, material, min, target, max, yard default, sell min, sell, sell max]
+  const MATS = [
+    ['bb', 'Copper', 'Bare Bright Copper', 3.85, 3.98, 4.10, 3.88, 4.20, 4.30, 4.40],
+    ['c1', 'Copper', 'Copper #1', 3.60, 3.72, 3.85, 3.62, 3.95, 4.05, 4.15],
+    ['c2', 'Copper', 'Copper #2', 3.30, 3.42, 3.55, 3.35, 3.65, 3.75, 3.85],
+    ['yb', 'Brass', 'Yellow Brass', 2.20, 2.32, 2.45, 2.28, 2.50, 2.60, 2.70],
+    ['rb', 'Brass', 'Red Brass', 2.70, 2.84, 2.95, 2.84, 3.00, 3.10, 3.20],
+    ['ubc', 'Aluminum', 'Aluminum Cans (UBC)', 0.48, 0.55, 0.62, 0.52, 0.62, 0.68, 0.74],
+    ['ext', 'Aluminum', '6063 Extrusion', 0.98, 1.06, 1.12, 1.00, 1.15, 1.22, 1.30],
+    ['cst', 'Aluminum', 'Cast Aluminum', 0.60, 0.66, 0.72, 0.66, 0.72, 0.78, 0.84],
+  ].map(([id, g, m, mn, p, mx, y, smn, s, smx]) => ({ id, g, m, mn, p, mx, y, smn, s, smx }));
+  const GROUPS = ['Copper', 'Brass', 'Aluminum'];
+  const TIER = { min: 500, p: 3.86 }; // (COMEX Copper 4.85 − 0.60) × 92% − 0.05
+  const CARDS = [
+    { id: 'ctr', n: 'Contractor Pricing', c: 'Coastal Demolition +2' },
+    { id: 'ind', n: 'Industrial Accounts', c: 'Delta Fabrication +4' },
+    { id: 'org', n: 'Regional Contractors', c: 'Harbor Export Co.', org: true },
+    { id: 'dem', n: 'Demolition Partners', c: 'Ridgeview Contractors +1' },
+    { id: 'ped', n: 'Peddler Plus', c: 'No customers' },
+  ];
+
+  // ---------- steps ----------
+  const U_LIST = '/app/commodities/price-lists/482', U_BUY = '/app/commodities/price-lists', U_SELL = '/app/commodities/price-lists?side=sell';
+  const STEPS = [
+    { cover: 'intro', view: 'buy', url: U_BUY },
+    { view: 'buy', t: '#card-ctr', place: 'right', url: U_BUY,
+      tip: 'Your price lists sit in the panel on the left of <b>Price Lists</b>. Click <b>Contractor Pricing</b> to open it.' },
+    { view: 'list', t: '#price-c1', place: 'right', url: U_LIST,
+      tip: 'Materials are grouped by commodity. The yard default price shows in small text above each <b>Target Price</b>, so you can see how this list compares.' },
+    { view: 'list', t: '#tier-c1', place: 'left', url: U_LIST,
+      tip: 'To set a price break by weight, click <b>Add price tier</b> on a material.' },
+    { view: 'list', tier: true, fx: 'on', ebar: true, t: '#fx-sw', place: 'bottom', url: U_LIST,
+      tip: 'A <b>Tier 2</b> row appears with its own <b>Min Weight</b>. Select its <b>Target Price</b> cell and turn on <b>Use formula</b>.' },
+    { view: 'list', tier: true, fx: 'combo', ebar: true, t: '#combo', place: 'right', url: U_LIST,
+      tip: 'Pick a <b>Reference</b>: another price, like <b>Default Buy</b> or <b>Previous Tier</b>, or a benchmark such as <b>COMEX Copper</b>.' },
+    { view: 'list', tier: true, fx: 'filled', ebar: true, t: '#slots', place: 'bottom', url: U_LIST,
+      tip: 'Set the <b>Differential</b>, <b>Recovery</b> and <b>Other costs</b>. The <b>Result</b> becomes the price, and a small corner marker shows the cell is formula based.' },
+    { view: 'list', tier: true, fx: 'filled', ebar: true, t: '#eb-nv', place: 'top', url: U_LIST,
+      tip: 'Your edits collect in the bar at the bottom. <b>Apply</b> changes the prices now. Click <b>New version</b> to schedule them instead.' },
+    { view: 'list', tier: true, fx: 'filled', ebar: true, nv: true, t: '#nv-pop', place: 'left', url: U_LIST,
+      tip: 'Choose when the new prices start in <b>Effective From</b>, then click <b>Create version</b>. Leave <b>Expire On</b> blank to keep it open-ended.' },
+    { view: 'list', tier: true, ver: 'up', vs: true, t: '#vr-up', place: 'left', url: U_LIST,
+      tip: 'Open <b>Versions</b> to see each version and its status. An <b>Upcoming</b> version can be moved with <b>Edit dates</b> or removed with <b>Delete version</b>.' },
+    { view: 'buy', t: '#def-buy', place: 'right', url: U_BUY,
+      tip: 'Yard-wide prices live in <b>Default buy prices</b> and <b>Default sell prices</b>, at the top of the panel.' },
+    { view: 'sell', t: '#col-price', place: 'bottom', url: U_SELL,
+      tip: '<b>Default sell prices</b> lets you edit the <b>Default Sell Price</b> again, with its own <b>Min Price</b> and <b>Max Price</b>.' },
+    { cover: 'outro', view: 'sell', url: U_SELL },
+  ];
+
+  // ---------- chrome ----------
+  function sidebar() {
+    const row = (i, l, extra = '', cls = '') => `<div class="nrow${cls}">${ic(i)}<span>${l}</span>${extra || ic('chevron-right', 'class="chev"')}</div>`;
+    return `<aside class="side">
+      <div class="top">${MARK}<div class="yard"><span>North Yard</span>${ic('chevrons-up-down')}</div></div>
+      <div class="nav">
+        ${row('inbox', 'Inbox', '<span class="pill">4</span>')}
+        ${row('messages-square', 'ScrapChat', ' ')}
+        <div class="cmd" style="margin:2px 0">${ic('search')}<span>Search &amp; actions</span><kbd>⌘K</kbd></div>
+        <div class="nsep"></div>
+        ${row('shopping-cart', 'Purchases')}${row('tag', 'Sales')}${row('file-text', 'Contracts')}${row('boxes', 'Inventory')}
+        ${row('users', 'Customers')}${row('layers', 'Commodities', ' ', ' active')}${row('truck', 'Logistics')}${row('clipboard-list', 'Load Board')}${row('warehouse', 'Assets')}${row('chart-column', 'Reports')}${row('landmark', 'Ledger')}
+      </div>
+      <div class="foot"><div class="av">JP</div><div class="who"><span>Jordan Pike</span><small>General Manager</small></div>
+        <div class="ico"><span>${ic('settings')}</span><span>${ic('circle-help')}</span></div></div>
+    </aside>`;
+  }
+
+  function sidePanel(s) {
+    const dr = (side, l, i) => `<div class="dr${s.view === side ? ' on' : ''}" id="def-${side}"><span>${l}</span>${ic(i)}</div>`;
+    const cards = CARDS.map(c => `<div class="pc${s.view === 'list' && c.id === 'ctr' ? ' on' : ''}" id="card-${c.id}"><b>${c.n}${c.org ? ic('building-2') : ''}</b><small>${c.c}</small></div>`).join('');
+    return `<div class="spanel">
+      <div class="st"><span class="rb pri sm">${ic('circle-plus')}Create Buy Price List</span><span class="rb icon sm" style="width:30px">${ic('panel-left-close')}</span></div>
+      <div class="ss"><div class="inp sm">${ic('search')}Search</div><div class="inp sm">Active${ic('chevron-down', 'class="chv"')}</div></div>
+      <div class="defs">${dr('buy', 'Default buy prices', 'arrow-down-to-line')}${dr('sell', 'Default sell prices', 'arrow-up-from-line')}</div>
+      <div class="cards">${cards}</div>
+    </div>`;
+  }
+
+  function header(s) {
+    const isDef = s.view !== 'list';
+    const up = s.ver === 'up';
+    const title = isDef ? `<h2>${s.view === 'sell' ? 'Default sell prices' : 'Default buy prices'}</h2>` : '<h2>Contractor Pricing</h2>';
+    const badge = up ? '<span class="badge b-neutral">Upcoming</span>' : '<span class="badge b-success">Active</span>';
+    const period = `<span>${ic('calendar-check')}${up ? 'Nov 1 12:00 AM' : 'Sep 1 12:00 AM'} <span class="dash">–</span> ${ic('infinity')}</span>`;
+    const cust = isDef ? '' : `<span>${ic('users')}<u>Coastal Demolition +2</u></span>`;
+    const ver = (k, range, tag, cls, on) => `<div class="vr${on ? ' on' : ''}"${k === 'up' ? ' id="vr-up"' : ''}><b>${range}</b><span class="tg ${cls}">${tag}</span>
+        <span class="va"><span class="ib${k === 'past' ? ' off' : ''}" title="Edit dates">${ic('calendar-cog')}</span><span class="ib dg${k !== 'up' ? ' off' : ''}" title="Delete version">${ic('trash-2')}</span></span></div>`;
+    const vpop = s.vs ? `<div class="popv vs"><div class="vh">Versions <span class="tagn">3</span></div>
+        ${ver('up', 'Nov 1, 2026 – ∞', 'Upcoming', 'up', true)}${ver('act', 'Sep 1, 2026 – Nov 1, 2026', 'Active', 'ok', false)}${ver('past', 'Jun 1, 2026 – Sep 1, 2026', 'Past', 'ps', false)}</div>` : '';
+    return `<div class="dhead">
+      <div class="tl"><div class="tr1">${title}${badge}</div><div class="meta">${period}${cust}</div></div>
+      <div class="ra"><div class="inp sm">${ic('search')}Search</div>
+        ${isDef ? '' : `<span class="rb pri sm">${ic('plus')}Add material</span>`}
+        <span class="bgroup"><span class="rb sm${s.vs ? ' open' : ''}">${ic('history')}Versions</span><span class="rb sm">${ic('plus')}</span></span>
+        <span class="rb icon sm" style="width:30px;height:30px">${ic('ellipsis')}</span>${vpop}</div>
+    </div>`;
+  }
+
+  function formulaBar(s, priceLabel) {
+    if (!s.fx) return `<div class="fx"><span class="idle">Select a ${priceLabel} cell to edit</span></div>`;
+    const f = s.fx === 'filled';
+    const slot = (l, inner, cls = '', id = '') => `<div class="slot"><small>${l}</small><div class="in ${cls}"${id ? ` id="${id}"` : ''}>${inner}</div></div>`;
+    const op = t => `<span class="op">${t}</span>`;
+    const opts = [['Previous Tier', '3.72'], ['Default Buy', '3.62'], ['Default Sell', '4.05'], ['Org Default Buy', '3.60'], ['Org Default Sell', '4.00'], ['COMEX Copper', '4.85'], ['LME Aluminum', '1.12']];
+    const combo = s.fx === 'combo' ? `<div class="combo" id="combo">${opts.map(([l, d]) => `<div class="o${l === 'COMEX Copper' ? ' hv' : ''}">${l}<span>${d}</span></div>`).join('')}</div>` : '';
+    const ref = f ? 'COMEX Copper' : 'Reference';
+    return `<div class="fx"><span class="sw on" id="fx-sw"><i class="k"></i>Use formula</span>
+      <div class="slots" id="slots">${op('(')}${slot('Reference', `<span>${ref}</span>${ic('chevron-down')}`, `ref${f ? '' : ' ph'}${s.fx === 'combo' ? ' open' : ''}`)}${op(ic('minus'))}
+        ${slot('Differential', `<span class="pf">$</span>${f ? '0.60' : '0'}`, 'n')}${op(')')}${op(ic('x'))}
+        ${slot('Recovery', `${f ? '92' : '100'}<span class="pf" style="margin-left:auto">%</span>`, 'n')}${op(ic('minus'))}
+        ${slot('Other costs', `<span class="pf">$</span>${f ? '0.05' : '0'}`, 'n')}${op(ic('equal'))}
+        ${slot('Result', `<span class="pf">$</span>${f ? '3.86' : '—'}`, 'dis')}${combo}</div></div>`;
+  }
+
+  function grid(s) {
+    const isDef = s.view !== 'list', sell = s.view === 'sell';
+    const priceLabel = sell ? 'Default Sell Price' : isDef ? 'Default Buy Price' : 'Target Price';
+    const cols = `${isDef ? '' : '<col style="width:32px">'}<col style="width:22px"><col style="width:${isDef ? 228 : 196}px"><col style="width:84px"><col style="width:98px"><col style="width:128px"><col style="width:98px"><col style="width:92px"><col>`;
+    const head = `<tr>${isDef ? '' : '<th class="c"><span class="cbx"></span></th>'}<th></th><th>Material</th><th>Unit</th><th>Min Price</th><th><span id="col-price">${priceLabel}</span></th><th>Max Price</th><th>Min Weight</th><th></th></tr>`;
+    const nCols = isDef ? 8 : 9;
+    const unit = (dis) => `<div class="cell ed${dis ? ' ph' : ''}">LBS<span style="margin-left:auto">${ic('chevron-down')}</span></div>`;
+    const money = v => v == null ? '<div class="cell ed"></div>' : `<div class="cell ed"><span class="pf">$</span>${v.toFixed(2)}</div>`;
+    const acts = (r, opts = {}) => {
+      if (opts.tier) return `<div class="ra2"><span class="ib dg" title="Remove tier">${ic('trash-2')}</span></div>`;
+      const rm = sell ? `<span class="ib dg" title="Clear sell price">${ic('eraser')}</span>` : `<span class="ib dg" title="Remove material">${ic('trash-2')}</span>`;
+      return `<div class="ra2"><span class="ib"${r.id === 'c1' && !isDef ? ' id="tier-c1"' : ''} title="Add price tier"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="M2 12.65l9.17 4.16a2 2 0 0 0 1.66 0l1.67-.76"/><path d="M2 17.65l9.17 4.16a2 2 0 0 0 1.66 0"/><path d="M19 14v7"/><path d="M15.5 17.5h7"/></svg></span>${rm}</div>`;
+    };
+    const hasTier = !isDef && s.tier;
+    const priceCell = r => {
+      const v = sell ? r.s : isDef ? r.y : r.p;
+      if (isDef) return `<div class="pcell lone">${$(v)}</div>`;
+      return `<div class="pcell"${r.id === 'c1' ? ' id="price-c1"' : ''}><span class="yr">${yref(r.y, r.p)}</span><span>${$(r.p)}</span></div>`;
+    };
+    const base = r => `<tr>${isDef ? '' : '<td class="c"><span class="cbx"></span></td>'}<td class="c grip">${ic('grip-vertical')}</td>
+        <td><div class="mn"><span class="nm">${r.m}</span>${hasTier && r.id === 'c1' ? '<span class="tb">Tier 1</span>' : ''}</div></td>
+        <td>${unit()}</td><td>${money(sell ? r.smn : r.mn)}</td><td>${priceCell(r)}</td><td>${money(sell ? r.smx : r.mx)}</td><td></td><td>${acts(r)}</td></tr>`;
+    const tierRow = () => {
+      const dirty = !s.ver, filled = s.fx === 'filled' || s.ver;
+      const pc = filled
+        ? `<div class="pcell fm${dirty ? '' : ''}" id="price-t2"${dirty ? '' : ' style="--a-accent: var(--a-primary)"'}><span class="yr">${yref(3.62, TIER.p)}</span><span>${$(TIER.p)}</span></div>`
+        : `<div class="pcell lone${s.fx ? ' sel' : ''}" id="price-t2"></div>`;
+      return `<tr class="tier${dirty ? ' newr' : ''}"><td class="c"><span class="cbx"></span></td><td class="c grip">${ic('grip-vertical')}</td>
+        <td><div class="mn">${ic('corner-down-right')}<span class="nm">Copper #1</span><span class="tb">Tier 2</span></div></td>
+        <td>${unit(true)}</td><td>${money(null)}</td><td>${pc.replace('class="pcell fm', `class="pcell fm${s.fx ? ' sel' : ''}`)}</td><td>${money(null)}</td><td><div class="cell ed">${TIER.min}</div></td><td>${acts(null, { tier: true })}</td></tr>`;
+    };
+    const open = g => !isDef || g === 'Copper';
+    const body = GROUPS.map(g => {
+      const rows = MATS.filter(r => r.g === g);
+      const gh = `<tr class="grp"><td colspan="${nCols}"><span class="gn">${ic(open(g) ? 'chevron-down' : 'chevron-right')}${g}<span class="tagn">${rows.length}</span>${isDef ? '' : '<span class="link" style="font-size:12.5px;font-weight:500">Add</span>'}</span></td></tr>`;
+      if (!open(g)) return gh;
+      return gh + rows.map(r => base(r) + (hasTier && r.id === 'c1' ? tierRow() : '')).join('');
+    }).join('');
+    const prev = STEPS[step - 1];
+    const still = prev && prev.ebar ? ' still' : '';
+    const nvPop = s.nv ? `<div class="popv nv" id="nv-pop" style="right:84px;bottom:calc(100% + 8px)">
+        <div class="fld"><label>Effective From</label><div class="in">${ic('calendar')}Nov 1, 2026 12:00 AM</div></div>
+        <div class="fld"><label>Expire On</label><div class="in ph">${ic('calendar')}</div></div>
+        <div class="pb"><span class="rb sm">Cancel</span><span class="rb pri sm">Create version</span></div></div>` : '';
+    const ebar = s.ebar ? `<div class="ebar${still}" aria-label="Pending price list changes">
+        <div class="er"><b>1 change</b><span class="ar">→</span><span>1 added</span>
+          <span class="rt"><span class="sw"><i class="k"></i>Hide unchanged rows</span><span class="gh">View changes</span></span></div>
+        <div class="bt"><span class="eb dg">${ic('undo-2')}Undo All</span><span class="eb${s.nv ? ' open' : ''}" id="eb-nv">${ic('calendar-plus')}New version</span><span class="eb pri">${ic('check')}Apply</span></div>${nvPop}</div>` : '';
+    return { priceLabel, html: `<div class="gwrap"><table class="pg"><colgroup>${cols}</colgroup><thead>${head}</thead><tbody>${body}</tbody></table>${ebar}</div>` };
+  }
+
+  function page(s) {
+    const g = grid(s);
+    const banner = s.ver === 'up' ? `<div class="banner">${ic('clock')}<span>These prices take effect Nov 1, 2026, 12:00 AM.</span><span class="ub">Update dates</span></div>` : '';
+    return `<main class="main"><div class="plv">
+      <h1>Price Lists</h1>
+      <div class="fbar"><div class="inp" style="width:160px">Date${ic('calendar', 'class="chv"')}</div><div class="inp" style="width:140px">Time${ic('clock', 'class="chv"')}</div>
+        <div class="inp" style="width:180px">Commodity${ic('chevron-down', 'class="chv"')}</div><div class="inp" style="width:180px">Material${ic('chevron-down', 'class="chv"')}</div></div>
+      <div class="plbody">${sidePanel(s)}
+        <div class="dwrap">${banner}<div class="dcard">${header(s)}${formulaBar(s, g.priceLabel)}${g.html}</div></div>
+      </div></div></main>`;
+  }
+
+  function cover(kind) {
+    if (kind === 'intro') {
+      return `<div class="cover"><div class="card">
+        <div class="eyebrow">${ic('layers')}Commodities · Rolling out</div>
+        <h2>Pricing Management Updates</h2>
+        <p>Price Lists is now a spreadsheet-style editor. Set prices by weight tier, price off a formula that references another price or a benchmark, and schedule new versions ahead of time.</p>
+        <div class="cta"><button class="go" type="button" data-go="next">Get started${ic('arrow-right')}</button></div>
+      </div></div>`;
+    }
+    return `<div class="cover"><div class="card">
+      <div class="eyebrow">${ic('circle-check')}Pricing Management Updates</div>
+      <h2>Price by tier and formula, and schedule changes ahead</h2>
+      <p>Open a price list, add weight tiers, base any price on a formula, and save edits as a new version with its own start date. Default buy and sell prices sit at the top of the panel. Each list imports and exports its own CSV; there’s no single CSV upload across all price lists, and margin-based price sheets aren’t included. This is rolling out now, so it isn’t on for every account yet.</p>
+      <div class="cta"><button class="go sec" type="button" data-go="restart">${ic('rotate-ccw')}Replay</button></div>
+    </div></div>`;
+  }
+
+  function renderApp(s) {
+    return `<div class="app">${sidebar()}${page(s)}${s.cover ? cover(s.cover) : ''}</div>`;
+  }
+  function anchorMenus() {}
+
+  // ---------- player ----------
+  const stage = document.getElementById('stage');
+  const canvas = document.getElementById('canvas');
+  const overlay = document.getElementById('overlay');
+  const caption = document.getElementById('caption');
+  const pips = document.getElementById('pips');
+  const backBtn = document.getElementById('back');
+  const nextBtn = document.getElementById('next');
+  let step = 0;
+  const guided = STEPS.map((s, i) => (s.tip ? i : null)).filter(i => i !== null);
+
+  pips.innerHTML = STEPS.map((_, i) => `<button type="button" role="tab" aria-label="Step ${i + 1}" data-i="${i}"></button>`).join('');
+  pips.addEventListener('click', e => { const b = e.target.closest('button'); if (b) go(+b.dataset.i); });
+
+  function scale() {
+    const k = stage.clientWidth / W;
+    canvas.style.transform = `scale(${k})`;
+    document.body.classList.toggle('narrow', stage.clientWidth < 700);
+    return k;
+  }
+
+  function place() {
+    overlay.innerHTML = '';
+    const s = STEPS[step];
+    anchorMenus(s);
+    if (!s.t) return;
+    const el = canvas.querySelector(s.t);
+    if (!el) return;
+    const sr = stage.getBoundingClientRect();
+    const r = el.getBoundingClientRect();
+    const x = r.left - sr.left, y = r.top - sr.top, w = r.width, h = r.height;
+    const n = guided.indexOf(step) + 1;
+    const label = `<span class="n">Step ${n} of ${guided.length}</span>`;
+
+    const ring = document.createElement('div');
+    ring.className = 'ring';
+    Object.assign(ring.style, { left: x - 3 + 'px', top: y - 3 + 'px', width: w + 6 + 'px', height: h + 6 + 'px' });
+    const hot = document.createElement('button');
+    hot.className = 'hot';
+    hot.type = 'button';
+    hot.setAttribute('aria-label', 'Continue to next step');
+    hot.style.left = x + w / 2 + 'px';
+    hot.style.top = y + h / 2 + 'px';
+    hot.addEventListener('click', () => go(step + 1));
+    overlay.append(ring, hot);
+
+    caption.innerHTML = label + s.tip;
+    if (document.body.classList.contains('narrow')) return;
+
+    const tip = document.createElement('div');
+    tip.className = 'tip';
+    tip.innerHTML = label + s.tip;
+    overlay.append(tip);
+    const tw = tip.offsetWidth, th = tip.offsetHeight, gap = 18;
+    const SW = stage.clientWidth, SH = stage.clientHeight;
+    let tx, ty;
+    const side = s.place || 'right';
+    if (side === 'right') { tx = x + w + gap; ty = y + h / 2 - th / 2; }
+    if (side === 'left') { tx = x - tw - gap; ty = y + h / 2 - th / 2; }
+    if (side === 'bottom') { tx = x + w / 2 - tw / 2; ty = y + h + gap; }
+    if (side === 'top') { tx = x + w / 2 - tw / 2; ty = y - th - gap; }
+    if (side === 'right' && tx + tw > SW - 8) { tx = x - tw - gap; }
+    if (side === 'left' && tx < 8) { tx = x + w + gap; }
+    tx = Math.max(10, Math.min(SW - tw - 10, tx));
+    ty = Math.max(10, Math.min(SH - th - 10, ty));
+    tip.style.left = tx + 'px';
+    tip.style.top = ty + 'px';
+  }
+
+  function render() {
+    const s = STEPS[step];
+    canvas.innerHTML = renderApp(s);
+    if (window.lucide) lucide.createIcons({ attrs: { 'aria-hidden': 'true' } });
+    document.getElementById('url').textContent = 'app.respark.com' + s.url;
+    document.getElementById('progress').style.width = (step / (STEPS.length - 1)) * 100 + '%';
+    [...pips.children].forEach((b, i) => { b.className = i === step ? 'on' : i < step ? 'done' : ''; b.setAttribute('aria-selected', i === step); });
+    const n = guided.indexOf(step);
+    document.getElementById('count').textContent = s.cover === 'intro' ? 'Intro' : s.cover === 'outro' ? 'Done' : `${n + 1} / ${guided.length}`;
+    backBtn.disabled = step === 0;
+    nextBtn.disabled = step === STEPS.length - 1;
+    if (s.cover) caption.innerHTML = s.cover === 'intro'
+      ? '<span class="n">Intro</span>Price Lists is now a spreadsheet-style editor with weight tiers, formulas that reference other prices or benchmarks, and versions you can schedule ahead of time.'
+      : '<span class="n">Done</span>Add weight tiers, base prices on formulas, and save edits as a scheduled version. Default buy and sell prices sit at the top of the panel. No single CSV across all price lists, and no margin-based sheets. Rolling out now, so not on for every account yet.';
+    scale();
+    // Measure only after entrance animations (panels sliding in, menus
+    // popping, pins dropping) finish, or the ring lands where the element
+    // was mid-animation instead of where it ends up.
+    const token = ++renderToken;
+    settle().then(() => { if (token === renderToken) place(); });
+  }
+
+  let renderToken = 0;
+  function settle() {
+    const finite = (canvas.getAnimations ? canvas.getAnimations({ subtree: true }) : [])
+      .filter(a => a.effect && a.effect.getComputedTiming().iterations !== Infinity);
+    const done = Promise.all(finite.map(a => a.finished.catch(() => {})));
+    const timeout = new Promise(r => setTimeout(r, 1200));
+    // If the timeline is throttled (background tab), snap leftovers to their
+    // end state so the measurement still matches the final layout.
+    return Promise.race([done, timeout]).then(() => {
+      finite.forEach(a => { if (a.playState !== 'finished') try { a.finish(); } catch (e) {} });
+      return new Promise(r => setTimeout(r, 30));
+    });
+  }
+
+  // Self-check used before publishing: walks every step and reports any
+  // highlight that doesn't sit on its target, targets that are missing or
+  // clipped, and tooltips that cover the thing they point at.
+  function checkStep() {
+    const s = STEPS[step];
+    if (!s.t) return { step, ok: true };
+    const el = canvas.querySelector(s.t), ring = overlay.querySelector('.ring'), tip = overlay.querySelector('.tip');
+    if (!el) return { step, ok: false, why: `target ${s.t} not found` };
+    if (!ring) return { step, ok: false, why: 'highlight not drawn' };
+    const a = el.getBoundingClientRect(), b = ring.getBoundingClientRect(), st = stage.getBoundingClientRect();
+    const off = Math.max(Math.abs(a.left - 3 - b.left), Math.abs(a.top - 3 - b.top), Math.abs(a.width + 6 - b.width), Math.abs(a.height + 6 - b.height));
+    const issues = [];
+    if (off > 2) issues.push(`highlight off by ${Math.round(off)}px`);
+    if (a.width < 4 || a.height < 4) issues.push('target has no size');
+    if (a.left < st.left - 1 || a.top < st.top - 1 || a.right > st.right + 1 || a.bottom > st.bottom + 1) issues.push('target clipped by frame');
+    if (tip) {
+      const t = tip.getBoundingClientRect();
+      const ix = Math.max(0, Math.min(a.right, t.right) - Math.max(a.left, t.left)), iy = Math.max(0, Math.min(a.bottom, t.bottom) - Math.max(a.top, t.top));
+      if (ix * iy > 0.25 * a.width * a.height) issues.push('tooltip covers target');
+    }
+    return { step, target: s.t, ok: issues.length === 0, issues };
+  }
+  window.walkthroughAudit = async () => {
+    const results = [];
+    for (let i = 0; i < STEPS.length; i++) {
+      go(i);
+      await settle();
+      await new Promise(r => setTimeout(r, 60));
+      results.push(checkStep());
+    }
+    go(0);
+    return { ok: results.every(r => r.ok), problems: results.filter(r => !r.ok), steps: results.length };
+  };
+
+  function go(i) {
+    step = Math.max(0, Math.min(STEPS.length - 1, i));
+    render();
+  }
+
+  canvas.addEventListener('click', e => {
+    const g = e.target.closest('[data-go]');
+    if (g) { go(g.dataset.go === 'restart' ? 0 : step + 1); return; }
+    const s = STEPS[step];
+    if (s.t && e.target.closest(s.t)) go(step + 1);
+  });
+  backBtn.addEventListener('click', () => go(step - 1));
+  nextBtn.addEventListener('click', () => go(step + 1));
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight') go(step + 1);
+    if (e.key === 'ArrowLeft') go(step - 1);
+  });
+  new ResizeObserver(() => { scale(); settle().then(place); }).observe(stage);
+  if (document.fonts) document.fonts.ready.then(place);
+
+  if (window.lucide) lucide.createIcons({ attrs: { 'aria-hidden': 'true' } });
+  render();
+})();
+</script>
