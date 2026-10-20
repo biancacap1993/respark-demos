@@ -1,0 +1,684 @@
+<meta charset="utf-8">
+<title>ReSpark Batch Production</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+<style>
+/* Layout: an Arcade-style player. One framed browser window holds a scaled
+   1440×820 mock of ReSpark Inventory → Batch Production (Production Runs and
+   Production Recipes tabs, plus the recipe and run blades); a pulsing hotspot
+   + tooltip guides each step; step controls sit under the frame. The app mock
+   keeps ReSpark's light theme (it stands in for a screenshot); the page around
+   it follows the viewer's theme. */
+:root {
+  --bg: #f3f5f8;
+  --glow: rgba(0, 168, 176, 0.10);
+  --fg: #12233e;
+  --fg-muted: rgba(18, 35, 62, 0.62);
+  --frame: #ffffff;
+  --frame-bar: #eef1f5;
+  --frame-line: rgba(18, 35, 62, 0.12);
+  --ctl: #ffffff;
+  --ctl-line: rgba(18, 35, 62, 0.16);
+  --teal: #00a3a8;
+  --teal-strong: #008a8f;
+  --tip-bg: #12233e;
+  --tip-fg: #ffffff;
+
+  /* ReSpark app tokens (frontend/client/src/global.css, light mode) */
+  --a-fg: hsl(217 55% 16%);
+  --a-surface: #ffffff;
+  --a-muted: hsla(217, 55%, 16%, 0.03);
+  --a-muted-solid: #f8f9fa;
+  --a-hover: hsla(217, 55%, 16%, 0.06);
+  --a-border: hsla(217, 55%, 16%, 0.14);
+  --a-border-subtle: hsla(217, 55%, 16%, 0.08);
+  --a-text-2: hsla(217, 55%, 16%, 0.75);
+  --a-text-3: hsla(217, 55%, 16%, 0.52);
+  --a-icon-2: hsla(217, 55%, 16%, 0.42);
+  --a-primary: hsl(183 100% 33%);
+  --a-primary-hover: hsl(183 100% 27%);
+  --a-primary-subtle: hsla(183, 100%, 33%, 0.10);
+  --a-success: hsl(162 73% 37%);
+  --a-success-strong: hsl(162 73% 30%);
+  --a-error: hsl(348 81% 48%);
+  --a-error-strong: hsl(348 81% 38%);
+  --a-accent: hsl(252 89% 65%);
+  --a-accent-strong: hsl(252 60% 50%);
+  --a-accent-subtle: hsla(252, 89%, 65%, 0.10);
+  --a-dark: hsl(217 45% 14%);
+  --a-nav-selected: hsl(217 55% 16%);
+
+  --font: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0c1422; --glow: rgba(0, 201, 212, 0.10); --fg: #e8eef7; --fg-muted: rgba(232, 238, 247, 0.62);
+    --frame: #17202f; --frame-bar: #1c2738; --frame-line: rgba(232, 238, 247, 0.12);
+    --ctl: #17202f; --ctl-line: rgba(232, 238, 247, 0.18); --teal: #19c3cb; --teal-strong: #4fd6dc;
+    --tip-bg: #00a3a8; --tip-fg: #ffffff; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0c1422; --glow: rgba(0, 201, 212, 0.10); --fg: #e8eef7; --fg-muted: rgba(232, 238, 247, 0.62);
+  --frame: #17202f; --frame-bar: #1c2738; --frame-line: rgba(232, 238, 247, 0.12);
+  --ctl: #17202f; --ctl-line: rgba(232, 238, 247, 0.18); --teal: #19c3cb; --teal-strong: #4fd6dc;
+  --tip-bg: #00a3a8; --tip-fg: #ffffff; color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--fg); font-family: var(--font);
+  background-image: radial-gradient(60% 50% at 50% 38%, var(--glow), transparent 70%);
+  min-height: 100vh; padding-inline: 16px; padding-block: 28px 40px;
+}
+.wrap { max-width: 1180px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
+.head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 15px; letter-spacing: -0.01em; }
+.brand svg { width: 28px; height: 28px; color: var(--fg); }
+.head .tag { font-size: 12px; color: var(--fg-muted); font-weight: 500; }
+
+.frame { background: var(--frame); border: 1px solid var(--frame-line); border-radius: 12px; overflow: hidden;
+  box-shadow: 0 30px 60px -20px rgba(18, 35, 62, 0.28), 0 8px 18px -8px rgba(18, 35, 62, 0.18); }
+.bar { height: 38px; background: var(--frame-bar); border-bottom: 1px solid var(--frame-line); display: flex; align-items: center; gap: 12px; padding-inline: 14px; position: relative; }
+.dots { display: flex; gap: 6px; }
+.dots i { width: 10px; height: 10px; border-radius: 50%; background: var(--frame-line); display: block; }
+.url { flex: 1; max-width: 460px; margin-inline: auto; height: 24px; border-radius: 6px; background: var(--frame); border: 1px solid var(--frame-line);
+  display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 12px; color: var(--fg-muted); padding-inline: 10px; min-width: 0; overflow: hidden; white-space: nowrap; }
+.url span { overflow: hidden; text-overflow: ellipsis; }
+.url svg { width: 12px; height: 12px; flex-shrink: 0; }
+.progress { position: absolute; left: 0; bottom: -1px; height: 2px; background: var(--teal); transition: width .35s ease; }
+
+.stage { position: relative; width: 100%; aspect-ratio: 1440 / 820; max-width: 100%; overflow: hidden; background: #fff; }
+.canvas { position: absolute; left: 0; top: 0; width: 1440px; height: 820px; transform-origin: 0 0; }
+.overlay { position: absolute; inset: 0; pointer-events: none; }
+
+.ring { position: absolute; border-radius: 6px; box-shadow: 0 0 0 2px var(--a-primary), 0 0 0 6px hsla(183, 100%, 33%, 0.18); transition: all .3s ease; pointer-events: none; }
+.hot { position: absolute; width: 26px; height: 26px; margin: -13px 0 0 -13px; border-radius: 50%; pointer-events: auto; cursor: pointer;
+  background: hsla(183, 100%, 33%, 0.28); border: 0; padding: 0; transition: left .3s ease, top .3s ease; }
+.hot::before { content: ""; position: absolute; inset: 7px; border-radius: 50%; background: var(--a-primary); box-shadow: 0 0 0 2px #fff; }
+.hot::after { content: ""; position: absolute; inset: 0; border-radius: 50%; border: 2px solid var(--a-primary); animation: pulse 1.6s ease-out infinite; }
+.hot:focus-visible { outline: 3px solid var(--teal-strong); outline-offset: 3px; }
+@keyframes pulse { 0% { transform: scale(.7); opacity: .9; } 100% { transform: scale(2.1); opacity: 0; } }
+
+.tip { position: absolute; max-width: 310px; background: var(--tip-bg); color: var(--tip-fg); border-radius: 10px; padding: 12px 14px;
+  font-size: 14px; line-height: 1.45; box-shadow: 0 12px 28px -8px rgba(12, 20, 34, 0.45); pointer-events: auto; animation: tipIn .25s ease; }
+.tip b { font-weight: 600; }
+.tip code, .caption code { font-family: var(--mono); font-size: 12.5px; background: rgba(255, 255, 255, 0.16); padding: 1px 5px; border-radius: 4px; }
+.caption code { background: var(--frame-bar); }
+.tip .n, .caption .n { display: block; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; opacity: .7; margin-bottom: 4px; }
+@keyframes tipIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+.caption { display: none; background: var(--frame); border: 1px solid var(--frame-line); border-radius: 10px; padding: 12px 14px; font-size: 14px; line-height: 1.5; }
+body.narrow .caption { display: block; }
+body.narrow .tip { display: none; }
+
+.controls { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.btn { font: inherit; font-size: 13px; font-weight: 600; height: 36px; padding-inline: 14px; border-radius: 8px; border: 1px solid var(--ctl-line);
+  background: var(--ctl); color: var(--fg); cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+.btn:hover { border-color: var(--teal); }
+.btn:disabled { opacity: .4; cursor: default; border-color: var(--ctl-line); }
+.btn:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+.btn.primary { background: var(--teal); border-color: var(--teal); color: #fff; }
+.btn svg { width: 16px; height: 16px; }
+.count { font-size: 13px; color: var(--fg-muted); font-variant-numeric: tabular-nums; min-width: 48px; text-align: right; }
+.pips { display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; flex: 1; min-width: 0; }
+.pips button { width: 22px; height: 6px; border-radius: 3px; border: 0; padding: 0; background: var(--ctl-line); cursor: pointer; }
+.pips button.on { background: var(--teal); }
+.pips button.done { background: color-mix(in srgb, var(--teal) 45%, transparent); }
+.hint { font-size: 12px; color: var(--fg-muted); text-align: center; }
+kbd { font: inherit; font-size: 11px; border: 1px solid var(--ctl-line); border-radius: 4px; padding: 1px 5px; }
+
+/* ================= ReSpark app mock (fixed light theme) ================= */
+.app { width: 1440px; height: 820px; display: flex; font-family: var(--font); color: var(--a-fg); font-size: 13px; background: var(--a-surface); position: relative; overflow: hidden; }
+.app table { color: inherit; } /* pages render without a doctype, where tables don't inherit text color; keeps the app mock readable in dark mode */
+.app svg.lucide { width: 16px; height: 16px; stroke-width: 1.75; flex-shrink: 0; }
+.side { width: 236px; flex-shrink: 0; background: var(--a-muted-solid); border-right: 1px solid var(--a-border-subtle); display: flex; flex-direction: column; padding: 12px 10px; gap: 10px; }
+.side .top { display: flex; align-items: center; gap: 8px; padding: 2px 4px; }
+.side .top svg.mark { width: 28px; height: 28px; color: #12233e; }
+.yard { flex: 1; display: flex; align-items: center; justify-content: space-between; border: 1px solid var(--a-border); border-radius: 6px; height: 30px; padding-inline: 8px; background: var(--a-surface); font-weight: 500; font-size: 12.5px; }
+.yard svg.lucide { width: 14px; height: 14px; color: var(--a-icon-2); }
+.cmd { display: flex; align-items: center; gap: 8px; height: 30px; border: 1px solid var(--a-border); border-radius: 6px; padding-inline: 8px; color: var(--a-text-3); background: var(--a-surface); font-size: 12.5px; }
+.cmd kbd { margin-left: auto; font-size: 10.5px; border-color: var(--a-border); color: var(--a-text-3); }
+.nav { display: flex; flex-direction: column; gap: 1px; }
+.nrow { display: flex; align-items: center; gap: 8px; padding: 5px 8px; border-radius: 6px; font-weight: 500; color: hsla(217, 55%, 16%, 0.88); }
+.nrow .chev { margin-left: auto; width: 14px; height: 14px; color: var(--a-icon-2); }
+.nrow.sub { padding-left: 30px; font-weight: 450; font-size: 12.5px; color: var(--a-text-2); }
+.nrow.active { background: var(--a-nav-selected); color: #fff; }
+.pill { margin-left: auto; font-size: 10px; font-weight: 600; color: var(--a-text-2); background: var(--a-hover); padding: 1px 6px; border-radius: 999px; }
+.nsep { height: 1px; background: var(--a-border-subtle); margin: 4px 6px; }
+.foot { margin-top: auto; display: flex; align-items: center; gap: 8px; padding: 8px 4px 0; border-top: 1px solid var(--a-border-subtle); }
+.av { width: 28px; height: 28px; border-radius: 50%; background: var(--a-primary-subtle); color: var(--a-primary-hover); display: grid; place-items: center; font-weight: 600; font-size: 11px; }
+.foot .who { display: flex; flex-direction: column; line-height: 1.25; }
+.foot .who small { color: var(--a-text-3); font-size: 11px; }
+.foot .ico { margin-left: auto; display: flex; gap: 4px; }
+.foot .ico span { width: 28px; height: 28px; border: 1px solid var(--a-border-subtle); border-radius: 6px; display: grid; place-items: center; }
+
+/* main column: compact title header (Batch Production is a depth-3 page with its own sub-tabs) */
+.main { flex: 1; min-width: 0; display: flex; flex-direction: column; position: relative; }
+.thead { padding: 24px 24px 8px; display: flex; align-items: center; gap: 8px; }
+.thead h1 { margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -0.015em; flex: 1; }
+.thead .acts { display: flex; gap: 8px; align-items: center; }
+.tabs { display: flex; gap: 4px; padding: 0 24px; border-bottom: 1px solid var(--a-border-subtle); }
+.tab { height: 44px; display: inline-flex; align-items: center; padding: 0 12px; font-size: 13.5px; font-weight: 500; color: var(--a-text-2); border-bottom: 2px solid transparent; }
+.tab.on { color: var(--a-primary-hover); border-bottom-color: var(--a-primary); font-weight: 600; }
+.ibody { flex: 1; min-height: 0; padding: 16px 24px 18px; display: flex; flex-direction: column; position: relative; }
+
+.rb { font: inherit; font-size: 13px; font-weight: 500; height: 32px; padding-inline: 12px; border-radius: 6px; display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--a-border); background: var(--a-surface); color: var(--a-fg); cursor: default; white-space: nowrap; }
+.rb.pri { background: var(--a-primary); border-color: var(--a-primary); color: #fff; }
+.rb.ghost { border-color: transparent; background: transparent; color: var(--a-text-2); width: 32px; padding: 0; justify-content: center; }
+.app .rb.ghost svg.lucide { width: 18px; height: 18px; }
+
+/* ResparkGrid */
+.grid { border: 1px solid var(--a-border-subtle); border-radius: 8px; overflow: hidden; flex: 1; min-height: 0; display: flex; flex-direction: column; position: relative; }
+.gtool { display: flex; align-items: center; gap: 8px; padding: 10px 12px; }
+.inp { height: 32px; border: 1px solid var(--a-border); border-radius: 6px; display: flex; align-items: center; gap: 6px; padding-inline: 9px; color: var(--a-text-3); font-size: 12.5px; background: var(--a-surface); white-space: nowrap; }
+.inp svg.lucide { width: 14px; height: 14px; color: var(--a-icon-2); }
+.gtool .search { width: 330px; }
+table { width: 100%; font-size: 13px; border-collapse: separate; border-spacing: 0; font-variant-numeric: tabular-nums; table-layout: fixed; }
+th { text-align: left; font-weight: 500; font-size: 12.5px; padding: 0 12px; height: 38px; background: var(--a-muted-solid); border-bottom: 1px solid var(--a-border-subtle); white-space: nowrap; color: var(--a-text-2); }
+td { padding: 0 12px; height: 50px; border-bottom: 1px solid var(--a-border-subtle); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+td.num, th.num { text-align: right; }
+.gt tr.new td { background: hsla(183, 100%, 33%, 0.07); }
+.link { color: var(--a-primary-hover); font-weight: 500; }
+.badge { display: inline-flex; align-items: center; height: 22px; padding-inline: 8px; border-radius: 4px; font-size: 12px; font-weight: 500; background: var(--a-hover); max-width: 140px; overflow: hidden; text-overflow: ellipsis; }
+.bcell { display: flex; gap: 4px; align-items: center; }
+.chip { display: inline-flex; align-items: center; height: 24px; padding-inline: 8px; border-radius: 4px; font-size: 12px; font-weight: 500; border: 1px solid; white-space: nowrap; }
+.c-success { border-color: hsla(162, 73%, 37%, 0.4); background: hsla(162, 73%, 37%, 0.10); color: var(--a-success-strong); }
+.waste { color: var(--a-error-strong); }
+
+/* FormModal: MUI SwipeableDrawer anchored right, maxWidth 1200 */
+.scrim { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.5); z-index: 5; }
+.blade { position: absolute; top: 0; right: 0; bottom: 0; width: 1200px; background: #fff; box-shadow: -8px 0 24px rgba(0, 0, 0, 0.2); display: flex; flex-direction: column; z-index: 6; animation: slide .25s ease; color: rgba(0, 0, 0, 0.87); font-size: 16px; }
+.blade.still { animation: none; }
+@keyframes slide { from { transform: translateX(40px); opacity: 0; } to { transform: none; opacity: 1; } }
+.bh { display: flex; align-items: center; padding: 16px 16px 16px 32px; border-bottom: 1px solid rgba(0, 0, 0, 0.12); }
+.bh h3 { margin: 0; font-size: 24px; font-weight: 400; flex: 1; letter-spacing: 0; }
+.bh .x { width: 40px; height: 40px; display: grid; place-items: center; color: rgba(0, 0, 0, 0.54); }
+.app .bh .x svg.lucide { width: 22px; height: 22px; }
+.bb { flex: 1; min-height: 0; overflow: hidden; position: relative; }
+.bin { padding: 32px 32px 24px; display: flex; flex-direction: column; gap: 24px; transition: transform .3s ease; }
+.bf { display: flex; gap: 16px; padding: 16px; border-top: 1px solid rgba(0, 0, 0, 0.12); }
+.sec h6 { margin: 0 0 16px; font-size: 20px; font-weight: 500; letter-spacing: .0075em; }
+.mb { font: inherit; font-size: 14px; font-weight: 500; letter-spacing: .02857em; height: 36px; padding-inline: 16px; border-radius: 4px; display: inline-flex; align-items: center; border: 1px solid; white-space: nowrap; }
+.mb.con { background: var(--a-primary); border-color: var(--a-primary); color: #fff; box-shadow: 0 2px 4px rgba(0,0,0,.18); }
+.mb.con.off { background: rgba(0, 0, 0, 0.12); border-color: transparent; color: rgba(0, 0, 0, 0.26); box-shadow: none; }
+.mb.out { background: #fff; border-color: hsla(183, 100%, 33%, 0.5); color: var(--a-primary-hover); }
+
+/* MUI outlined TextField */
+.fstack { display: flex; flex-direction: column; gap: 16px; }
+.frow { display: flex; gap: 8px; }
+.frow > .fw { flex: 1; min-width: 0; }
+.mf { position: relative; border: 1px solid rgba(0, 0, 0, 0.23); border-radius: 4px; min-height: 56px; display: flex; align-items: center; gap: 8px; padding: 0 14px; font-size: 16px; color: rgba(0, 0, 0, 0.87); }
+.mf > label { position: absolute; top: -9px; left: 10px; padding: 0 4px; background: #fff; font-size: 12px; line-height: 16px; color: rgba(0, 0, 0, 0.6); }
+.mf .ad { color: rgba(0, 0, 0, 0.54); }
+.mf .grow { flex: 1; min-width: 0; }
+.mf .end { margin-left: auto; display: flex; gap: 2px; color: rgba(0, 0, 0, 0.54); }
+.mf .ph { color: rgba(0, 0, 0, 0.38); }
+.mf.multi { padding: 9px 9px 9px 9px; flex-wrap: wrap; gap: 6px; }
+.mf em { font-style: italic; }
+.help { margin: 3px 14px 0; font-size: 12px; line-height: 1.66; color: rgba(0, 0, 0, 0.6); letter-spacing: .03333em; }
+.mchip { display: inline-flex; align-items: center; gap: 6px; height: 32px; border-radius: 16px; background: rgba(0, 0, 0, 0.08); padding: 0 6px 0 12px; font-size: 13px; color: rgba(0, 0, 0, 0.87); }
+.mchip.plain { padding: 0 12px; }
+.mchip .del { width: 18px; height: 18px; border-radius: 50%; background: rgba(0, 0, 0, 0.26); color: #fff; display: grid; place-items: center; }
+.app .mchip .del svg.lucide { width: 12px; height: 12px; stroke-width: 3; }
+.crow2 { display: flex; gap: 8px; }
+
+/* allocation matrix */
+.tg { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-size: 14px; }
+.tgg { display: inline-flex; border: 1px solid rgba(0, 0, 0, 0.12); border-radius: 4px; overflow: hidden; }
+.tgg span { height: 32px; display: inline-flex; align-items: center; padding: 0 11px; font-size: 13px; color: rgba(0, 0, 0, 0.54); }
+.tgg span + span { border-left: 1px solid rgba(0, 0, 0, 0.12); }
+.tgg span.on { background: hsla(183, 100%, 33%, 0.08); color: var(--a-primary-hover); }
+.mt th { background: transparent; color: rgba(0, 0, 0, 0.87); font-size: 14px; font-weight: 500; height: 38px; padding: 0 16px; border-bottom: 1px solid rgba(224, 224, 224, 1); }
+.mt td { font-size: 14px; height: 57px; padding: 0 16px; border-bottom: 1px solid rgba(224, 224, 224, 1); color: rgba(0, 0, 0, 0.87); }
+.sm { display: inline-flex; align-items: center; justify-content: flex-end; height: 40px; min-width: 76px; border: 1px solid rgba(0, 0, 0, 0.23); border-radius: 4px; padding: 0 12px; font-size: 14px; font-variant-numeric: tabular-nums; }
+.sm.wide { min-width: 140px; }
+.sm.dis { color: rgba(0, 0, 0, 0.38); border-color: rgba(0, 0, 0, 0.12); }
+.alert { border: 1px solid rgb(3, 169, 244); color: rgb(1, 67, 97); border-radius: 4px; padding: 6px 16px; font-size: 14px; display: flex; align-items: center; gap: 12px; height: 48px; }
+.alert svg.lucide { color: rgb(3, 169, 244); width: 22px; height: 22px; }
+
+/* output preview rows */
+.orow { display: grid; grid-template-columns: 2fr 1.5fr 3fr 1.75fr 1.75fr 2fr; gap: 8px; margin-bottom: 16px; }
+.orow small { display: block; font-size: 12px; color: rgba(0, 0, 0, 0.6); letter-spacing: .03333em; }
+.orow span { display: block; font-size: 16px; white-space: nowrap; }
+
+/* MUI success snackbar, bottom-left */
+.toast { position: absolute; left: 24px; bottom: 24px; background: hsl(162 73% 33%); color: #fff; border-radius: 4px; padding: 10px 16px; display: flex; align-items: center; gap: 10px; font-weight: 500; font-size: 14px; box-shadow: 0 6px 18px rgba(18,35,62,.25); animation: pop2 .3s ease; z-index: 7; }
+.toast svg.lucide { width: 20px; height: 20px; }
+@keyframes pop2 { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+/* intro / outro */
+.cover { position: absolute; inset: 0; background: rgba(248, 250, 252, 0.88); backdrop-filter: blur(3px); display: grid; place-items: center; z-index: 10; }
+.cover .card { width: 720px; display: flex; flex-direction: column; gap: 14px; align-items: flex-start; }
+.cover .eyebrow { font-size: 13px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--a-primary-hover); display: flex; align-items: center; gap: 8px; }
+.cover h2 { margin: 0; font-size: 40px; line-height: 1.12; letter-spacing: -0.025em; font-weight: 700; text-wrap: balance; }
+.cover p { margin: 0; font-size: 17px; line-height: 1.55; color: var(--a-text-2); max-width: 640px; }
+.cover .cta { display: flex; gap: 10px; margin-top: 8px; flex-wrap: wrap; }
+.cover .go { font: inherit; font-size: 15px; font-weight: 600; height: 44px; padding-inline: 20px; border-radius: 8px; border: 0; background: var(--a-primary); color: #fff; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; text-decoration: none; }
+.cover .go.sec { background: var(--a-surface); color: var(--a-fg); border: 1px solid var(--a-border); }
+.cover .go:hover { background: var(--a-primary-hover); }
+.cover .go.sec:hover { background: var(--a-muted-solid); }
+.cover .go svg.lucide { width: 18px; height: 18px; }
+.cover .go:focus-visible { outline: 3px solid var(--a-primary); outline-offset: 2px; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+</style>
+
+<div class="wrap">
+  <div class="head">
+    <div class="brand" id="brand"></div>
+    <div class="tag">Interactive demo · Web console</div>
+  </div>
+
+  <div class="frame">
+    <div class="bar">
+      <div class="dots"><i></i><i></i><i></i></div>
+      <div class="url"><i data-lucide="lock"></i><span id="url">app.respark.com</span></div>
+      <div style="width:42px"></div>
+      <div class="progress" id="progress"></div>
+    </div>
+    <div class="stage" id="stage">
+      <div class="canvas" id="canvas"></div>
+      <div class="overlay" id="overlay"></div>
+    </div>
+  </div>
+
+  <div class="caption" id="caption" aria-live="polite"></div>
+
+  <div class="controls">
+    <button class="btn" id="back" type="button"><i data-lucide="arrow-left"></i>Back</button>
+    <div class="pips" id="pips" role="tablist" aria-label="Demo steps"></div>
+    <span class="count" id="count"></span>
+    <button class="btn primary" id="next" type="button">Next<i data-lucide="arrow-right"></i></button>
+  </div>
+  <div class="hint">Click the pulsing dot, or use <kbd>←</kbd> <kbd>→</kbd></div>
+</div>
+
+<script>
+(() => {
+  const W = 1440, H = 820;
+  const MARK = '<svg class="mark" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M152.38 13.33C171.29 13.33 186.67 28.71 186.67 47.62V152.38C186.67 171.29 171.29 186.67 152.38 186.67H47.62C28.71 186.67 13.33 171.29 13.33 152.38V47.62C13.33 28.71 28.71 13.33 47.62 13.33H152.38ZM152.38 0H47.62C21.32 0 0 21.32 0 47.62V152.38C0 178.68 21.32 200 47.62 200H152.38C178.68 200 200 178.68 200 152.38V47.62C200 21.32 178.68 0 152.38 0Z" fill="#00C9D4"/><path d="M93.39 62.1C89.98 59.66 84.7 58.7 80.99 58.69L26.11 58.74L44.28 71.71H82.53C83.21 71.71 83.79 71.96 84.24 72.29C85.21 72.98 85.5 74.27 84.5 75.67L72.84 92.1L84.25 100.24L96.2 83.46C101.27 76.35 101.05 67.54 93.42 62.1L93.4 62.08Z" fill="currentColor"/><path d="M49.21 102.91C53.53 102.91 58.53 105.26 61.64 107.48L107.62 140.38H84.65L52.58 117.49C52.03 117.05 51.38 116.94 50.8 116.94C49.57 116.94 48.56 117.84 48.56 119.62L48.53 140.38H34.11V119.16C34.11 110.16 39.55 102.91 49.19 102.91Z" fill="currentColor"/><path d="M166.27 115.45V103.76C166.27 96.91 164.14 91.42 159.86 87.3C155.58 83.18 149.91 81.1 142.82 81.1H133.49C128.74 81.1 124.57 82.06 120.95 83.97C117.32 85.88 114.54 88.56 112.55 92.02C110.56 95.49 109.58 99.5 109.58 104.01V119.65C109.58 123.94 110.56 127.7 112.55 130.98C114.54 134.26 117.3 136.82 120.92 138.62C124.55 140.39 128.72 141.3 133.46 141.3H142.32C149.41 141.3 155.11 139.5 159.47 135.92C163.83 132.34 166.02 127.59 166.02 121.67H152.85C152.85 124.15 151.9 126.15 149.99 127.68C148.08 129.18 145.57 129.95 142.46 129.95H133.49C130.3 129.95 127.76 128.99 125.85 127.14C123.94 125.26 122.99 122.77 122.99 119.66V115.46H166.27ZM122.72 105.4V104.34C122.72 100.76 123.7 97.84 125.69 95.63C127.65 93.42 130.24 92.3 133.43 92.3H142.89C145.94 92.3 148.37 93.36 150.25 95.47C152.13 97.57 153.06 100.36 153.06 103.77V105.41H122.71Z" fill="currentColor"/></svg>';
+  document.getElementById('brand').innerHTML = MARK + '<span>ReSpark</span>';
+
+  const ic = (n, extra = '') => `<i data-lucide="${n}" ${extra}></i>`;
+
+  // Sample data (illustrative). One shredder recipe: two WIP inputs split
+  // across two outputs, waste takes the rest. Allocate Costs by Weight Ratio
+  // (the default), burden $0.015/lbs. Output figures follow
+  // calculateOutputSummary.ts so the preview numbers add up.
+  const RECIPE = { name: 'Shredder Run', desc: 'Light iron and auto bodies through the shredder', burden: '0.015' };
+  const INPUTS = [
+    { name: 'Light Iron', alloc: { shred: 88, zorba: 4 }, waste: 8, avail: 62400, use: 30000, pct: 75 },
+    { name: 'Auto Bodies', alloc: { shred: 70, zorba: 10 }, waste: 20, avail: 18500, use: 10000, pct: 25 },
+  ];
+  const OUTPUTS = [
+    { key: 'shred', name: 'Shred Steel', newWip: '153,400 lbs', avg: '$0.1067 (+$0.0067/lbs)', inCost: '$3,868.0000', burden: '$501.0000', total: '$16,369.0000' },
+    { key: 'zorba', name: 'Zorba', newWip: '10,200 lbs', avg: '$0.0899 (+$0.0099/lbs)', inCost: '$244.0000', burden: '$33.0000', total: '$917.0000' },
+  ];
+  // Before any Will Use is entered the preview shows each output's current WIP
+  // (Shred Steel 120,000 lbs at $0.10, Zorba 8,000 lbs at $0.08) with nothing added.
+  const OUTPUTS_EMPTY = [
+    { name: 'Shred Steel', newWip: '120,000 lbs', avg: '$0.1000 (+$0.0000/lbs)', inCost: '$0.0000', burden: '$0.0000', total: '$12,000.0000' },
+    { name: 'Zorba', newWip: '8,000 lbs', avg: '$0.0800 (+$0.0000/lbs)', inCost: '$0.0000', burden: '$0.0000', total: '$640.0000' },
+  ];
+  const fmt = v => v.toLocaleString('en-US');
+  const RECIPES = [
+    { name: 'Aluminum Sort', desc: 'Mixed aluminum into cast and extrusion', ins: ['Mixed Aluminum'], outs: ['Cast Aluminum', '6063 Extrusion'] },
+    { name: RECIPE.name, desc: RECIPE.desc, ins: INPUTS.map(i => i.name), outs: OUTPUTS.map(o => o.name), isNew: true },
+    { name: 'Wire Chop', desc: 'Insulated copper wire through the chopper', ins: ['#1 Insulated Wire', '#2 Insulated Wire'], outs: ['#1 Bare Bright', '#2 Copper'] },
+  ];
+  const RUNS = [
+    { n: '1043', recipe: RECIPE.name, eff: '10/20/2026, 09:30 AM', batch: 40000, produced: 35600, waste: 4400, isNew: true },
+    { n: '1042', recipe: 'Wire Chop', eff: '10/17/2026, 02:15 PM', batch: 6200, produced: 3410, waste: 2790 },
+    { n: '1041', recipe: 'No Recipe', adhoc: true, eff: '10/15/2026, 11:05 AM', batch: 2400, produced: 2160, waste: 240 },
+    { n: '1040', recipe: 'Aluminum Sort', eff: '10/13/2026, 08:40 AM', batch: 12800, produced: 12160, waste: 640 },
+    { n: '1039', recipe: 'Wire Chop', eff: '10/09/2026, 03:50 PM', batch: 5800, produced: 3190, waste: 2610 },
+  ];
+
+  const RUNS_URL = '/app/inventory/batch-production/production-runs';
+  const RECIPES_URL = '/app/inventory/batch-production/production-recipes';
+
+  // ---------- steps ----------
+  const STEPS = [
+    { view: 'runs', cover: 'intro', url: RUNS_URL },
+    { view: 'runs', t: '#tab-recipes', place: 'bottom', url: RUNS_URL,
+      tip: 'Go to <b>Inventory → Batch Production</b>. It opens on <b>Production Runs</b>. Switch to <b>Production Recipes</b>.' },
+    { view: 'recipes', t: '#act-recipe', place: 'bottom', url: RECIPES_URL,
+      tip: 'Click <b>Production Recipe</b> in the header to start a new recipe. Recipes are saved per yard.' },
+    { view: 'recipes', blade: 'recipe', r: 1, t: '#r-details', place: 'bottom', url: RECIPES_URL,
+      tip: 'Enter a <b>Recipe Name</b> operators will recognize and an optional <b>Description</b>. Add a <b>Burden Rate</b> if the run has a processing cost, or leave it blank for no burden.' },
+    { view: 'recipes', blade: 'recipe', r: 2, t: '#r-materials', place: 'bottom', url: RECIPES_URL,
+      tip: 'Pick the WIP materials that go in (up to 10) and the ones that come out (up to 20). A material can’t be both an input and an output.' },
+    { view: 'recipes', blade: 'recipe', r: 3, scroll: 250, t: '#r-matrix', place: 'top', url: RECIPES_URL,
+      tip: 'In the <b>Allocation Matrix</b>, enter the % of each input that goes to each output. <b>Waste</b> fills in with whatever is left of 100%. Switch to <b>Custom Ratio</b> if cost shouldn’t follow weight.' },
+    { view: 'recipes', blade: 'recipe', r: 3, scroll: 250, t: '#btn-create', place: 'top', url: RECIPES_URL,
+      tip: 'Click <b>Create Recipe</b>. It stays disabled until there’s at least one input and one output and no row is over 100%.' },
+    { view: 'recipes', toast: 'recipe', t: '#run-new', place: 'left', url: RECIPES_URL,
+      tip: 'Your recipe is on the <b>Production Recipes</b> tab. When you’ve processed a batch, click the play button on its row to start a production run.' },
+    { view: 'recipes', blade: 'run', u: 1, t: '#u-recipe', place: 'bottom', url: RECIPES_URL,
+      tip: 'The run opens with the recipe already picked. You can also start from <b>Production Run</b> in the header and choose a recipe, or <b>No Recipe</b> for a one-off run.' },
+    { view: 'recipes', blade: 'run', u: 2, t: '#u-params', place: 'bottom', url: RECIPES_URL,
+      tip: 'Enter the <b>Total Batch Weight</b> and <b>Effective Date</b>. The recipe’s <b>Burden Rate</b> fills in, and a change here applies to this run only.' },
+    { view: 'recipes', blade: 'run', u: 3, scroll: 210, t: '#u-breakdown', place: 'top', url: RECIPES_URL,
+      tip: 'In <b>Material Breakdown</b>, enter how much of each input you used, as a weight or a % of the batch. The percentages must add up to 100.' },
+    { view: 'recipes', blade: 'run', u: 3, scroll: 210, t: '#u-output', place: 'top', url: RECIPES_URL,
+      tip: '<b>Output</b> previews each output’s <b>New WIP</b> and <b>New Average Cost</b>, with the input and burden cost it picks up.' },
+    { view: 'recipes', blade: 'run', u: 3, scroll: 210, t: '#btn-run', place: 'top', url: RECIPES_URL,
+      tip: 'Click <b>Run Batch Production</b>. WIP updates for every input and output in the batch.' },
+    { view: 'runs', t: '#row-new', place: 'bottom', url: RUNS_URL,
+      tip: 'The run is listed on <b>Production Runs</b> with what it produced and what went to waste. Open it to review it, or to <b>Void</b> it if it was a mistake.' },
+    { view: 'runs', cover: 'outro', url: RUNS_URL },
+  ];
+
+  // ---------- chrome ----------
+  function sidebar(active) {
+    const row = (i, l, extra = '') => `<div class="nrow">${ic(i)}<span>${l}</span>${extra || ic('chevron-right', 'class="chev"')}</div>`;
+    const sub = (id, l, isNew) => `<div class="nrow sub${active === id ? ' active' : ''}" id="nav-${id}"><span>${l}</span>${isNew ? '<span class="pill">New</span>' : ''}</div>`;
+    return `<aside class="side">
+      <div class="top">${MARK}<div class="yard"><span>North Yard</span>${ic('chevrons-up-down')}</div></div>
+      <div class="nav">
+        ${row('inbox', 'Inbox', '<span class="pill">4</span>')}
+        ${row('messages-square', 'ScrapChat', ' ')}
+        <div class="cmd" style="margin:2px 0">${ic('search')}<span>Search &amp; actions</span><kbd>⌘K</kbd></div>
+        <div class="nsep"></div>
+        ${row('shopping-cart', 'Purchases')}${row('tag', 'Sales')}${row('file-text', 'Contracts')}
+        <div class="nrow">${ic('boxes')}<span>Inventory</span>${ic('chevron-down', 'class="chev"')}</div>
+        ${sub('ov', 'Inventory Overview')}${sub('rg', 'Regrades')}${sub('bp', 'Batch Production')}${sub('fg', 'Finished Goods')}${sub('pl', 'Packing Lists')}${sub('adj', 'Adjustments')}${sub('pic', 'Physical Inventory Count', true)}${sub('pk', 'Packages')}${sub('ni', 'Negative Inventory')}
+        ${row('users', 'Customers')}${row('layers', 'Commodities')}${row('truck', 'Logistics')}${row('clipboard-list', 'Load Board')}${row('warehouse', 'Assets')}${row('chart-column', 'Reports')}${row('landmark', 'Ledger')}
+      </div>
+      <div class="foot"><div class="av">JP</div><div class="who"><span>Jordan Pike</span><small>General Manager</small></div>
+        <div class="ico"><span>${ic('settings')}</span><span>${ic('circle-help')}</span></div></div>
+    </aside>`;
+  }
+
+  // Compact title header (ContentLayout treats /inventory/batch-production as a list page):
+  // "Batch Production" + both contained header actions, then the route sub-tabs.
+  function header(tab) {
+    return `<div class="thead"><h1>Batch Production</h1><div class="acts">
+        <span class="rb pri" id="act-run">${ic('plus')}Production Run</span><span class="rb pri" id="act-recipe">${ic('plus')}Production Recipe</span></div></div>
+      <div class="tabs"><span class="tab${tab === 'runs' ? ' on' : ''}" id="tab-runs">Production Runs</span><span class="tab${tab === 'recipes' ? ' on' : ''}" id="tab-recipes">Production Recipes</span></div>`;
+  }
+
+  function runsView(s) {
+    const showNew = step >= STEPS.findIndex(x => x.t === '#row-new');
+    const rows = RUNS.filter(r => !r.isNew || showNew).map(r => {
+      const pct = Math.round((r.produced / r.batch) * 100);
+      return `<tr${r.isNew ? ' id="row-new" class="new"' : ''}><td><span class="link">${r.n}</span></td><td>${r.adhoc ? `<em>${r.recipe}</em>` : r.recipe}</td><td>Loose WIP</td><td><span class="chip c-success">Saved</span></td><td>${r.eff}</td><td class="num">${fmt(r.batch)} lbs</td><td class="num">${fmt(r.produced)} lbs (${pct}%)</td><td class="num waste">${fmt(r.waste)} lbs</td></tr>`;
+    }).join('');
+    return `<main class="main">${header('runs')}
+      <div class="ibody">
+        <div class="grid"><div class="gtool"><div class="inp search">${ic('search')}Search production runs…</div></div>
+          <table class="gt"><thead><tr><th style="width:110px">Run #</th><th style="width:170px">Recipe</th><th style="width:110px">Source</th><th style="width:110px">Status</th><th style="width:190px">Effective</th><th class="num" style="width:120px">Batch</th><th class="num" style="width:160px">Produced</th><th class="num">Waste</th></tr></thead>
+          <tbody>${rows}</tbody></table></div>
+      </div></main>`;
+  }
+
+  function recipesView(s) {
+    const showNew = step >= STEPS.findIndex(x => x.toast === 'recipe');
+    const chips = list => `<div class="bcell"><span class="badge">${list[0]}</span>${list.length > 1 ? `<span class="badge">+${list.length - 1}</span>` : ''}</div>`;
+    const rows = RECIPES.filter(r => !r.isNew || showNew).map(r => `<tr${r.isNew && s.toast ? ' class="new"' : ''}><td>${r.name}</td><td style="color:var(--a-text-2)">${r.desc}</td><td>${chips(r.ins)}</td><td>${chips(r.outs)}</td><td style="padding:0 16px;text-align:right"><span class="rb ghost"${r.isNew ? ' id="run-new"' : ''}>${ic('circle-play')}</span></td></tr>`).join('');
+    return `<main class="main">${header('recipes')}
+      <div class="ibody">
+        <div class="grid"><div class="gtool"><div class="inp search">${ic('search')}Search recipes…</div></div>
+          <table class="gt"><thead><tr><th style="width:200px">Recipe</th><th style="width:330px">Description</th><th style="width:220px">Inputs</th><th style="width:220px">Outputs</th><th></th></tr></thead>
+          <tbody>${rows}</tbody></table></div>
+      </div></main>`;
+  }
+
+  // ---------- blades ----------
+  const field = (label, value, opts = {}) => `<div class="fw"><div class="mf">${label ? `<label>${label}</label>` : ''}${opts.pre ? `<span class="ad">${opts.pre}</span>` : ''}<span class="grow${value ? '' : ' ph'}">${value || ''}</span>${opts.post ? `<span class="ad">${opts.post}</span>` : ''}${opts.end || ''}</div>${opts.help ? `<div class="help">${opts.help}</div>` : ''}</div>`;
+  const multi = list => `<div class="mf multi">${list.map(n => `<span class="mchip">${n}<span class="del">${ic('x')}</span></span>`).join('')}<span class="end">${list.length ? ic('x') : ''}${ic('chevron-down')}</span></div>`;
+
+  function recipeBlade(s) {
+    const r = s.r;
+    const ins = r >= 2 ? INPUTS.map(i => i.name) : [];
+    const outs = r >= 2 ? OUTPUTS.map(o => o.name) : [];
+    let matrix;
+    if (r < 2) {
+      matrix = `<div class="alert">${ic('info')}Input and output materials are required for allocation</div>`;
+    } else {
+      const head = `<tr><th>Input Material</th>${OUTPUTS.map(o => `<th class="num">${o.name} %</th>`).join('')}<th class="num">Waste %</th><th class="num">Total</th></tr>`;
+      const body = INPUTS.map(i => `<tr><td>${i.name}</td>${OUTPUTS.map(o => `<td class="num"><span class="sm">${r >= 3 ? i.alloc[o.key] : 0}</span></td>`).join('')}<td class="num"><span class="sm dis">${r >= 3 ? i.waste : 100}</span></td><td class="num">100%</td></tr>`).join('');
+      matrix = `<div class="tg">Allocate Costs by:<span class="tgg"><span class="on">Weight Ratio</span><span>Custom Ratio</span></span></div>
+        <table class="mt"><thead>${head}</thead><tbody>${body}</tbody></table>`;
+    }
+    const body = `
+      <div class="sec" id="r-details"><h6>Recipe Details</h6><div class="fstack">
+        ${field('Recipe Name', RECIPE.name, { help: 'Choose a descriptive name operators will recognize' })}
+        ${field('Description', RECIPE.desc)}
+        ${field('Burden Rate', RECIPE.burden, { pre: '$', post: '/lbs', help: 'Optional processing cost added to output materials to reflect operating expense' })}
+      </div></div>
+      <div id="r-materials" style="display:flex;flex-direction:column;gap:24px">
+        <div class="sec"><h6>Input Materials (${ins.length} of 10 selected)</h6>${multi(ins)}</div>
+        <div class="sec"><h6>Output Materials (${outs.length} of 20 selected)</h6>${multi(outs)}</div>
+      </div>
+      <div class="sec" id="r-matrix"><h6>Allocation Matrix</h6>${matrix}</div>`;
+    return { title: 'Batch Production Recipe', body, foot: `<span class="mb con${r >= 3 ? '' : ' off'}" id="btn-create">Create Recipe</span><span class="mb out">Cancel</span>` };
+  }
+
+  function runBlade(s) {
+    const u = s.u;
+    const ready = u >= 2;
+    const breakdown = INPUTS.map(i => `<tr><td>${i.name}</td><td class="num">${fmt(i.avail)} lbs</td><td class="num"><span class="sm wide">${u >= 3 ? fmt(i.use) : 0}</span></td><td class="num"><span class="sm wide">${u >= 3 ? i.pct : 0}</span></td><td class="num">${fmt(i.avail - (u >= 3 ? i.use : 0))} lbs</td></tr>`).join('');
+    const outputs = (u >= 3 ? OUTPUTS : OUTPUTS_EMPTY).map(o => `<div class="orow"><div><small>Material</small><span>${o.name}</span></div><div><small>New WIP</small><span>${o.newWip}</span></div><div><small>New Average Cost</small><span>${o.avg}</span></div><div><small>Input Cost</small><span>${o.inCost}</span></div><div><small>Burdened Cost</small><span>${o.burden}</span></div><div><small>New Total Cost</small><span>${o.total}</span></div></div>`).join('');
+    const body = `
+      <div class="sec" id="u-recipe"><h6>Recipe Details</h6><div class="fstack" style="gap:8px">
+        ${field('Recipe', RECIPE.name, { help: RECIPE.desc, end: `<span class="end">${ic('x')}${ic('chevron-down')}</span>` })}
+        <div class="crow2"><span class="mchip plain">2 input materials</span><span class="mchip plain">2 output materials</span></div>
+      </div></div>
+      <div class="sec" id="u-params"><h6>Batch Parameters</h6><div class="frow">
+        ${field('Total Batch Weight', ready ? '40,000' : '0', { post: 'lbs' })}
+        ${field('Effective Date', '10/20/2026 09:30 AM', { end: `<span class="end">${ic('calendar-days')}</span>`, help: 'Date the batch will be processed' })}
+        ${field('Burden Rate', RECIPE.burden, { pre: '$', post: '/lbs', help: 'Override the recipe’s default for this run only' })}
+      </div></div>
+      ${ready ? `<div class="sec" id="u-breakdown"><h6>Material Breakdown</h6>
+        <table class="mt"><thead><tr><th>Input Material</th><th class="num">Available</th><th class="num">Will Use</th><th class="num">% of Batch</th><th class="num">WIP Remaining</th></tr></thead><tbody>${breakdown}</tbody></table></div>
+      <div class="sec" id="u-output"><h6>Output</h6>${outputs}</div>
+      ${field('Notes', 'Add a note...')}` : ''}`;
+    return { title: 'Run Batch Production', body, foot: `<span class="mb con${u >= 3 ? '' : ' off'}" id="btn-run">Run Batch Production</span><span class="mb out">Cancel</span>` };
+  }
+
+  function blade(s) {
+    if (!s.blade) return '';
+    const prev = STEPS[step - 1];
+    const still = prev && prev.blade === s.blade ? ' still' : '';
+    const b = s.blade === 'recipe' ? recipeBlade(s) : runBlade(s);
+    return `<div class="scrim"></div><div class="blade${still}"><div class="bh"><h3>${b.title}</h3><span class="x">${ic('x')}</span></div>
+      <div class="bb"><div class="bin" style="transform:translateY(-${s.scroll || 0}px)">${b.body}</div></div>
+      <div class="bf">${b.foot}</div></div>`;
+  }
+
+  function cover(kind) {
+    if (kind === 'intro') {
+      return `<div class="cover"><div class="card">
+        <div class="eyebrow">${ic('factory')}Inventory · Batch Production</div>
+        <h2>Turn several WIP materials into several others in one run</h2>
+        <p>Save how a process like a shredder run splits its inputs into outputs as a <b>recipe</b>. Then record each batch as a <b>production run</b>, with no need for dozens of single regrades.</p>
+        <div class="cta"><button class="go" type="button" data-go="next">Get started${ic('arrow-right')}</button></div>
+      </div></div>`;
+    }
+    return `<div class="cover"><div class="card">
+      <div class="eyebrow">${ic('circle-check')}Batch production</div>
+      <h2>Set up the recipe once, then run it for every batch</h2>
+      <p>A recipe holds the inputs, outputs, allocation split and default burden rate. Each run takes the batch weight, previews the new WIP and average cost of every output, and updates inventory in one step.</p>
+      <div class="cta"><button class="go sec" type="button" data-go="restart">${ic('rotate-ccw')}Replay</button>
+        <a class="go sec" href="https://help.respark.com/articles/5970876517-create-a-batch-production-recipe" target="_blank" rel="noopener">${ic('book-open')}Create a recipe</a>
+        <a class="go sec" href="https://help.respark.com/articles/6466383370-run-a-batch-production-regrade" target="_blank" rel="noopener">${ic('book-open')}Run a batch</a></div>
+    </div></div>`;
+  }
+
+  function renderApp(s) {
+    const view = s.view === 'recipes' ? recipesView(s) : runsView(s);
+    const toast = s.toast === 'recipe' ? `<div class="toast">${ic('circle-check')}Batch production recipe "${RECIPE.name}" successfully created</div>` : '';
+    return `<div class="app">${sidebar('bp')}${view}${blade(s)}${toast}${s.cover ? cover(s.cover) : ''}</div>`;
+  }
+
+  function anchorMenus() {}
+
+  // ---------- player ----------
+  const stage = document.getElementById('stage');
+  const canvas = document.getElementById('canvas');
+  const overlay = document.getElementById('overlay');
+  const caption = document.getElementById('caption');
+  const pips = document.getElementById('pips');
+  const backBtn = document.getElementById('back');
+  const nextBtn = document.getElementById('next');
+  let step = 0;
+  const guided = STEPS.map((s, i) => (s.tip ? i : null)).filter(i => i !== null);
+
+  pips.innerHTML = STEPS.map((_, i) => `<button type="button" role="tab" aria-label="Step ${i + 1}" data-i="${i}"></button>`).join('');
+  pips.addEventListener('click', e => { const b = e.target.closest('button'); if (b) go(+b.dataset.i); });
+
+  function scale() {
+    const k = stage.clientWidth / W;
+    canvas.style.transform = `scale(${k})`;
+    document.body.classList.toggle('narrow', stage.clientWidth < 700);
+    return k;
+  }
+
+  function place() {
+    overlay.innerHTML = '';
+    const s = STEPS[step];
+    anchorMenus(s);
+    if (!s.t) return;
+    const el = canvas.querySelector(s.t);
+    if (!el) return;
+    const sr = stage.getBoundingClientRect();
+    const r = el.getBoundingClientRect();
+    const x = r.left - sr.left, y = r.top - sr.top, w = r.width, h = r.height;
+    const n = guided.indexOf(step) + 1;
+    const label = `<span class="n">Step ${n} of ${guided.length}</span>`;
+
+    const ring = document.createElement('div');
+    ring.className = 'ring';
+    Object.assign(ring.style, { left: x - 3 + 'px', top: y - 3 + 'px', width: w + 6 + 'px', height: h + 6 + 'px' });
+    const hot = document.createElement('button');
+    hot.className = 'hot';
+    hot.type = 'button';
+    hot.setAttribute('aria-label', 'Continue to next step');
+    hot.style.left = x + w / 2 + 'px';
+    hot.style.top = y + h / 2 + 'px';
+    hot.addEventListener('click', () => go(step + 1));
+    overlay.append(ring, hot);
+
+    caption.innerHTML = label + s.tip;
+    if (document.body.classList.contains('narrow')) return;
+
+    const tip = document.createElement('div');
+    tip.className = 'tip';
+    tip.innerHTML = label + s.tip;
+    overlay.append(tip);
+    const tw = tip.offsetWidth, th = tip.offsetHeight, gap = 18;
+    const SW = stage.clientWidth, SH = stage.clientHeight;
+    let tx, ty;
+    const side = s.place || 'right';
+    if (side === 'right') { tx = x + w + gap; ty = y + h / 2 - th / 2; }
+    if (side === 'left') { tx = x - tw - gap; ty = y + h / 2 - th / 2; }
+    if (side === 'bottom') { tx = x + w / 2 - tw / 2; ty = y + h + gap; }
+    if (side === 'top') { tx = x + w / 2 - tw / 2; ty = y - th - gap; }
+    if (side === 'right' && tx + tw > SW - 8) { tx = x - tw - gap; }
+    if (side === 'left' && tx < 8) { tx = x + w + gap; }
+    tx = Math.max(10, Math.min(SW - tw - 10, tx));
+    ty = Math.max(10, Math.min(SH - th - 10, ty));
+    tip.style.left = tx + 'px';
+    tip.style.top = ty + 'px';
+  }
+
+  function render() {
+    const s = STEPS[step];
+    canvas.innerHTML = renderApp(s);
+    if (window.lucide) lucide.createIcons({ attrs: { 'aria-hidden': 'true' } });
+    document.getElementById('url').textContent = 'app.respark.com' + s.url;
+    document.getElementById('progress').style.width = (step / (STEPS.length - 1)) * 100 + '%';
+    [...pips.children].forEach((b, i) => { b.className = i === step ? 'on' : i < step ? 'done' : ''; b.setAttribute('aria-selected', i === step); });
+    const n = guided.indexOf(step);
+    document.getElementById('count').textContent = s.cover === 'intro' ? 'Intro' : s.cover === 'outro' ? 'Done' : `${n + 1} / ${guided.length}`;
+    backBtn.disabled = step === 0;
+    nextBtn.disabled = step === STEPS.length - 1;
+    if (s.cover) caption.innerHTML = s.cover === 'intro'
+      ? '<span class="n">Intro</span>Save a batch production recipe once, then use it to record each production run.'
+      : '<span class="n">Done</span>Create the recipe, then run it with the batch weight and check the output preview before you save. Read both guides in the help center.';
+    scale();
+    // Measure only after entrance animations (panels sliding in, menus
+    // popping, pins dropping) finish, or the ring lands where the element
+    // was mid-animation instead of where it ends up.
+    const token = ++renderToken;
+    settle().then(() => { if (token === renderToken) place(); });
+  }
+
+  let renderToken = 0;
+  function settle() {
+    const finite = (canvas.getAnimations ? canvas.getAnimations({ subtree: true }) : [])
+      .filter(a => a.effect && a.effect.getComputedTiming().iterations !== Infinity);
+    const done = Promise.all(finite.map(a => a.finished.catch(() => {})));
+    const timeout = new Promise(r => setTimeout(r, 1200));
+    // If the timeline is throttled (background tab), snap leftovers to their
+    // end state so the measurement still matches the final layout.
+    return Promise.race([done, timeout]).then(() => {
+      finite.forEach(a => { if (a.playState !== 'finished') try { a.finish(); } catch (e) {} });
+      return new Promise(r => setTimeout(r, 30));
+    });
+  }
+
+  // Self-check used before publishing: walks every step and reports any
+  // highlight that doesn't sit on its target, targets that are missing or
+  // clipped, and tooltips that cover the thing they point at.
+  function checkStep() {
+    const s = STEPS[step];
+    if (!s.t) return { step, ok: true };
+    const el = canvas.querySelector(s.t), ring = overlay.querySelector('.ring'), tip = overlay.querySelector('.tip');
+    if (!el) return { step, ok: false, why: `target ${s.t} not found` };
+    if (!ring) return { step, ok: false, why: 'highlight not drawn' };
+    const a = el.getBoundingClientRect(), b = ring.getBoundingClientRect(), st = stage.getBoundingClientRect();
+    const off = Math.max(Math.abs(a.left - 3 - b.left), Math.abs(a.top - 3 - b.top), Math.abs(a.width + 6 - b.width), Math.abs(a.height + 6 - b.height));
+    const issues = [];
+    if (off > 2) issues.push(`highlight off by ${Math.round(off)}px`);
+    if (a.width < 4 || a.height < 4) issues.push('target has no size');
+    if (a.left < st.left - 1 || a.top < st.top - 1 || a.right > st.right + 1 || a.bottom > st.bottom + 1) issues.push('target clipped by frame');
+    if (tip) {
+      const t = tip.getBoundingClientRect();
+      const ix = Math.max(0, Math.min(a.right, t.right) - Math.max(a.left, t.left)), iy = Math.max(0, Math.min(a.bottom, t.bottom) - Math.max(a.top, t.top));
+      if (ix * iy > 0.25 * a.width * a.height) issues.push('tooltip covers target');
+    }
+    return { step, target: s.t, ok: issues.length === 0, issues };
+  }
+  window.walkthroughAudit = async () => {
+    const results = [];
+    for (let i = 0; i < STEPS.length; i++) {
+      go(i);
+      await settle();
+      await new Promise(r => setTimeout(r, 60));
+      results.push(checkStep());
+    }
+    go(0);
+    return { ok: results.every(r => r.ok), problems: results.filter(r => !r.ok), steps: results.length };
+  };
+
+  function go(i) {
+    step = Math.max(0, Math.min(STEPS.length - 1, i));
+    render();
+  }
+
+  canvas.addEventListener('click', e => {
+    const g = e.target.closest('[data-go]');
+    if (g) { go(g.dataset.go === 'restart' ? 0 : step + 1); return; }
+    const s = STEPS[step];
+    if (s.t && e.target.closest(s.t)) go(step + 1);
+  });
+  backBtn.addEventListener('click', () => go(step - 1));
+  nextBtn.addEventListener('click', () => go(step + 1));
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight') go(step + 1);
+    if (e.key === 'ArrowLeft') go(step - 1);
+  });
+  new ResizeObserver(() => { scale(); settle().then(place); }).observe(stage);
+  if (document.fonts) document.fonts.ready.then(place);
+
+  if (window.lucide) lucide.createIcons({ attrs: { 'aria-hidden': 'true' } });
+  render();
+})();
+</script>
