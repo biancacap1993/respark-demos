@@ -589,6 +589,40 @@ tr.new td { background: hsla(183, 100%, 33%, 0.07); }
 .skel { display: flex; gap: 10px; }
 .skel i, .skbox i { display: block; height: 10px; border-radius: 3px; background: #e3e7ec; }
 .skbox { border: 1px solid #d5dae0; padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+/* operator app */
+.scr.w { background: #ffffff; }
+.oph { height: 52px; display: flex; align-items: center; gap: 12px; padding: 0 14px; border-bottom: 1px solid var(--a-border-subtle); flex-shrink: 0; font-weight: 600; font-size: 17px; }
+.oph svg.lucide { width: 22px; height: 22px; }
+.opsc { flex: 1; min-height: 0; padding: 12px; display: flex; flex-direction: column; gap: 12px; overflow: hidden; background: #f6f7f9; }
+.opcard { background: #fff; border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 1px 2px rgba(15,23,42,.08); }
+.opcard > b { font-size: 14px; font-weight: 600; color: var(--a-primary-hover); margin-bottom: 4px; }
+.opmat { display: flex; justify-content: space-between; font-size: 13px; }
+.opmat small { color: var(--a-text-3); }
+.oprc { display: flex; gap: 12px; border: 1px solid var(--a-border); border-radius: 8px; padding: 10px 12px; }
+.oprc .th { width: 104px; min-height: 48px; flex-shrink: 0; border: 1px solid var(--a-border); border-radius: 6px; background: #fff; display: grid; place-items: center; }
+.oprc .th svg { width: 92px; height: 34px; }
+.oprc .ct { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.oprc .ct b { font-size: 14px; font-weight: 600; }
+.oprc .ct small { display: block; font-size: 12px; color: var(--a-text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.oprc .ab { display: flex; flex-wrap: wrap; gap: 8px; }
+.opb { display: inline-flex; align-items: center; gap: 5px; height: 30px; padding: 0 12px; border-radius: 15px; border: 1px solid var(--a-border); font-size: 12.5px; font-weight: 500; color: var(--a-primary-hover); }
+.opb svg.lucide { width: 14px; height: 14px; }
+.opb.dz { color: var(--a-error-strong); }
+.opm { position: absolute; inset: 0; background: rgba(15, 23, 42, 0.45); z-index: 5; display: flex; align-items: center; padding: 16px; animation: fade .2s ease; }
+.opm.still, .opm.still .od { animation: none; }
+.opm .od { width: 100%; background: #fff; border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 12px; animation: pop .2s ease; }
+.opm .od .oh { display: flex; align-items: center; gap: 12px; }
+.opm .od .oh b { flex: 1; font-size: 19px; font-weight: 600; }
+.opm .od .oh svg.lucide { width: 22px; height: 22px; color: var(--a-text-2); }
+.opm .od p { margin: 0; font-size: 13.5px; color: var(--a-text-2); }
+.opin { position: relative; height: 48px; border: 1px solid var(--a-border); border-radius: 6px; display: flex; align-items: center; padding: 0 12px; font-size: 14px; }
+.opin span { position: absolute; top: -8px; left: 9px; background: #fff; padding: 0 4px; font-size: 11px; color: var(--a-text-2); }
+.oppad { height: 150px; border: 1px dashed var(--a-border-strong, #9aa3ae); border-radius: 8px; background: #fff; display: grid; place-items: center; }
+.oppad svg { width: 80%; height: 70%; }
+.opm .od small { text-align: center; font-size: 12px; color: var(--a-text-2); }
+.opm .od .oa { display: flex; gap: 12px; }
+.opm .od .oa span { flex: 1; height: 40px; border-radius: 20px; display: grid; place-items: center; font-weight: 500; font-size: 14px; border: 1px solid var(--a-border); color: var(--a-primary-hover); }
+.opm .od .oa span.f { background: var(--a-primary); border-color: var(--a-primary); color: #fff; }
 </style>
 
 <div class="wrap">
@@ -645,6 +679,7 @@ tr.new td { background: hsla(183, 100%, 33%, 0.07); }
   const OBT = '/app/sales/outbound-tickets/' + TK;
   const OBT2 = '/app/sales/outbound-tickets/' + TK2;
   const SET = '/app/settings/sales/sales-outbound-tickets';
+  const OPA = 'Operator App';
   const STEPS = [
     { view: 'obt', signed: '', cover: 'intro', url: OBT },
     { view: 'obt', signed: '', t: '#cap-c', place: 'top', url: OBT,
@@ -652,7 +687,11 @@ tr.new td { background: hsla(183, 100%, 33%, 0.07); }
     { view: 'obt', signed: '', dlg: 'cap', t: '#sig-pad', place: 'right', url: OBT,
       tip: 'The carrier signs on the scale-house Topaz pad (a mouse or touch screen works too). Type their name in <b>Printed name (optional)</b>, then click <b>Save</b>.' },
     { view: 'obt', signed: 'c', toast: 'Carrier signature saved.', t: '#card-c', place: 'top', url: OBT,
-      tip: 'The card now shows the signature, printed name and date, with <b>Re-capture</b> and <b>Remove</b>. Capture <b>Shipper</b> and <b>Freight Payer</b> the same way, whenever each signer is there.' },
+      tip: 'The card now shows the signature, printed name and date, with <b>Re-capture</b> and <b>Remove</b>. Capture <b>Shipper</b> and <b>Freight Payer</b> whenever each signer is there, here or in the Operator App.' },
+    { view: 'op', t: '#op-cap-s', place: 'right', url: OPA,
+      tip: 'Out in the yard, open the same ticket in the Operator App. <b>Signatures</b> shows the carrier signature already saved on the web. Tap <b>Capture</b> on <b>Shipper</b>.' },
+    { view: 'op', opdlg: true, t: '#op-pad', place: 'right', url: OPA,
+      tip: 'The shipper signs with a finger and you type the name in <b>Printed name (optional)</b>, then tap <b>Save</b>. It shows on the web ticket and the Bill of Lading too. <b>Freight Payer</b> works the same way.' },
     { view: 'obt', signed: 'csf', menu: true, t: '#opt-bol', place: 'left', url: OBT,
       tip: 'With all three signed, click <b>Print</b> and choose <b>Bill of Lading</b>.' },
     { view: 'obt', signed: 'csf', bol: true, t: '#bol-sigs', place: 'top', url: OBT,
@@ -769,25 +808,47 @@ tr.new td { background: hsla(183, 100%, 33%, 0.07); }
       </div>`;
   }
 
+  function opApp(s) {
+    const prev = STEPS[step - 1];
+    const card = (k, label, signed) => signed
+      ? `<div class="oprc"><span class="th">${sigSvg(SIG[k])}</span><div class="ct"><div><b>${label}</b><small>${SIGNERS[k]} · Oct 21, 2026, 2:14 PM</small></div><div class="ab"><span class="opb">${ic('pen-line')}Re-capture</span><span class="opb dz">Remove</span></div></div></div>`
+      : `<div class="oprc"><div class="ct"><div><b>${label}</b><small>Not signed</small></div><div class="ab"><span class="opb" id="op-cap-${k}">${ic('pen-line')}Capture</span></div></div></div>`;
+    const dlg = s.opdlg ? `<div class="opm${prev && prev.opdlg ? ' still' : ''}"><div class="od">
+        <div class="oh"><b>Capture Shipper Signature</b>${ic('x')}</div>
+        <p>Have the signer sign below, then tap Save.</p>
+        <div class="opin"><span>Printed name (optional)</span>${SIGNERS.s}</div>
+        <div class="oppad" id="op-pad">${sigSvg(SIG.s)}</div>
+        <small>Sign your name using your finger</small>
+        <div class="oa"><span>Clear</span><span class="f">Save</span></div></div></div>` : '';
+    return `<main class="main"><div class="dapp"><div class="dnote"><b>Operator App</b><span>The Signatures section sits on the outbound ticket screen, below Materials. It uses the same rules as the web, so it shows once the ticket is Shipped.</span></div><div class="phone"><div class="scr w">
+      <div class="sbar2"><span>2:14</span><span>${ic('signal')}${ic('wifi')}${ic('battery-full')}</span></div>
+      <div class="oph">${ic('arrow-left')}<span>Ticket #${TK}</span></div>
+      <div class="opsc">
+        <div class="opcard"><b>Materials</b><div class="opmat"><span>HMS #1</span><small>38,420 lbs</small></div><div class="opmat"><span>Shred</span><small>4,160 lbs</small></div></div>
+        <div class="opcard"><b>Signatures</b>${card('c', 'Carrier', true)}${card('s', 'Shipper', false)}${card('f', 'Freight Payer', false)}</div>
+      </div>${dlg}</div></div><div style="width:300px"></div></div></main>`;
+  }
+
   function cover(kind) {
     if (kind === 'intro') {
       return `<div class="cover"><div class="card">
-        <div class="eyebrow">${ic('tag')}ReSpark Sales · Rolling out</div>
-        <h2>Add digital signature to OBTs</h2>
-        <p>Capture the carrier, shipper and freight payer signatures on an outbound ticket with the same Topaz pad you use for inbound tickets. They print on the Bill of Lading, so there’s no paper copy to keep on the side.</p>
+        <div class="eyebrow">${ic('tag')}ReSpark Sales · Now live for everyone</div>
+        <h2>Capture carrier, shipper and freight payer signatures right on the outbound ticket</h2>
+        <p>Collect signatures on an outbound ticket instead of chasing paper: on the scale-house signature pad, or with a finger in the Operator App. Each one prints on the Bill of Lading with the signer’s name and date.</p>
         <div class="cta"><button class="go" type="button" data-go="next">Get started${ic('arrow-right')}</button></div>
       </div></div>`;
     }
     return `<div class="cover"><div class="card">
       <div class="eyebrow">${ic('circle-check')}Signed BOLs, straight from the scale house</div>
       <h2>Three signatures, one Bill of Lading</h2>
-      <p>Capture each signature when its signer is there, while the ticket is Shipped or Invoiced, and require the ones you need before invoicing. Voiding the ticket or moving it back to Incomplete clears its signatures. Signing in the operator app isn’t part of this rollout.</p>
+      <p>Capture each signature when its signer is there, while the ticket is Shipped or Invoiced, and require the ones you need before invoicing. Signatures from the web and the Operator App land on the same ticket. Voiding the ticket or moving it back to Incomplete clears its signatures.</p>
       <div class="cta"><button class="go sec" type="button" data-go="restart">${ic('rotate-ccw')}Replay</button></div>
     </div></div>`;
   }
 
   function renderApp(s) {
     if (s.view === 'set') return `<div class="app sapp">${settings(s)}${s.cover ? cover(s.cover) : ''}</div>`;
+    if (s.view === 'op') return `<div class="app">${opApp(s)}</div>`;
     return `<div class="app">${sidebar('sales')}${obt(s)}${s.cover ? cover(s.cover) : ''}</div>`;
   }
   // The Print menu drops below the Print button; the Invoice hover tooltip sits under Invoice.
