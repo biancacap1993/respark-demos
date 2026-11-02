@@ -1,0 +1,845 @@
+<meta charset="utf-8">
+<title>ReSpark Inbound Freight Cost</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+<style>
+/* Layout: an Arcade-style player. One framed browser window holds a scaled
+   1440×820 mock of ReSpark Inventory Settings and the Inventory Overview
+   for inbound freight burdening (COGS Updates to Inventory); a pulsing hotspot + tooltip guides each step; step controls sit
+   under the frame. The app mock keeps ReSpark's light theme (it stands in
+   for a screenshot); the page around it follows the viewer's theme. */
+:root {
+  --bg: #f3f5f8;
+  --glow: rgba(0, 168, 176, 0.10);
+  --fg: #12233e;
+  --fg-muted: rgba(18, 35, 62, 0.62);
+  --frame: #ffffff;
+  --frame-bar: #eef1f5;
+  --frame-line: rgba(18, 35, 62, 0.12);
+  --ctl: #ffffff;
+  --ctl-line: rgba(18, 35, 62, 0.16);
+  --teal: #00a3a8;
+  --teal-strong: #008a8f;
+  --tip-bg: #12233e;
+  --tip-fg: #ffffff;
+
+  /* ReSpark app tokens (frontend/client/src/global.css, light mode) */
+  --a-fg: hsl(217 55% 16%);
+  --a-surface: #ffffff;
+  --a-muted: hsla(217, 55%, 16%, 0.03);
+  --a-muted-solid: #f8f9fa;
+  --a-hover: hsla(217, 55%, 16%, 0.06);
+  --a-border: hsla(217, 55%, 16%, 0.14);
+  --a-border-subtle: hsla(217, 55%, 16%, 0.08);
+  --a-text-2: hsla(217, 55%, 16%, 0.75);
+  --a-text-3: hsla(217, 55%, 16%, 0.52);
+  --a-icon-2: hsla(217, 55%, 16%, 0.42);
+  --a-primary: hsl(183 100% 33%);
+  --a-primary-hover: hsl(183 100% 27%);
+  --a-primary-subtle: hsla(183, 100%, 33%, 0.10);
+  --a-success: hsl(162 73% 37%);
+  --a-success-strong: hsl(162 73% 30%);
+  --a-error: hsl(348 81% 48%);
+  --a-error-strong: hsl(348 81% 38%);
+  --a-accent: hsl(252 89% 65%);
+  --a-accent-strong: hsl(252 60% 50%);
+  --a-accent-subtle: hsla(252, 89%, 65%, 0.10);
+  --a-dark: hsl(217 45% 14%);
+  --a-nav-selected: hsl(217 55% 16%);
+
+  --font: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0c1422; --glow: rgba(0, 201, 212, 0.10); --fg: #e8eef7; --fg-muted: rgba(232, 238, 247, 0.62);
+    --frame: #17202f; --frame-bar: #1c2738; --frame-line: rgba(232, 238, 247, 0.12);
+    --ctl: #17202f; --ctl-line: rgba(232, 238, 247, 0.18); --teal: #19c3cb; --teal-strong: #4fd6dc;
+    --tip-bg: #00a3a8; --tip-fg: #ffffff; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0c1422; --glow: rgba(0, 201, 212, 0.10); --fg: #e8eef7; --fg-muted: rgba(232, 238, 247, 0.62);
+  --frame: #17202f; --frame-bar: #1c2738; --frame-line: rgba(232, 238, 247, 0.12);
+  --ctl: #17202f; --ctl-line: rgba(232, 238, 247, 0.18); --teal: #19c3cb; --teal-strong: #4fd6dc;
+  --tip-bg: #00a3a8; --tip-fg: #ffffff; color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--fg); font-family: var(--font);
+  background-image: radial-gradient(60% 50% at 50% 38%, var(--glow), transparent 70%);
+  min-height: 100vh; padding-inline: 16px; padding-block: 28px 40px;
+}
+.wrap { max-width: 1180px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
+.head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 15px; letter-spacing: -0.01em; }
+.brand svg { width: 28px; height: 28px; color: var(--fg); }
+.head .tag { font-size: 12px; color: var(--fg-muted); font-weight: 500; }
+
+.frame { background: var(--frame); border: 1px solid var(--frame-line); border-radius: 12px; overflow: hidden;
+  box-shadow: 0 30px 60px -20px rgba(18, 35, 62, 0.28), 0 8px 18px -8px rgba(18, 35, 62, 0.18); }
+.bar { height: 38px; background: var(--frame-bar); border-bottom: 1px solid var(--frame-line); display: flex; align-items: center; gap: 12px; padding-inline: 14px; position: relative; }
+.dots { display: flex; gap: 6px; }
+.dots i { width: 10px; height: 10px; border-radius: 50%; background: var(--frame-line); display: block; }
+.url { flex: 1; max-width: 460px; margin-inline: auto; height: 24px; border-radius: 6px; background: var(--frame); border: 1px solid var(--frame-line);
+  display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 12px; color: var(--fg-muted); padding-inline: 10px; min-width: 0; overflow: hidden; white-space: nowrap; }
+.url span { overflow: hidden; text-overflow: ellipsis; }
+.url svg { width: 12px; height: 12px; flex-shrink: 0; }
+.progress { position: absolute; left: 0; bottom: -1px; height: 2px; background: var(--teal); transition: width .35s ease; }
+
+.stage { position: relative; width: 100%; aspect-ratio: 1440 / 820; max-width: 100%; overflow: hidden; background: #fff; }
+.canvas { position: absolute; left: 0; top: 0; width: 1440px; height: 820px; transform-origin: 0 0; }
+.overlay { position: absolute; inset: 0; pointer-events: none; }
+
+.ring { position: absolute; border-radius: 6px; box-shadow: 0 0 0 2px var(--a-primary), 0 0 0 6px hsla(183, 100%, 33%, 0.18); transition: all .3s ease; pointer-events: none; }
+.hot { position: absolute; width: 26px; height: 26px; margin: -13px 0 0 -13px; border-radius: 50%; pointer-events: auto; cursor: pointer;
+  background: hsla(183, 100%, 33%, 0.28); border: 0; padding: 0; transition: left .3s ease, top .3s ease; }
+.hot::before { content: ""; position: absolute; inset: 7px; border-radius: 50%; background: var(--a-primary); box-shadow: 0 0 0 2px #fff; }
+.hot::after { content: ""; position: absolute; inset: 0; border-radius: 50%; border: 2px solid var(--a-primary); animation: pulse 1.6s ease-out infinite; }
+.hot:focus-visible { outline: 3px solid var(--teal-strong); outline-offset: 3px; }
+@keyframes pulse { 0% { transform: scale(.7); opacity: .9; } 100% { transform: scale(2.1); opacity: 0; } }
+
+.tip { position: absolute; max-width: 310px; background: var(--tip-bg); color: var(--tip-fg); border-radius: 10px; padding: 12px 14px;
+  font-size: 14px; line-height: 1.45; box-shadow: 0 12px 28px -8px rgba(12, 20, 34, 0.45); pointer-events: auto; animation: tipIn .25s ease; }
+.tip b { font-weight: 600; }
+.tip code, .caption code { font-family: var(--mono); font-size: 12.5px; background: rgba(255, 255, 255, 0.16); padding: 1px 5px; border-radius: 4px; }
+.caption code { background: var(--frame-bar); }
+.tip .n, .caption .n { display: block; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; opacity: .7; margin-bottom: 4px; }
+@keyframes tipIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+.caption { display: none; background: var(--frame); border: 1px solid var(--frame-line); border-radius: 10px; padding: 12px 14px; font-size: 14px; line-height: 1.5; }
+body.narrow .caption { display: block; }
+body.narrow .tip { display: none; }
+
+.controls { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.btn { font: inherit; font-size: 13px; font-weight: 600; height: 36px; padding-inline: 14px; border-radius: 8px; border: 1px solid var(--ctl-line);
+  background: var(--ctl); color: var(--fg); cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+.btn:hover { border-color: var(--teal); }
+.btn:disabled { opacity: .4; cursor: default; border-color: var(--ctl-line); }
+.btn:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+.btn.primary { background: var(--teal); border-color: var(--teal); color: #fff; }
+.btn svg { width: 16px; height: 16px; }
+.count { font-size: 13px; color: var(--fg-muted); font-variant-numeric: tabular-nums; min-width: 48px; text-align: right; }
+.pips { display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; flex: 1; min-width: 0; }
+.pips button { width: 22px; height: 6px; border-radius: 3px; border: 0; padding: 0; background: var(--ctl-line); cursor: pointer; }
+.pips button.on { background: var(--teal); }
+.pips button.done { background: color-mix(in srgb, var(--teal) 45%, transparent); }
+.hint { font-size: 12px; color: var(--fg-muted); text-align: center; }
+kbd { font: inherit; font-size: 11px; border: 1px solid var(--ctl-line); border-radius: 4px; padding: 1px 5px; }
+
+/* ================= ReSpark app mock (fixed light theme) ================= */
+.app { width: 1440px; height: 820px; display: flex; font-family: var(--font); color: var(--a-fg); font-size: 13px; background: var(--a-surface); position: relative; overflow: hidden; }
+.app table { color: inherit; } /* pages render without a doctype, where tables don't inherit text color; keeps the app mock readable in dark mode */
+.app svg.lucide { width: 16px; height: 16px; stroke-width: 1.75; flex-shrink: 0; }
+.side { width: 236px; flex-shrink: 0; background: var(--a-muted-solid); border-right: 1px solid var(--a-border-subtle); display: flex; flex-direction: column; padding: 12px 10px; gap: 10px; }
+.side .top { display: flex; align-items: center; gap: 8px; padding: 2px 4px; }
+.side .top svg.mark { width: 28px; height: 28px; color: #12233e; }
+.yard { flex: 1; display: flex; align-items: center; justify-content: space-between; border: 1px solid var(--a-border); border-radius: 6px; height: 30px; padding-inline: 8px; background: var(--a-surface); font-weight: 500; font-size: 12.5px; }
+.yard svg.lucide { width: 14px; height: 14px; color: var(--a-icon-2); }
+.cmd { display: flex; align-items: center; gap: 8px; height: 30px; border: 1px solid var(--a-border); border-radius: 6px; padding-inline: 8px; color: var(--a-text-3); background: var(--a-surface); font-size: 12.5px; }
+.cmd kbd { margin-left: auto; font-size: 10.5px; border-color: var(--a-border); color: var(--a-text-3); }
+.nav { display: flex; flex-direction: column; gap: 1px; }
+.nrow { display: flex; align-items: center; gap: 8px; padding: 5px 8px; border-radius: 6px; font-weight: 500; color: hsla(217, 55%, 16%, 0.88); }
+.nrow .chev { margin-left: auto; width: 14px; height: 14px; color: var(--a-icon-2); }
+.nrow.sub { padding-left: 30px; font-weight: 450; font-size: 12.5px; color: var(--a-text-2); }
+.nrow.sub svg.lucide { width: 14px; height: 14px; color: var(--a-icon-2); }
+.nrow.active { background: var(--a-nav-selected); color: #fff; }
+.nrow.active svg.lucide { color: #fff; }
+.pill { margin-left: auto; font-size: 10px; font-weight: 600; color: var(--a-text-2); background: var(--a-hover); padding: 1px 6px; border-radius: 999px; }
+.nsep { height: 1px; background: var(--a-border-subtle); margin: 4px 6px; }
+.foot { margin-top: auto; display: flex; align-items: center; gap: 8px; padding: 8px 4px 0; border-top: 1px solid var(--a-border-subtle); }
+.av { width: 28px; height: 28px; border-radius: 50%; background: var(--a-primary-subtle); color: var(--a-primary-hover); display: grid; place-items: center; font-weight: 600; font-size: 11px; }
+.foot .who { display: flex; flex-direction: column; line-height: 1.25; }
+.foot .who small { color: var(--a-text-3); font-size: 11px; }
+.foot .ico { margin-left: auto; display: flex; gap: 4px; }
+.foot .ico span { width: 28px; height: 28px; border: 1px solid var(--a-border-subtle); border-radius: 6px; display: grid; place-items: center; }
+
+.main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.phead { display: flex; align-items: center; gap: 12px; padding: 14px 22px 12px; border-bottom: 1px solid var(--a-border-subtle); }
+.crumbs { font-size: 12px; color: var(--a-text-3); display: flex; align-items: center; gap: 4px; }
+.crumbs svg.lucide { width: 12px; height: 12px; }
+.phead h1 { font-size: 20px; font-weight: 600; margin: 0; letter-spacing: -0.015em; }
+.phead .left { display: flex; flex-direction: column; gap: 4px; }
+.phead .acts { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+
+.rb { font: inherit; font-size: 13px; font-weight: 500; height: 32px; padding-inline: 12px; border-radius: 6px; display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--a-border); background: var(--a-surface); color: var(--a-fg); cursor: default; white-space: nowrap; }
+.rb.pri { background: var(--a-primary); border-color: var(--a-primary); color: #fff; }
+.rb.icon { width: 32px; padding: 0; justify-content: center; }
+.badge { display: inline-flex; align-items: center; height: 20px; padding-inline: 8px; border-radius: 999px; font-size: 11.5px; font-weight: 500; white-space: nowrap; }
+.b-success { background: hsla(162, 73%, 37%, 0.14); color: var(--a-success-strong); }
+.b-accent { background: hsla(252, 89%, 65%, 0.14); color: var(--a-accent-strong); }
+.b-neutral { background: hsla(217, 55%, 16%, 0.07); color: var(--a-text-2); }
+
+/* inventory pages */
+.phead { padding: 14px 24px 12px; border-bottom: 0; align-items: flex-start; }
+.ibody { flex: 1; min-height: 0; padding: 0 24px 20px; display: flex; flex-direction: column; gap: 14px; position: relative; }
+.kpis { display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid var(--a-border-subtle); border-radius: 10px; }
+.kpis > div { padding: 12px 16px; display: flex; flex-direction: column; gap: 2px; }
+.kpis > div + div { border-left: 1px solid var(--a-border-subtle); }
+.kpis small { font-size: 10.5px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--a-text-3); }
+.kpis b { font-size: 20px; font-weight: 700; letter-spacing: -.01em; }
+.kpis span { font-size: 12px; color: var(--a-text-3); }
+.tcard { border: 1px solid var(--a-border-subtle); border-radius: 10px; overflow: hidden; flex: 1; min-height: 0; }
+.tcard .tt { display: flex; align-items: center; gap: 8px; padding: 10px 12px; }
+.tcard .tt .inp { width: 240px; }
+.tcard .tt .cnt { margin-left: auto; font-size: 12px; color: var(--a-text-3); }
+.inp { height: 32px; border: 1px solid var(--a-border); border-radius: 6px; display: flex; align-items: center; gap: 6px; padding-inline: 9px; color: var(--a-text-3); font-size: 12.5px; background: var(--a-surface); white-space: nowrap; }
+.inp svg.lucide { width: 14px; height: 14px; color: var(--a-icon-2); }
+table { width: 100%; border-collapse: separate; border-spacing: 0; font-variant-numeric: tabular-nums; table-layout: fixed; }
+th { text-align: left; font-weight: 500; font-size: 12.5px; padding: 0 12px; height: 38px; background: var(--a-muted-solid); border-bottom: 1px solid var(--a-border-subtle); white-space: nowrap; }
+td { padding: 0 12px; height: 44px; border-bottom: 1px solid var(--a-border-subtle); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.itab td, .itab th { border-right: 0; }
+.itab th { color: var(--a-text-2); }
+.itab td.num, .itab th.num { text-align: right; }
+.itab tr.new td { background: hsla(183, 100%, 33%, 0.07); }
+.itab .mono { font-family: var(--mono); font-size: 12px; }
+.b-teal { background: hsla(183, 100%, 33%, 0.12); color: var(--a-primary-hover); }
+
+.drawer { position: absolute; top: 0; right: 0; bottom: 0; width: 470px; background: var(--a-surface); border-left: 1px solid var(--a-border); box-shadow: -12px 0 32px rgba(15, 23, 42, 0.12); display: flex; flex-direction: column; z-index: 6; animation: slide .25s ease; }
+.drawer.still { animation: none; }
+@keyframes slide { from { transform: translateX(30px); opacity: 0; } to { transform: none; opacity: 1; } }
+.drawer .dh { display: flex; align-items: center; gap: 10px; padding: 16px 18px 12px; border-bottom: 1px solid var(--a-border-subtle); }
+.drawer .dh h3 { margin: 0; font-size: 16px; font-weight: 600; }
+.drawer .dh .x { margin-left: auto; color: var(--a-text-3); }
+.drawer .db { flex: 1; min-height: 0; padding: 16px 18px; display: flex; flex-direction: column; gap: 14px; position: relative; overflow: hidden; }
+.drawer .df { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 18px; border-top: 1px solid var(--a-border-subtle); }
+.fld { display: flex; flex-direction: column; gap: 5px; }
+.fld label { font-size: 12px; font-weight: 500; color: var(--a-text-2); }
+.fld .in { height: 34px; border: 1px solid var(--a-border); border-radius: 6px; display: flex; align-items: center; gap: 6px; padding-inline: 10px; font-size: 13px; font-variant-numeric: tabular-nums; }
+.fld .in.ph { color: var(--a-text-3); }
+.fld .in.open { border-color: var(--a-primary); box-shadow: 0 0 0 3px hsla(183, 100%, 33%, 0.15); }
+.fld .in .u { margin-left: auto; color: var(--a-text-3); }
+.fld .in svg.lucide { margin-left: auto; width: 14px; height: 14px; color: var(--a-icon-2); }
+.fld .in.ro { background: var(--a-muted-solid); font-weight: 600; }
+.fld .hint { font-size: 12px; color: var(--a-text-3); }
+.fld .hint b { color: var(--a-primary-hover); font-weight: 600; }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+.note { display: flex; gap: 8px; align-items: flex-start; font-size: 12.5px; line-height: 1.45; background: hsla(183, 100%, 33%, 0.07); border: 1px solid hsla(183, 100%, 33%, 0.22); border-radius: 8px; padding: 10px 12px; color: var(--a-text-2); }
+.note svg.lucide { width: 15px; height: 15px; color: var(--a-primary-hover); margin-top: 1px; }
+.note b { color: var(--a-fg); }
+.dd { position: absolute; left: 18px; right: 18px; top: 82px; background: var(--a-surface); border: 1px solid var(--a-border); border-radius: 8px; box-shadow: 0 6px 22px rgba(15, 23, 42, 0.16); padding: 4px; z-index: 5; animation: pop .18s ease; }
+.dd .mh { font-size: 11px; color: var(--a-text-3); padding: 6px 9px 4px; }
+.dd .o { display: flex; align-items: center; gap: 8px; padding: 8px 9px; border-radius: 5px; font-size: 13px; }
+.dd .o span { margin-left: auto; font-size: 12px; color: var(--a-text-3); font-variant-numeric: tabular-nums; }
+.dd .o.hv { background: var(--a-hover); }
+@keyframes pop { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; transform: none; } }
+
+.stepper { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--a-text-3); }
+.stepper span { display: inline-flex; align-items: center; gap: 6px; }
+.stepper i.n { font-style: normal; width: 20px; height: 20px; border-radius: 50%; border: 1px solid var(--a-border); display: grid; place-items: center; font-size: 11px; font-weight: 600; }
+.stepper .on { color: var(--a-fg); font-weight: 600; }
+.stepper .on i.n { background: var(--a-dark); border-color: var(--a-dark); color: #fff; }
+.stepper .done i.n { background: var(--a-primary-subtle); border-color: transparent; color: var(--a-primary-hover); }
+.stepper .ln { flex: 1; height: 1px; background: var(--a-border-subtle); }
+.choice { border: 1px solid var(--a-border); border-radius: 10px; padding: 14px; display: flex; gap: 12px; align-items: flex-start; }
+.choice .ci { width: 34px; height: 34px; border-radius: 8px; display: grid; place-items: center; background: var(--a-hover); flex-shrink: 0; }
+.choice .ci svg.lucide { width: 18px; height: 18px; }
+.choice b { display: block; font-size: 13.5px; font-weight: 600; margin-bottom: 2px; }
+.choice small { font-size: 12.5px; color: var(--a-text-3); line-height: 1.4; }
+.choice.on { border-color: var(--a-primary); box-shadow: 0 0 0 3px hsla(183, 100%, 33%, 0.12); }
+.choice.on .ci { background: var(--a-primary-subtle); color: var(--a-primary-hover); }
+.pkl { border: 1px solid var(--a-border-subtle); border-radius: 8px; overflow: hidden; }
+.pkl .pr { display: flex; align-items: center; gap: 10px; padding: 10px 12px; font-size: 13px; }
+.pkl .pr + .pr { border-top: 1px solid var(--a-border-subtle); }
+.pkl .pr .rd { width: 15px; height: 15px; border-radius: 50%; border: 1.5px solid var(--a-border); flex-shrink: 0; }
+.pkl .pr.on { background: hsla(183, 100%, 33%, 0.06); }
+.pkl .pr.on .rd { border: 5px solid var(--a-primary); }
+.pkl .pr .tx { display: flex; flex-direction: column; }
+.pkl .pr .tx small { color: var(--a-text-3); font-size: 12px; }
+.pkl .pr .w { margin-left: auto; text-align: right; font-variant-numeric: tabular-nums; }
+.pkl .pr .w small { display: block; color: var(--a-text-3); font-size: 12px; }
+.sum { display: grid; grid-template-columns: repeat(3, 1fr); background: var(--a-muted-solid); border-radius: 8px; padding: 10px 12px; font-size: 12px; color: var(--a-text-3); gap: 6px; }
+.sum b { display: block; font-size: 14px; color: var(--a-fg); font-variant-numeric: tabular-nums; }
+.alloc { width: 100%; font-size: 12.5px; }
+.alloc th { height: 32px; font-size: 11.5px; color: var(--a-text-3); background: transparent; border-right: 0; padding: 0 6px; }
+.alloc td { height: 40px; border-right: 0; padding: 0 6px; }
+.alloc td.num, .alloc th.num { text-align: right; }
+.alloc .cell { border: 1px solid var(--a-border); border-radius: 6px; height: 30px; display: flex; align-items: center; justify-content: flex-end; padding: 0 8px; gap: 4px; }
+.alloc .cell .u { color: var(--a-text-3); }
+.alloc tr.waste td { color: var(--a-text-2); background: hsla(38, 92%, 50%, 0.07); }
+.alloc tr.waste .tagw { font-size: 11px; font-weight: 600; color: hsl(32 80% 38%); background: hsla(38, 92%, 50%, 0.16); border-radius: 4px; padding: 1px 6px; }
+.alloc tr.tot td { font-weight: 600; border-bottom: 0; }
+.link { color: var(--a-primary-hover); font-weight: 500; }
+.became .br { display: flex; align-items: center; gap: 10px; padding: 9px 12px; font-size: 13px; border: 1px solid var(--a-border-subtle); border-radius: 8px; }
+.became .br + .br { margin-top: 6px; }
+.became .br span:last-child { margin-left: auto; color: var(--a-text-3); font-variant-numeric: tabular-nums; }
+.became .br svg.lucide { width: 15px; height: 15px; color: var(--a-icon-2); }
+.sec { font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--a-text-3); }
+.kv2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px; font-size: 12.5px; }
+.kv2 small { display: block; color: var(--a-text-3); font-size: 11.5px; }
+.kv2 b { font-weight: 500; font-variant-numeric: tabular-nums; }
+.toast { position: absolute; left: 50%; bottom: 22px; transform: translateX(-50%); background: var(--a-fg); color: #fff; border-radius: 8px; padding: 10px 14px; display: flex; align-items: center; gap: 8px; font-weight: 500; box-shadow: 0 10px 24px rgba(18,35,62,.3); animation: pop2 .3s ease; z-index: 7; }
+.toast svg.lucide { color: hsl(162 73% 55%); }
+@keyframes pop2 { from { opacity: 0; transform: translate(-50%, 8px); } to { opacity: 1; transform: translateX(-50%); } }
+
+
+/* inventory management pages */
+.muted { color: var(--a-text-3); }
+.crumbbar { display: flex; align-items: center; gap: 8px; padding: 14px 24px; font-size: 14px; color: var(--a-text-3); }
+.crumbbar > svg.lucide { color: var(--a-text-2); margin-right: 2px; }
+.crumbbar .leaf { color: var(--a-fg); font-weight: 600; }
+.crumbbar .acts { margin-left: auto; display: flex; gap: 8px; }
+.kpis small svg.lucide { width: 12px; height: 12px; vertical-align: -2px; }
+.tcard { position: relative; }
+.tcard .tt .inp.typed { color: var(--a-fg); border-color: var(--a-primary); box-shadow: 0 0 0 3px hsla(183, 100%, 33%, 0.15); }
+.tcard .tt .inp.wf { width: 180px; color: var(--a-fg); justify-content: flex-start; }
+.tcard .tt .inp.wf svg.lucide:last-child { margin-left: auto; }
+.itab.ov th, .itab.ov td { padding: 0 8px; font-size: 12px; }
+.itab.ov th.gear { padding: 0 6px; text-align: center; }
+.gb { display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 6px; color: var(--a-icon-2); }
+.gb.open { background: var(--a-primary-subtle); color: var(--a-primary-hover); }
+.colmenu { position: absolute; right: 8px; top: 92px; width: 250px; background: var(--a-surface); border: 1px solid var(--a-border); border-radius: 8px; box-shadow: 0 6px 22px rgba(15, 23, 42, 0.16); padding: 6px; z-index: 5; animation: pop .18s ease; }
+.colmenu .cs { display: flex; align-items: center; gap: 6px; height: 30px; border: 1px solid var(--a-border); border-radius: 6px; padding-inline: 8px; font-size: 12.5px; color: var(--a-text-3); margin-bottom: 4px; }
+.colmenu .cs svg.lucide { width: 14px; height: 14px; }
+.colmenu .mh { font-size: 11px; color: var(--a-text-3); padding: 6px 6px 3px; font-weight: 600; }
+.colmenu .o { display: flex; align-items: center; gap: 7px; padding: 5px 6px; border-radius: 5px; font-size: 12.5px; }
+.colmenu .o.hv { background: var(--a-hover); }
+.colmenu .grip svg.lucide, .colmenu .pin svg.lucide, .colmenu .lk svg.lucide { width: 13px; height: 13px; color: var(--a-icon-2); }
+.colmenu .pin { margin-left: auto; }
+.colmenu .lk { width: 15px; display: grid; place-items: center; }
+.colmenu .reset { border-top: 1px solid var(--a-border-subtle); margin-top: 4px; padding: 8px 6px 4px; font-size: 12.5px; color: var(--a-primary-hover); font-weight: 500; }
+.cb { width: 15px; height: 15px; border-radius: 4px; border: 1.5px solid var(--a-border); display: grid; place-items: center; flex-shrink: 0; }
+.cb.on { background: var(--a-primary); border-color: var(--a-primary); color: #fff; }
+.cb.on svg.lucide { width: 11px; height: 11px; stroke-width: 3; }
+
+.drawer.ledger { width: 1286px; }
+.drawer .db { gap: 12px; }
+.seg { display: inline-flex; border: 1px solid var(--a-border); border-radius: 6px; overflow: hidden; height: 32px; }
+.seg span { display: inline-flex; align-items: center; padding-inline: 14px; font-size: 12.5px; font-weight: 500; color: var(--a-text-2); }
+.seg span + span { border-left: 1px solid var(--a-border); }
+.seg span.on { background: var(--a-primary-subtle); color: var(--a-primary-hover); }
+.ltb { display: flex; align-items: center; gap: 8px; position: relative; }
+.ltb .msel { width: 200px; color: var(--a-fg); justify-content: space-between; }
+.ltb .lsearch { width: 240px; }
+.fbtn { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding-inline: 10px; border: 1px dashed var(--a-border); border-radius: 6px; font-size: 12.5px; font-weight: 500; color: var(--a-text-2); white-space: nowrap; }
+.fbtn.on { border-style: solid; border-color: hsla(183, 100%, 33%, 0.45); color: var(--a-primary-hover); background: var(--a-primary-subtle); }
+.fbtn svg.lucide { width: 14px; height: 14px; }
+.datepop { position: absolute; left: 470px; top: 40px; width: 300px; background: var(--a-surface); border: 1px solid var(--a-border); border-radius: 8px; box-shadow: 0 6px 22px rgba(15, 23, 42, 0.16); padding: 10px; z-index: 5; display: flex; flex-direction: column; gap: 10px; animation: pop .18s ease; }
+.datepop .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.datepop .in2 { height: 32px; border: 1px solid var(--a-border); border-radius: 6px; display: flex; align-items: center; padding-inline: 9px; font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.datepop .presets { display: flex; gap: 6px; }
+.datepop .presets span { font-size: 12px; border: 1px solid var(--a-border); border-radius: 999px; padding: 3px 9px; color: var(--a-text-2); }
+.datepop .pf { display: flex; justify-content: flex-end; font-size: 12.5px; }
+.ltab { width: 100%; font-size: 12.5px; table-layout: fixed; }
+.ltab th { height: 34px; white-space: nowrap; font-size: 12px; color: var(--a-text-2); background: var(--a-muted-solid); padding: 0 10px; }
+.ltab td { height: 38px; padding: 0 10px; }
+.ltab td.num, .ltab th.num { text-align: right; }
+.ltab tr.bal td { background: hsla(217, 55%, 16%, 0.035); height: 46px; }
+.ltab tr.bal b { display: block; font-weight: 600; }
+.ltab tr.bal small { display: block; font-size: 11.5px; color: var(--a-text-3); }
+.ltab tr.bal td.num { font-weight: 600; }
+.ltab tr.bal.close td { background: var(--a-primary-subtle); }
+.mtot { display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 500; color: var(--a-text-2); border-top: 1px solid var(--a-border-subtle); padding-top: 10px; }
+.mtot svg.lucide { width: 14px; height: 14px; }
+.mv { display: inline-flex; align-items: center; height: 20px; padding-inline: 7px; border-radius: 999px; font-size: 11px; font-weight: 500; white-space: nowrap; }
+.mv.in { background: hsla(162, 73%, 37%, 0.14); color: var(--a-success-strong); }
+.mv.out { background: hsla(348, 81%, 48%, 0.10); color: var(--a-error-strong); }
+.mv.rg { background: hsla(38, 92%, 50%, 0.16); color: hsl(32 80% 34%); }
+.mv.nt { background: hsla(217, 55%, 16%, 0.07); color: var(--a-text-2); }
+.tlink { color: var(--a-primary-hover); font-weight: 500; display: inline-flex; align-items: center; gap: 4px; }
+.tlink svg.lucide { width: 12px; height: 12px; }
+
+/* settings page (Inventory Settings, new settings chrome) */
+.sapp { flex-direction: column; }
+.abar { height: 56px; flex-shrink: 0; display: flex; align-items: center; gap: 14px; padding: 0 22px; border-bottom: 1px solid var(--a-border-subtle); background: var(--a-surface); }
+.abar .x { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 50%; color: var(--a-text-2); }
+.abar .x svg.lucide { width: 20px; height: 20px; }
+.abar .ttl { font-size: 15px; }
+.abar .right { margin-left: auto; display: flex; align-items: center; gap: 4px; }
+.abar .ib2 { width: 36px; height: 36px; display: grid; place-items: center; color: var(--a-text-2); }
+.abar .ib2 svg.lucide { width: 19px; height: 19px; }
+.uchip { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px 0 8px; border: 1px solid var(--a-border); border-radius: 999px; font-size: 13px; margin-left: 6px; }
+.srow { flex: 1; min-height: 0; display: flex; }
+.smenu { width: 252px; flex-shrink: 0; background: var(--a-muted-solid); border-right: 1px solid var(--a-border-subtle); padding: 22px 14px 0 18px; display: flex; flex-direction: column; }
+.smenu .gh { font-size: 11.5px; letter-spacing: 1px; padding-bottom: 4px; color: var(--a-text-3); }
+.smenu .gi { display: flex; align-items: center; gap: 10px; height: 33px; padding: 0 12px; border-radius: 8px; font-size: 14px; color: var(--a-text-2); }
+.smenu .gi.on { background: var(--a-primary-subtle); color: var(--a-fg); font-weight: 600; }
+.smenu .gi svg.lucide { width: 17px; height: 17px; color: var(--a-text-3); }
+.smenu .gap { height: 12px; flex-shrink: 0; }
+.smain { flex: 1; min-width: 0; display: flex; flex-direction: column; position: relative; overflow: hidden; }
+.sph { padding: 18px 24px 0; border-bottom: 1px solid var(--a-border-subtle); display: flex; flex-direction: column; }
+.sph .r1 { display: flex; align-items: center; gap: 12px; }
+.sph h1 { font-size: 20px; font-weight: 600; margin: 0; flex: 1; letter-spacing: -0.01em; }
+.scope { display: inline-flex; align-items: center; border: 1px solid var(--a-border-subtle); border-radius: 6px; background: var(--a-surface); }
+.scope span { display: inline-flex; align-items: center; gap: 6px; padding: 5px 9px; border: 1px solid transparent; border-radius: 6px; font-size: 13px; font-weight: 500; color: var(--a-text-2); }
+.scope span.on { border-color: var(--a-primary); background: var(--a-primary-subtle); color: var(--a-primary-hover); }
+.scope span svg.lucide:last-child:not(:first-child) { width: 14px; height: 14px; }
+.ntabs { display: flex; gap: 22px; margin-top: 10px; }
+.ntabs span { font-size: 13.5px; font-weight: 500; color: var(--a-text-2); padding: 9px 0 9px; border-bottom: 2px solid transparent; }
+.ntabs span.on { color: var(--a-primary-hover); border-bottom-color: var(--a-primary); }
+.sacts { display: flex; justify-content: flex-end; padding: 10px 0; border-top: 1px solid var(--a-border-subtle); }
+.rb.dis { color: var(--a-text-3); border-color: var(--a-border-subtle); }
+.sview { flex: 1; min-height: 0; overflow: hidden; position: relative; }
+.scont { width: 764px; margin: 0 auto; padding: 20px 0; display: flex; flex-direction: column; gap: 14px; }
+.sbanner { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--a-text-2); background: hsla(210, 90%, 50%, 0.07); border: 1px solid hsla(210, 90%, 50%, 0.18); border-radius: 8px; padding: 9px 12px; }
+.sbanner svg.lucide { color: hsl(210 80% 45%); }
+.sbanner b { color: var(--a-fg); font-weight: 600; }
+.sbanner .cmp { margin-left: auto; display: inline-flex; align-items: center; gap: 8px; font-weight: 500; }
+.sw { width: 28px; height: 16px; border-radius: 999px; background: var(--a-border); position: relative; }
+.sw::after { content: ""; position: absolute; left: 2px; top: 2px; width: 12px; height: 12px; border-radius: 50%; background: #fff; }
+.gcard { border: 1px solid var(--a-border-subtle); border-radius: 10px; flex-shrink: 0; }
+.gch { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: var(--a-muted-solid); border-bottom: 1px solid var(--a-border-subtle); border-radius: 10px 10px 0 0; }
+.gic { width: 32px; height: 32px; border-radius: 8px; background: var(--a-surface); border: 1px solid var(--a-border-subtle); display: grid; place-items: center; color: var(--a-text-2); }
+.gtx h3 { margin: 0; font-size: 16px; font-weight: 600; }
+.gtx p { margin: 2px 0 0; font-size: 13px; color: var(--a-text-3); }
+.rst { margin-left: auto; font-size: 12px; font-weight: 500; color: var(--a-text-2); padding: 4px 8px; border-radius: 6px; }
+.gcard hr { border: 0; border-top: 1px solid var(--a-border-subtle); margin: 0; }
+.gblk { padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+.gblk h4 { margin: 0; font-size: 14px; font-weight: 600; }
+.gblk h4 + p { margin-top: -6px; }
+.gblk p { margin: 0; font-size: 13px; color: var(--a-text-2); line-height: 1.45; }
+.ckr { display: inline-flex; align-items: center; gap: 9px; font-size: 13.5px; align-self: flex-start; padding: 2px 4px 2px 0; }
+.sfld { display: flex; flex-direction: column; gap: 5px; position: relative; width: 340px; }
+.sfld label { font-size: 12.5px; font-weight: 500; color: var(--a-text-2); }
+.ssel { height: 34px; border: 1px solid var(--a-border); border-radius: 6px; display: flex; align-items: center; justify-content: space-between; padding-inline: 10px; font-size: 13.5px; }
+.ssel.ph { color: var(--a-text-3); }
+.ssel.open { border-color: var(--a-primary); box-shadow: 0 0 0 3px hsla(183, 100%, 33%, 0.15); }
+.ssel svg.lucide { width: 14px; height: 14px; color: var(--a-icon-2); }
+.sopts { position: absolute; left: 0; right: 0; top: 62px; background: var(--a-surface); border: 1px solid var(--a-border); border-radius: 8px; box-shadow: 0 6px 22px rgba(15, 23, 42, 0.16); padding: 4px; z-index: 5; animation: pop .18s ease; }
+.sopts.still { animation: none; }
+.sopts .o { padding: 8px 10px; border-radius: 5px; font-size: 13.5px; }
+.sopts .o:first-child { background: var(--a-hover); }
+.scrim { position: absolute; inset: 0; background: rgba(15, 23, 42, 0.18); z-index: 5; }
+.drawer.apply { width: 440px; }
+.drawer.apply .dh { align-items: flex-start; }
+.drawer.apply .dh p { margin: 4px 0 0; font-size: 13px; color: var(--a-text-3); }
+.aopts { display: flex; flex-direction: column; gap: 8px; }
+.aopt { display: flex; gap: 10px; align-items: flex-start; border: 1px solid var(--a-border); border-radius: 8px; padding: 11px 12px; font-size: 13.5px; }
+.aopt b { font-weight: 500; }
+.aopt small { display: block; font-size: 12px; color: var(--a-text-3); margin-top: 2px; }
+.aopt .rd { width: 15px; height: 15px; border-radius: 50%; border: 1.5px solid var(--a-border); flex-shrink: 0; margin-top: 2px; }
+.aopt.on { border-color: var(--a-primary); background: hsla(183, 100%, 33%, 0.05); }
+.aopt.on .rd { border: 5px solid var(--a-primary); }
+.itab tr.hl td { background: hsla(183, 100%, 33%, 0.05); }
+.ltab tr.fr td { background: hsla(183, 100%, 33%, 0.06); }
+
+/* intro / outro */
+.cover { position: absolute; inset: 0; background: rgba(248, 250, 252, 0.88); backdrop-filter: blur(3px); display: grid; place-items: center; z-index: 10; }
+.cover .card { width: 700px; display: flex; flex-direction: column; gap: 14px; align-items: flex-start; }
+.cover .eyebrow { font-size: 13px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--a-primary-hover); display: flex; align-items: center; gap: 8px; }
+.cover h2 { margin: 0; font-size: 40px; line-height: 1.12; letter-spacing: -0.025em; font-weight: 700; text-wrap: balance; }
+.cover p { margin: 0; font-size: 17px; line-height: 1.55; color: var(--a-text-2); max-width: 620px; }
+.cover .chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.cover .chips code { font-family: var(--mono); font-size: 14px; padding: 5px 10px; border-radius: 6px; background: var(--a-surface); border: 1px solid var(--a-border); }
+.cover .cta { display: flex; gap: 10px; margin-top: 8px; }
+.cover .go { font: inherit; font-size: 15px; font-weight: 600; height: 44px; padding-inline: 20px; border-radius: 8px; border: 0; background: var(--a-primary); color: #fff; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; text-decoration: none; }
+.cover .go.sec { background: var(--a-surface); color: var(--a-fg); border: 1px solid var(--a-border); }
+.cover .go:hover { background: var(--a-primary-hover); }
+.cover .go.sec:hover { background: var(--a-muted-solid); }
+.cover .go svg.lucide { width: 18px; height: 18px; }
+.cover .go:focus-visible { outline: 3px solid var(--a-primary); outline-offset: 2px; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+</style>
+
+<div class="wrap">
+  <div class="head">
+    <div class="brand" id="brand"></div>
+    <div class="tag">Interactive demo · Web console</div>
+  </div>
+
+  <div class="frame">
+    <div class="bar">
+      <div class="dots"><i></i><i></i><i></i></div>
+      <div class="url"><i data-lucide="lock"></i><span id="url">app.respark.com</span></div>
+      <div style="width:42px"></div>
+      <div class="progress" id="progress"></div>
+    </div>
+    <div class="stage" id="stage">
+      <div class="canvas" id="canvas"></div>
+      <div class="overlay" id="overlay"></div>
+    </div>
+  </div>
+
+  <div class="caption" id="caption" aria-live="polite"></div>
+
+  <div class="controls">
+    <button class="btn" id="back" type="button"><i data-lucide="arrow-left"></i>Back</button>
+    <div class="pips" id="pips" role="tablist" aria-label="Demo steps"></div>
+    <span class="count" id="count"></span>
+    <button class="btn primary" id="next" type="button">Next<i data-lucide="arrow-right"></i></button>
+  </div>
+  <div class="hint">Click the pulsing dot, or use <kbd>←</kbd> <kbd>→</kbd></div>
+</div>
+
+<script>
+(() => {
+  const W = 1440, H = 820;
+  const MARK = '<svg class="mark" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M152.38 13.33C171.29 13.33 186.67 28.71 186.67 47.62V152.38C186.67 171.29 171.29 186.67 152.38 186.67H47.62C28.71 186.67 13.33 171.29 13.33 152.38V47.62C13.33 28.71 28.71 13.33 47.62 13.33H152.38ZM152.38 0H47.62C21.32 0 0 21.32 0 47.62V152.38C0 178.68 21.32 200 47.62 200H152.38C178.68 200 200 178.68 200 152.38V47.62C200 21.32 178.68 0 152.38 0Z" fill="#00C9D4"/><path d="M93.39 62.1C89.98 59.66 84.7 58.7 80.99 58.69L26.11 58.74L44.28 71.71H82.53C83.21 71.71 83.79 71.96 84.24 72.29C85.21 72.98 85.5 74.27 84.5 75.67L72.84 92.1L84.25 100.24L96.2 83.46C101.27 76.35 101.05 67.54 93.42 62.1L93.4 62.08Z" fill="currentColor"/><path d="M49.21 102.91C53.53 102.91 58.53 105.26 61.64 107.48L107.62 140.38H84.65L52.58 117.49C52.03 117.05 51.38 116.94 50.8 116.94C49.57 116.94 48.56 117.84 48.56 119.62L48.53 140.38H34.11V119.16C34.11 110.16 39.55 102.91 49.19 102.91Z" fill="currentColor"/><path d="M166.27 115.45V103.76C166.27 96.91 164.14 91.42 159.86 87.3C155.58 83.18 149.91 81.1 142.82 81.1H133.49C128.74 81.1 124.57 82.06 120.95 83.97C117.32 85.88 114.54 88.56 112.55 92.02C110.56 95.49 109.58 99.5 109.58 104.01V119.65C109.58 123.94 110.56 127.7 112.55 130.98C114.54 134.26 117.3 136.82 120.92 138.62C124.55 140.39 128.72 141.3 133.46 141.3H142.32C149.41 141.3 155.11 139.5 159.47 135.92C163.83 132.34 166.02 127.59 166.02 121.67H152.85C152.85 124.15 151.9 126.15 149.99 127.68C148.08 129.18 145.57 129.95 142.46 129.95H133.49C130.3 129.95 127.76 128.99 125.85 127.14C123.94 125.26 122.99 122.77 122.99 119.66V115.46H166.27ZM122.72 105.4V104.34C122.72 100.76 123.7 97.84 125.69 95.63C127.65 93.42 130.24 92.3 133.43 92.3H142.89C145.94 92.3 148.37 93.36 150.25 95.47C152.13 97.57 153.06 100.36 153.06 103.77V105.41H122.71Z" fill="currentColor"/></svg>';
+  document.getElementById('brand').innerHTML = MARK + '<span>ReSpark</span>';
+
+  const ic = (n, extra = '') => `<i data-lucide="${n}" ${extra}></i>`;
+
+
+  // Sample data (illustrative). Aluminum materials at North Yard; South Yard
+  // opts out. Everything on screen follows greenspark-aws (develop 94913153bf, Nov 2, 2026):
+  //  - settings page: utils/ui/routes.tsx (SETTINGS_INVENTORY_TAB_ROUTES, General / Finished Goods),
+  //    settings/registry/SettingsPageHeader.tsx, SettingsPageTabs.tsx, SettingsScopeBanner.tsx,
+  //    SettingsGroupCard.tsx, settingsGroups.ts (cards), utils/layouts.ts (blocks, labels),
+  //    utils/settingsSaveAction.tsx (Save Changes / No Changes to Save),
+  //    registry/ApplyToYardsDrawer.tsx, generic/navigation/ScopeSegmentedControl.tsx,
+  //    utils/constants.tsx FREIGHT_BURDEN_ALLOCATION_BASIS_OPTIONS, primitives/Select.tsx ('Select...')
+  //  - side menu: layouts/SettingsMenuLayout.tsx + utils/ui/routes.tsx (ADMIN / NOTIFICATIONS / PRODUCT)
+  //  - commodity page: inventory/overview/grid/inventoryOverviewColumns.tsx ('Avg. Cost')
+  //  - ledger drawer: overview/material-activity-blade/* (title "Inventory Ledger");
+  //    burden rows come back as movement FREIGHT (InventoryTransactionRepository.ts), shown as
+  //    "Freight" (_utils/materialActivityDisplay.ts)
+  // Number formats follow utils/helpers.tsx parseNumberObject: weights "48,220 lbs",
+  // costs "$" + 4 decimals (negatives come out as "$-5,978.0000").
+  const fmt = (v, d) => v.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
+  const W_ = v => fmt(v, 0) + ' lbs';
+  const C_ = v => '$' + (v < 0 ? '-' : '') + fmt(Math.abs(v), 4);
+  // [id, material, expected weight, expected cost (null = no PO), loose WIP, packaged WIP, FG, avg cost]
+  const MATS = [
+    ['ubc', 'Aluminum Cans (UBC)', 18400, 9568, 48220, 21600, 64800, 0.52],
+    ['6063', '6063 Extrusion', 8200, 8692, 22480, 9840, 31200, 1.06],
+    ['osh', 'Old Sheet', 6800, 4148, 11240, 0, 18400, 0.61],
+    ['cst', 'Cast Aluminum', 0, null, 39310, 12200, 0, 0.66],
+    ['sid', 'Painted Siding', 4100, null, 14870, 4100, 8600, 0.78],
+    ['whl', 'Clean Aluminum Wheels', 0, null, 14200, 0, 0, 1.0096],
+    ['lth', 'Litho Plates', 0, null, 6210, 0, 4960, 0.94],
+    ['trn', 'Aluminum Turnings', 5800, 2494, 18450, 0, 0, 0.43],
+    ['irn', 'Irony Aluminum', 0, null, 27120, 0, 0, 0.29],
+  ].map(([id, m, ew, ec, l, p, fg, ac]) => ({ id, m, ew, ec, l, p, fg, ac, tw: l + p + fg }));
+
+  // Ledger rows for Clean Aluminum Wheels, October. Opening + rows = closing
+  // (14,200 lbs, $14,336.0000 → Avg. Cost $1.0096). IBT 49120 came in before
+  // burdening was turned on, so it has no Freight line.
+  const LEDGER = { open: [9000, 9180], rows: [
+    { d: '10/05/2026 8:42 AM', tk: 'IBT 49120', mv: 'Inbound', c: 'in', w: 4200, cost: 4116, cu: 'Coastal Demolition' },
+    { d: '10/14/2026 2:15 PM', tk: 'OBT 49380', mv: 'Outbound', c: 'out', w: -5000, cost: -5050, cu: 'Delta Aluminum Mill' },
+    { d: '10/28/2026 9:30 AM', tk: 'IBT 49410', mv: 'Inbound', c: 'in', w: 6000, cost: 5880, cu: 'Ridgeview Contractors', id: 'in-row' },
+    { d: '10/28/2026 9:30 AM', tk: 'IBT 49410', mv: 'Freight', c: 'nt', w: 0, cost: 210, cu: 'Ridgeview Contractors', id: 'fr-row' },
+  ] };
+
+  // ---------- steps ----------
+  const SET = '/app/settings/inventory/general', INV = '/app/inventory/commodities/14';
+  const STEPS = [
+    { cover: 'intro', view: 'set', url: SET },
+    { view: 'set', t: '#fb-head', place: 'bottom', url: SET,
+      tip: 'Go to <b>Settings</b> → <b>Inventory</b> → <b>General</b>. With <b>Organization</b> selected, find the <b>Inbound Freight Burdening</b> card.' },
+    { view: 'set', on: true, dirty: true, t: '#fb-check', place: 'right', url: SET,
+      tip: 'Check <b>Burden inbound freight into average cost</b>. Freight, less any chargeback, goes into the average cost of the material on the ticket.' },
+    { view: 'set', on: true, dirty: true, dd: true, t: '#fb-opts', place: 'right', url: SET,
+      tip: 'Under <b>Allocate by</b>, choose how a ticket’s freight is split across its materials: <b>By material value</b> or <b>By material weight</b>. There’s no default, so pick one.' },
+    { view: 'set', on: true, basis: 'By material value', dirty: true, t: '#save', place: 'left', url: SET,
+      tip: 'Click <b>Save Changes</b>. It only applies to inbound tickets that enter inventory after you save. Nothing you’ve already received is restated.' },
+    { view: 'set', on: true, basis: 'By material value', dirty: true, apply: true, t: '#apply-opts', place: 'left', url: SET,
+      tip: 'Choose which yards get the change, for example <b>Organization and all yards</b>, then click <b>Apply Updates</b>.' },
+    { view: 'set', on: true, basis: 'By material value', yard: true, t: '#scope-yard', place: 'bottom', url: SET,
+      tip: 'A yard can opt out. Switch to <b>Yard</b> and pick the yard. Settings you don’t change there are inherited from the organization.' },
+    { view: 'set', on: false, basis: 'By material value', yard: true, dirty: true, t: '#fb-check', place: 'right', url: SET,
+      tip: 'Uncheck <b>Burden inbound freight into average cost</b> and click <b>Save Changes</b>. South Yard’s material stays at purchase cost, and the other yards keep burdening freight.' },
+    { view: 'inv', t: '#mat-whl', place: 'right', url: INV,
+      tip: 'Once a ticket with freight is received, the freight is part of the material’s <b>Avg. Cost</b>. Click the material to see where it came from.' },
+    { view: 'inv', drawer: 'ledger', t: '#fr-row', place: 'bottom', url: INV,
+      tip: 'In the <b>Inventory Ledger</b>, the ticket has a <b>Freight</b> line next to its <b>Inbound</b> line. It adds cost but no weight: this material’s share of the freight, less chargeback.' },
+    { view: 'inv', cover: 'outro', url: INV },
+  ];
+
+  // ---------- chrome ----------
+  function sidebar(active) {
+    const row = (i, l, extra = '') => `<div class="nrow">${ic(i)}<span>${l}</span>${extra || ic('chevron-right', 'class="chev"')}</div>`;
+    const sub = (id, l, isNew) => `<div class="nrow sub${active === id ? ' active' : ''}" id="nav-${id}"><span>${l}</span>${isNew ? '<span class="pill">New</span>' : ''}</div>`;
+    return `<aside class="side">
+      <div class="top">${MARK}<div class="yard"><span>North Yard</span>${ic('chevrons-up-down')}</div></div>
+      <div class="nav">
+        ${row('inbox', 'Inbox', '<span class="pill">4</span>')}
+        ${row('messages-square', 'ScrapChat', ' ')}
+        <div class="cmd" style="margin:2px 0">${ic('search')}<span>Search &amp; actions</span><kbd>⌘K</kbd></div>
+        <div class="nsep"></div>
+        ${row('shopping-cart', 'Purchases')}${row('tag', 'Sales')}${row('file-text', 'Contracts')}
+        <div class="nrow">${ic('boxes')}<span>Inventory</span>${ic('chevron-down', 'class="chev"')}</div>
+        ${sub('ov', 'Inventory Overview')}${sub('rg', 'Regrades')}${sub('bp', 'Batch Production')}${sub('fg', 'Finished Goods')}${sub('pl', 'Packing Lists')}${sub('adj', 'Adjustments')}${sub('pic', 'Physical Inventory Count')}${sub('pk', 'Packages')}${sub('ni', 'Negative Inventory')}
+        ${row('users', 'Customers')}${row('layers', 'Commodities')}${row('truck', 'Logistics')}${row('clipboard-list', 'Load Board')}${row('warehouse', 'Assets')}${row('chart-column', 'Reports')}${row('landmark', 'Ledger')}
+      </div>
+      <div class="foot"><div class="av">JP</div><div class="who"><span>Jordan Pike</span><small>General Manager</small></div>
+        <div class="ico"><span>${ic('settings')}</span><span>${ic('circle-help')}</span></div></div>
+    </aside>`;
+  }
+
+  function settings(s) {
+    const prev = STEPS[step - 1];
+    const gi = (i, l, on) => `<div class="gi${on ? ' on' : ''}">${ic(i)}<span>${l}</span></div>`;
+    const menu = `<nav class="smenu">
+      <div class="gh">ADMIN</div>${gi('layout-dashboard', 'Overview')}${gi('users', 'Users')}${gi('user-cog', 'Roles &amp; Permissions')}${gi('file-text', 'Documents')}
+      <div class="gap"></div><div class="gh">NOTIFICATIONS</div>${gi('sliders-horizontal', 'Definitions')}${gi('shield-check', 'Policies')}
+      <div class="gap"></div><div class="gh">PRODUCT</div>
+      ${gi('shopping-cart', 'Purchases')}${gi('tag', 'Sales')}${gi('files', 'Contracts')}${gi('list', 'Inventory', true)}${gi('circle-user', 'Customers')}${gi('ship', 'Logistics')}${gi('truck', 'Dispatch')}${gi('dollar-sign', 'Ledger')}${gi('monitor-smartphone', 'Hardware')}
+    </nav>`;
+    const scope = `<div class="scope"><span${s.yard ? '' : ' class="on"'} id="scope-org">${ic('building-2')}Organization</span><span${s.yard ? ' class="on"' : ''} id="scope-yard">${ic('map-pin-house')}${s.yard ? 'South Yard' : 'Yard'}${ic('chevron-down')}</span></div>`;
+    const banner = s.yard
+      ? `<div class="sbanner">${ic('info')}<span>You’re editing settings for <b>South Yard</b>. Not changed settings are inherited from the <b>Org</b>.</span><span class="cmp"><span class="sw"></span>Compare with Org</span></div>`
+      : `<div class="sbanner">${ic('info')}<span>You’re editing settings for the <b>Organization</b>.</span></div>`;
+    const cb = on => `<span class="cb${on ? ' on' : ''}">${on ? ic('check') : ''}</span>`;
+    const card = (id, title, sub, body, reset) => `<section class="gcard"${id ? ` id="${id}"` : ''}><header class="gch"${id ? ` id="${id}-head"` : ''}><span class="gic">${ic('building-2')}</span><div class="gtx"><h3>${title}</h3><p>${sub}</p></div>${reset ? `<span class="rst">Reset org default</span>` : ''}</header>${body}</section>`;
+    const rulesBody = `<div class="gblk"><h4>Negative Inventory</h4><p>By default, WIP and Finished Goods inventory can't have a negative weight. Enable below to allow negative values.</p><div class="ckr">${cb(false)}Allow negative inventory for materials</div></div>`
+      + (s.yard ? '' : `<hr><div class="gblk"><h4>Material Holds</h4><p>Newly received material is held for a set period before becoming available for inventory actions. Only applies to inbound tickets created after this change is saved.</p><div class="ckr">${cb(false)}Hold incoming material for the period</div></div>`);
+    const opts = s.dd ? `<div class="sopts${prev && prev.dd ? ' still' : ''}" id="fb-opts"><div class="o">By material value</div><div class="o">By material weight</div></div>` : '';
+    const fbBody = `<div class="gblk"><p>Fold inbound freight, less any chargeback, into the average cost of materials so inventory carries its true landed cost. Choose how the freight is divided across the materials on a ticket. Only applies to inbound tickets that enter inventory after this change is saved.</p>
+        <div class="ckr" id="fb-check">${cb(s.on)}Burden inbound freight into average cost</div>
+        <div class="sfld"><label>Allocate by</label><div class="ssel${s.dd ? ' open' : ''}${s.basis ? '' : ' ph'}">${s.basis || 'Select...'}${ic(s.dd ? 'chevron-up' : 'chevron-down')}</div>${opts}</div></div>`;
+    const save = s.dirty
+      ? `<span class="rb pri" id="save">${ic('save')}Save Changes</span>`
+      : `<span class="rb dis" id="save">No Changes to Save</span>`;
+    const radio = (l, on, sub) => `<div class="aopt${on ? ' on' : ''}"><span class="rd"></span><div><b>${l}</b>${sub ? `<small>${sub}</small>` : ''}</div></div>`;
+    const apply = s.apply ? `<div class="scrim"></div><div class="drawer apply${prev && prev.apply ? ' still' : ''}"><div class="dh"><div><h3>Apply changes to Organization</h3><p>Choose which yards this organization-level change applies to.</p></div><span class="x">${ic('x')}</span></div>
+        <div class="db"><div class="aopts" id="apply-opts">${radio('Organization and all yards', true)}${radio('Organization and yards without manual overrides', false)}${radio('Selected yards only', false, 'Pick yards to apply changes')}</div></div>
+        <div class="df"><span class="rb">Cancel</span><span class="rb pri" id="apply-btn">Apply Updates</span></div></div>` : '';
+    return `<header class="abar"><span class="x">${ic('x')}</span><span class="ttl">Settings</span>
+        <div class="right"><span class="ib2">${ic('message-square')}</span><span class="ib2">${ic('circle-help')}</span>
+          <span class="uchip">${ic('user')}jordan@northyardmetals.com</span></div></header>
+      <div class="srow">${menu}
+        <main class="smain">
+          <div class="sph"><div class="r1"><h1>Inventory Settings</h1>${scope}</div>
+            <div class="ntabs"><span class="on">General</span><span>Finished Goods</span></div>
+            <div class="sacts">${save}</div></div>
+          <div class="sview"><div class="scont" style="transform:translateY(-${s.yard ? 70 : 150}px)">${banner}
+            ${card('', 'Inventory Rules', 'How negative weights and newly received material are handled', rulesBody, s.yard)}
+            ${card('fb', 'Inbound Freight Burdening', 'Whether inbound freight is added to the cost of the material it carried', fbBody, s.yard)}
+            ${s.yard ? card('', 'Physical Counts', 'How a physical inventory count is run', `<div class="gblk"><p>When enabled, every new physical inventory count is created blind (book weight and variance are hidden while counting), regardless of the user's permissions.</p><div class="ckr">${cb(false)}Require all counts to be blind</div></div>`, true) : ''}
+          </div></div>${apply}
+        </main>
+      </div>`;
+  }
+
+  function overview(s) {
+    const ewc = r => r.ew > 0 ? `<span class="link">${W_(r.ew)}</span>` : W_(0);
+    const ecc = r => r.ec === null ? '<span class="muted">—</span>' : `<span class="link">${C_(r.ec)}</span>`;
+    const tr = r => `<tr${r.id === 'whl' ? ' class="hl"' : ''}><td><span class="link"${r.id === 'whl' ? ' id="mat-whl"' : ''}>${r.m}</span></td>
+        <td class="num">${ewc(r)}</td><td class="num">${ecc(r)}</td><td class="num">${W_(r.l)}</td><td class="num">${W_(r.p)}</td><td class="num">${W_(r.fg)}</td>
+        <td class="num">${W_(r.tw)}</td><td class="num">${C_(r.ac)}</td><td class="num">${C_(r.tw * r.ac)}</td><td></td></tr>`;
+    const wip = MATS.reduce((a, r) => a + r.l + r.p, 0), wipV = MATS.reduce((a, r) => a + (r.l + r.p) * r.ac, 0);
+    const fg = MATS.reduce((a, r) => a + r.fg, 0), fgV = MATS.reduce((a, r) => a + r.fg * r.ac, 0);
+    const ew = MATS.reduce((a, r) => a + r.ew, 0);
+    const tile = (l, v, w, info) => `<div><small>${l}${info ? ` ${ic('info')}` : ''}</small><b>${v}</b><span>${w}</span></div>`;
+    const th = l => `<th class="num">${l}</th>`;
+    return `<main class="main">
+      <div class="crumbbar">${ic('arrow-left')}<span class="link">Commodities</span><span>/</span><span class="leaf">Aluminum</span>
+        <div class="acts"><span class="rb">${ic('pencil')}Regrade Material</span><span class="rb">${ic('plus')}Finished Good</span><span class="rb">${ic('plus')}Packing List</span><span class="rb">${ic('plus')}Package</span><span class="rb pri">${ic('plus')}Add Adjustment</span></div></div>
+      <div class="ibody">
+        <div class="kpis">${tile('WIP INVENTORY', C_(wipV), W_(wip))}${tile('FG INVENTORY', C_(fgV), W_(fg))}${tile('TOTAL INVENTORY', C_(wipV + fgV), W_(wip + fg))}${tile('EXPECTED INVENTORY', '—', W_(ew), true)}</div>
+        <div class="tcard"><div class="tt"><div class="inp" id="search">${ic('search')}Search</div><div class="inp wf"><span class="muted">Weight</span>&nbsp;All Weights${ic('chevron-down')}</div></div>
+          <table class="itab ov"><thead><tr><th style="width:17%">Material</th>${th('Expected Weight')}${th('Expected Cost')}${th('Loose WIP')}${th('Packaged WIP')}${th('Finished Goods')}${th('Total Weight')}${th('Avg. Cost')}${th('Total Value')}<th class="gear" style="width:36px"><span class="gb" title="Manage columns">${ic('settings-2')}</span></th></tr></thead>
+          <tbody>${MATS.map(tr).join('')}</tbody></table></div>
+      </div>${drawer(s)}</main>`;
+  }
+
+  function drawer(s) {
+    if (!s.drawer) return '';
+    const prev = STEPS[step - 1];
+    const still = prev && prev.drawer && prev.drawer === s.drawer ? ' still' : '';
+    const L = LEDGER;
+    const cw = L.open[0] + L.rows.reduce((a, r) => a + r.w, 0), cc = L.open[1] + L.rows.reduce((a, r) => a + r.cost, 0);
+    const lines = L.rows.slice().reverse().map(r => `<tr${r.id ? ` id="${r.id}"` : ''}${r.mv === 'Freight' ? ' class="fr"' : ''}><td>${r.d}</td><td><span class="tlink">${r.tk}${ic('external-link')}</span></td><td><span class="mv ${r.c}">${r.mv}</span></td>
+        <td class="num">${W_(r.w)}</td><td class="num">${C_(r.cost)}</td><td>${r.cu || ''}</td><td class="muted">${r.no || ''}</td></tr>`).join('');
+    const seg = ['WIP', 'FG', 'All'].map((l, i) => `<span${i === 0 ? ' class="on"' : ''}>${l}</span>`).join('');
+    return `<div class="drawer ledger${still}"><div class="dh"><h3>Inventory Ledger</h3><span class="x">${ic('x')}</span></div>
+      <div class="db">
+        <div class="ltb">
+          <div class="seg" id="seg">${seg}</div>
+          <div class="inp msel">Clean Aluminum Wheels${ic('chevron-down')}</div>
+          <div class="inp lsearch">${ic('search')}Search ticket or customer</div>
+          <span class="fbtn on">${ic('calendar')}Date: Oct 1 – Oct 31</span>
+          <span class="fbtn">${ic('list-filter')}Movement</span>
+        </div>
+        <table class="ltab"><thead><tr><th style="width:13%">Date</th><th style="width:13%">Ticket</th><th style="width:13%">Movement</th><th class="num" style="width:12%">Weight</th><th class="num" style="width:13%">Cost</th><th style="width:17%">Customer</th><th>Notes</th></tr></thead>
+          <tbody><tr class="bal close" id="close-row"><td colspan="3"><b>Closing Balance</b><small>Through Oct 31, 2026</small></td><td class="num">${W_(cw)}</td><td class="num">${C_(cc)}</td><td></td><td></td></tr>
+          ${lines}
+          <tr class="bal" id="open-row"><td colspan="3"><b>Opening Balance</b><small>Before Oct 1, 2026</small></td><td class="num">${W_(L.open[0])}</td><td class="num">${C_(L.open[1])}</td><td></td><td></td></tr></tbody></table>
+        <div class="mtot">${ic('chevron-right')}Total Weight by Movement</div>
+      </div></div>`;
+  }
+
+  function cover(kind) {
+    if (kind === 'intro') {
+      return `<div class="cover"><div class="card">
+        <div class="eyebrow">${ic('boxes')}Inventory · Now live for everyone</div>
+        <h2>See your inventory at landed cost, with inbound freight built in</h2>
+        <p>Fold inbound freight into a material’s average cost the moment it’s received, so your inventory reflects what it really cost to get it into the yard, not just the purchase price.</p>
+        <div class="cta"><button class="go" type="button" data-go="next">Get started${ic('arrow-right')}</button></div>
+      </div></div>`;
+    }
+    return `<div class="cover"><div class="card">
+      <div class="eyebrow">${ic('circle-check')}COGS Updates to Inventory</div>
+      <h2>Average cost that includes what it took to get it here</h2>
+      <p>Turn on <b>Inbound Freight Burdening</b> for the organization, pick value or weight, and let any yard opt out. Freight, less any chargeback, lands in the material’s average cost when it’s received. If freight or chargeback changes later, even after the ticket is billed or paid, the cost corrects itself without reopening the ticket. Held material picks up its share when the lot is released, and voiding a ticket reverses it. Inventory you received before turning it on isn’t restated, and outbound freight isn’t included.</p>
+      <div class="cta"><button class="go sec" type="button" data-go="restart">${ic('rotate-ccw')}Replay</button></div>
+    </div></div>`;
+  }
+
+  function renderApp(s) {
+    if (s.view === 'set') return `<div class="app sapp">${settings(s)}${s.cover ? cover(s.cover) : ''}</div>`;
+    return `<div class="app">${sidebar('ov')}${overview(s)}${s.cover ? cover(s.cover) : ''}</div>`;
+  }
+  function anchorMenus() {}
+
+  // ---------- player ----------
+  const stage = document.getElementById('stage');
+  const canvas = document.getElementById('canvas');
+  const overlay = document.getElementById('overlay');
+  const caption = document.getElementById('caption');
+  const pips = document.getElementById('pips');
+  const backBtn = document.getElementById('back');
+  const nextBtn = document.getElementById('next');
+  let step = 0;
+  const guided = STEPS.map((s, i) => (s.tip ? i : null)).filter(i => i !== null);
+
+  pips.innerHTML = STEPS.map((_, i) => `<button type="button" role="tab" aria-label="Step ${i + 1}" data-i="${i}"></button>`).join('');
+  pips.addEventListener('click', e => { const b = e.target.closest('button'); if (b) go(+b.dataset.i); });
+
+  function scale() {
+    const k = stage.clientWidth / W;
+    canvas.style.transform = `scale(${k})`;
+    document.body.classList.toggle('narrow', stage.clientWidth < 700);
+    return k;
+  }
+
+  function place() {
+    overlay.innerHTML = '';
+    const s = STEPS[step];
+    anchorMenus(s);
+    if (!s.t) return;
+    const el = canvas.querySelector(s.t);
+    if (!el) return;
+    const sr = stage.getBoundingClientRect();
+    const r = el.getBoundingClientRect();
+    const x = r.left - sr.left, y = r.top - sr.top, w = r.width, h = r.height;
+    const n = guided.indexOf(step) + 1;
+    const label = `<span class="n">Step ${n} of ${guided.length}</span>`;
+
+    const ring = document.createElement('div');
+    ring.className = 'ring';
+    Object.assign(ring.style, { left: x - 3 + 'px', top: y - 3 + 'px', width: w + 6 + 'px', height: h + 6 + 'px' });
+    const hot = document.createElement('button');
+    hot.className = 'hot';
+    hot.type = 'button';
+    hot.setAttribute('aria-label', 'Continue to next step');
+    hot.style.left = x + w / 2 + 'px';
+    hot.style.top = y + h / 2 + 'px';
+    hot.addEventListener('click', () => go(step + 1));
+    overlay.append(ring, hot);
+
+    caption.innerHTML = label + s.tip;
+    if (document.body.classList.contains('narrow')) return;
+
+    const tip = document.createElement('div');
+    tip.className = 'tip';
+    tip.innerHTML = label + s.tip;
+    overlay.append(tip);
+    const tw = tip.offsetWidth, th = tip.offsetHeight, gap = 18;
+    const SW = stage.clientWidth, SH = stage.clientHeight;
+    let tx, ty;
+    const side = s.place || 'right';
+    if (side === 'right') { tx = x + w + gap; ty = y + h / 2 - th / 2; }
+    if (side === 'left') { tx = x - tw - gap; ty = y + h / 2 - th / 2; }
+    if (side === 'bottom') { tx = x + w / 2 - tw / 2; ty = y + h + gap; }
+    if (side === 'top') { tx = x + w / 2 - tw / 2; ty = y - th - gap; }
+    if (side === 'right' && tx + tw > SW - 8) { tx = x - tw - gap; }
+    if (side === 'left' && tx < 8) { tx = x + w + gap; }
+    tx = Math.max(10, Math.min(SW - tw - 10, tx));
+    ty = Math.max(10, Math.min(SH - th - 10, ty));
+    tip.style.left = tx + 'px';
+    tip.style.top = ty + 'px';
+  }
+
+  function render() {
+    const s = STEPS[step];
+    canvas.innerHTML = renderApp(s);
+    if (window.lucide) lucide.createIcons({ attrs: { 'aria-hidden': 'true' } });
+    document.getElementById('url').textContent = 'app.respark.com' + s.url;
+    document.getElementById('progress').style.width = (step / (STEPS.length - 1)) * 100 + '%';
+    [...pips.children].forEach((b, i) => { b.className = i === step ? 'on' : i < step ? 'done' : ''; b.setAttribute('aria-selected', i === step); });
+    const n = guided.indexOf(step);
+    document.getElementById('count').textContent = s.cover === 'intro' ? 'Intro' : s.cover === 'outro' ? 'Done' : `${n + 1} / ${guided.length}`;
+    backBtn.disabled = step === 0;
+    nextBtn.disabled = step === STEPS.length - 1;
+    if (s.cover) caption.innerHTML = s.cover === 'intro'
+      ? '<span class="n">Intro</span>Fold inbound freight into a material’s average cost the moment it’s received, so inventory reflects what it really cost to get it into the yard.'
+      : '<span class="n">Done</span>Turn on Inbound Freight Burdening for the organization, pick value or weight, and let any yard opt out. Freight, less chargeback, lands in Avg. Cost at receipt and corrects itself if it changes later. Inventory received before you turn it on isn’t restated.';
+    scale();
+    // Measure only after entrance animations (panels sliding in, menus
+    // popping, pins dropping) finish, or the ring lands where the element
+    // was mid-animation instead of where it ends up.
+    const token = ++renderToken;
+    settle().then(() => { if (token === renderToken) place(); });
+  }
+
+  let renderToken = 0;
+  function settle() {
+    const finite = (canvas.getAnimations ? canvas.getAnimations({ subtree: true }) : [])
+      .filter(a => a.effect && a.effect.getComputedTiming().iterations !== Infinity);
+    const done = Promise.all(finite.map(a => a.finished.catch(() => {})));
+    const timeout = new Promise(r => setTimeout(r, 1200));
+    // If the timeline is throttled (background tab), snap leftovers to their
+    // end state so the measurement still matches the final layout.
+    return Promise.race([done, timeout]).then(() => {
+      finite.forEach(a => { if (a.playState !== 'finished') try { a.finish(); } catch (e) {} });
+      return new Promise(r => setTimeout(r, 30));
+    });
+  }
+
+  // Self-check used before publishing: walks every step and reports any
+  // highlight that doesn't sit on its target, targets that are missing or
+  // clipped, and tooltips that cover the thing they point at.
+  function checkStep() {
+    const s = STEPS[step];
+    if (!s.t) return { step, ok: true };
+    const el = canvas.querySelector(s.t), ring = overlay.querySelector('.ring'), tip = overlay.querySelector('.tip');
+    if (!el) return { step, ok: false, why: `target ${s.t} not found` };
+    if (!ring) return { step, ok: false, why: 'highlight not drawn' };
+    const a = el.getBoundingClientRect(), b = ring.getBoundingClientRect(), st = stage.getBoundingClientRect();
+    const off = Math.max(Math.abs(a.left - 3 - b.left), Math.abs(a.top - 3 - b.top), Math.abs(a.width + 6 - b.width), Math.abs(a.height + 6 - b.height));
+    const issues = [];
+    if (off > 2) issues.push(`highlight off by ${Math.round(off)}px`);
+    if (a.width < 4 || a.height < 4) issues.push('target has no size');
+    if (a.left < st.left - 1 || a.top < st.top - 1 || a.right > st.right + 1 || a.bottom > st.bottom + 1) issues.push('target clipped by frame');
+    if (tip) {
+      const t = tip.getBoundingClientRect();
+      const ix = Math.max(0, Math.min(a.right, t.right) - Math.max(a.left, t.left)), iy = Math.max(0, Math.min(a.bottom, t.bottom) - Math.max(a.top, t.top));
+      if (ix * iy > 0.25 * a.width * a.height) issues.push('tooltip covers target');
+    }
+    return { step, target: s.t, ok: issues.length === 0, issues };
+  }
+  window.walkthroughAudit = async () => {
+    const results = [];
+    for (let i = 0; i < STEPS.length; i++) {
+      go(i);
+      await settle();
+      await new Promise(r => setTimeout(r, 60));
+      results.push(checkStep());
+    }
+    go(0);
+    return { ok: results.every(r => r.ok), problems: results.filter(r => !r.ok), steps: results.length };
+  };
+
+  function go(i) {
+    step = Math.max(0, Math.min(STEPS.length - 1, i));
+    render();
+  }
+
+  canvas.addEventListener('click', e => {
+    const g = e.target.closest('[data-go]');
+    if (g) { go(g.dataset.go === 'restart' ? 0 : step + 1); return; }
+    const s = STEPS[step];
+    if (s.t && e.target.closest(s.t)) go(step + 1);
+  });
+  backBtn.addEventListener('click', () => go(step - 1));
+  nextBtn.addEventListener('click', () => go(step + 1));
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight') go(step + 1);
+    if (e.key === 'ArrowLeft') go(step - 1);
+  });
+  new ResizeObserver(() => { scale(); settle().then(place); }).observe(stage);
+  if (document.fonts) document.fonts.ready.then(place);
+
+  if (window.lucide) lucide.createIcons({ attrs: { 'aria-hidden': 'true' } });
+  render();
+})();
+</script>
