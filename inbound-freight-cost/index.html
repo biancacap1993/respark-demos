@@ -670,7 +670,7 @@ td { padding: 0 12px; height: 44px; border-bottom: 1px solid var(--a-border-subt
       <div class="eyebrow">${ic('circle-check')}COGS Updates to Inventory</div>
       <h2>Average cost that includes what it took to get it here</h2>
       <p>Turn on <b>Inbound Freight Burdening</b> for the organization, pick value or weight, and let any yard opt out. Freight, less any chargeback, lands in the material’s average cost when it’s received. If freight or chargeback changes later, even after the ticket is billed or paid, the cost corrects itself without reopening the ticket. Held material picks up its share when the lot is released, and voiding a ticket reverses it. Inventory you received before turning it on isn’t restated, and outbound freight isn’t included.</p>
-      <div class="cta"><button class="go sec" type="button" data-go="restart">${ic('rotate-ccw')}Replay</button></div>
+      <div class="cta"><button class="go sec" type="button" data-go="restart">${ic('rotate-ccw')}Replay</button><a class="go sec" href="https://help.respark.com/articles/5049820556-burden-inbound-freight-into-material-cost" target="_blank" rel="noopener">${ic('book-open')}Read the full guide</a></div>
     </div></div>`;
   }
 
@@ -762,7 +762,7 @@ td { padding: 0 12px; height: 44px; border-bottom: 1px solid var(--a-border-subt
     nextBtn.disabled = step === STEPS.length - 1;
     if (s.cover) caption.innerHTML = s.cover === 'intro'
       ? '<span class="n">Intro</span>Fold inbound freight into a material’s average cost the moment it’s received, so inventory reflects what it really cost to get it into the yard.'
-      : '<span class="n">Done</span>Turn on Inbound Freight Burdening for the organization, pick value or weight, and let any yard opt out. Freight, less chargeback, lands in Avg. Cost at receipt and corrects itself if it changes later. Inventory received before you turn it on isn’t restated.';
+      : '<span class="n">Done</span>Turn on Inbound Freight Burdening for the organization, pick value or weight, and let any yard opt out. Freight, less chargeback, lands in Avg. Cost at receipt and corrects itself if it changes later. Inventory received before you turn it on isn’t restated. Read the full guide in the help center.';
     scale();
     // Measure only after entrance animations (panels sliding in, menus
     // popping, pins dropping) finish, or the ring lands where the element
