@@ -1,0 +1,776 @@
+<meta charset="utf-8">
+<title>ReSpark Ask Sparky</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+<style>
+/* Layout: an Arcade-style player. One framed browser window holds a scaled
+   1440×820 mock of ReSpark Supply Radar with the Sparky chat docked on the
+   right, for Supply Radar Ask Sparky; a pulsing hotspot + tooltip guides each step; step controls sit
+   under the frame. The app mock keeps ReSpark's light theme (it stands in
+   for a screenshot); the page around it follows the viewer's theme. */
+:root {
+  --bg: #f3f5f8;
+  --glow: rgba(0, 168, 176, 0.10);
+  --fg: #12233e;
+  --fg-muted: rgba(18, 35, 62, 0.62);
+  --frame: #ffffff;
+  --frame-bar: #eef1f5;
+  --frame-line: rgba(18, 35, 62, 0.12);
+  --ctl: #ffffff;
+  --ctl-line: rgba(18, 35, 62, 0.16);
+  --teal: #00a3a8;
+  --teal-strong: #008a8f;
+  --tip-bg: #12233e;
+  --tip-fg: #ffffff;
+
+  /* ReSpark app tokens (frontend/client/src/global.css, light mode) */
+  --a-fg: hsl(217 55% 16%);
+  --a-surface: #ffffff;
+  --a-muted: hsla(217, 55%, 16%, 0.03);
+  --a-muted-solid: #f8f9fa;
+  --a-hover: hsla(217, 55%, 16%, 0.06);
+  --a-border: hsla(217, 55%, 16%, 0.14);
+  --a-border-subtle: hsla(217, 55%, 16%, 0.08);
+  --a-text-2: hsla(217, 55%, 16%, 0.75);
+  --a-text-3: hsla(217, 55%, 16%, 0.52);
+  --a-icon-2: hsla(217, 55%, 16%, 0.42);
+  --a-primary: hsl(183 100% 33%);
+  --a-primary-hover: hsl(183 100% 27%);
+  --a-primary-subtle: hsla(183, 100%, 33%, 0.10);
+  --a-success: hsl(162 73% 37%);
+  --a-success-strong: hsl(162 73% 30%);
+  --a-error: hsl(348 81% 48%);
+  --a-error-strong: hsl(348 81% 38%);
+  --a-accent: hsl(252 89% 65%);
+  --a-accent-strong: hsl(252 60% 50%);
+  --a-accent-subtle: hsla(252, 89%, 65%, 0.10);
+  --a-dark: hsl(217 45% 14%);
+  --a-nav-selected: hsl(217 55% 16%);
+
+  --font: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0c1422; --glow: rgba(0, 201, 212, 0.10); --fg: #e8eef7; --fg-muted: rgba(232, 238, 247, 0.62);
+    --frame: #17202f; --frame-bar: #1c2738; --frame-line: rgba(232, 238, 247, 0.12);
+    --ctl: #17202f; --ctl-line: rgba(232, 238, 247, 0.18); --teal: #19c3cb; --teal-strong: #4fd6dc;
+    --tip-bg: #00a3a8; --tip-fg: #ffffff; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0c1422; --glow: rgba(0, 201, 212, 0.10); --fg: #e8eef7; --fg-muted: rgba(232, 238, 247, 0.62);
+  --frame: #17202f; --frame-bar: #1c2738; --frame-line: rgba(232, 238, 247, 0.12);
+  --ctl: #17202f; --ctl-line: rgba(232, 238, 247, 0.18); --teal: #19c3cb; --teal-strong: #4fd6dc;
+  --tip-bg: #00a3a8; --tip-fg: #ffffff; color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--fg); font-family: var(--font);
+  background-image: radial-gradient(60% 50% at 50% 38%, var(--glow), transparent 70%);
+  min-height: 100vh; padding-inline: 16px; padding-block: 28px 40px;
+}
+.wrap { max-width: 1180px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
+.head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 15px; letter-spacing: -0.01em; }
+.brand svg { width: 28px; height: 28px; color: var(--fg); }
+.head .tag { font-size: 12px; color: var(--fg-muted); font-weight: 500; }
+
+.frame { background: var(--frame); border: 1px solid var(--frame-line); border-radius: 12px; overflow: hidden;
+  box-shadow: 0 30px 60px -20px rgba(18, 35, 62, 0.28), 0 8px 18px -8px rgba(18, 35, 62, 0.18); }
+.bar { height: 38px; background: var(--frame-bar); border-bottom: 1px solid var(--frame-line); display: flex; align-items: center; gap: 12px; padding-inline: 14px; position: relative; }
+.dots { display: flex; gap: 6px; }
+.dots i { width: 10px; height: 10px; border-radius: 50%; background: var(--frame-line); display: block; }
+.url { flex: 1; max-width: 460px; margin-inline: auto; height: 24px; border-radius: 6px; background: var(--frame); border: 1px solid var(--frame-line);
+  display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 12px; color: var(--fg-muted); padding-inline: 10px; min-width: 0; overflow: hidden; white-space: nowrap; }
+.url span { overflow: hidden; text-overflow: ellipsis; }
+.url svg { width: 12px; height: 12px; flex-shrink: 0; }
+.progress { position: absolute; left: 0; bottom: -1px; height: 2px; background: var(--teal); transition: width .35s ease; }
+
+.stage { position: relative; width: 100%; aspect-ratio: 1440 / 820; max-width: 100%; overflow: hidden; background: #fff; }
+.canvas { position: absolute; left: 0; top: 0; width: 1440px; height: 820px; transform-origin: 0 0; }
+.overlay { position: absolute; inset: 0; pointer-events: none; }
+
+.ring { position: absolute; border-radius: 6px; box-shadow: 0 0 0 2px var(--a-primary), 0 0 0 6px hsla(183, 100%, 33%, 0.18); transition: all .3s ease; pointer-events: none; }
+.hot { position: absolute; width: 26px; height: 26px; margin: -13px 0 0 -13px; border-radius: 50%; pointer-events: auto; cursor: pointer;
+  background: hsla(183, 100%, 33%, 0.28); border: 0; padding: 0; transition: left .3s ease, top .3s ease; }
+.hot::before { content: ""; position: absolute; inset: 7px; border-radius: 50%; background: var(--a-primary); box-shadow: 0 0 0 2px #fff; }
+.hot::after { content: ""; position: absolute; inset: 0; border-radius: 50%; border: 2px solid var(--a-primary); animation: pulse 1.6s ease-out infinite; }
+.hot:focus-visible { outline: 3px solid var(--teal-strong); outline-offset: 3px; }
+@keyframes pulse { 0% { transform: scale(.7); opacity: .9; } 100% { transform: scale(2.1); opacity: 0; } }
+
+.tip { position: absolute; max-width: 310px; background: var(--tip-bg); color: var(--tip-fg); border-radius: 10px; padding: 12px 14px;
+  font-size: 14px; line-height: 1.45; box-shadow: 0 12px 28px -8px rgba(12, 20, 34, 0.45); pointer-events: auto; animation: tipIn .25s ease; }
+.tip b { font-weight: 600; }
+.tip code, .caption code { font-family: var(--mono); font-size: 12.5px; background: rgba(255, 255, 255, 0.16); padding: 1px 5px; border-radius: 4px; }
+.caption code { background: var(--frame-bar); }
+.tip .n, .caption .n { display: block; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; opacity: .7; margin-bottom: 4px; }
+@keyframes tipIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+.caption { display: none; background: var(--frame); border: 1px solid var(--frame-line); border-radius: 10px; padding: 12px 14px; font-size: 14px; line-height: 1.5; }
+body.narrow .caption { display: block; }
+body.narrow .tip { display: none; }
+
+.controls { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.btn { font: inherit; font-size: 13px; font-weight: 600; height: 36px; padding-inline: 14px; border-radius: 8px; border: 1px solid var(--ctl-line);
+  background: var(--ctl); color: var(--fg); cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+.btn:hover { border-color: var(--teal); }
+.btn:disabled { opacity: .4; cursor: default; border-color: var(--ctl-line); }
+.btn:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+.btn.primary { background: var(--teal); border-color: var(--teal); color: #fff; }
+.btn svg { width: 16px; height: 16px; }
+.count { font-size: 13px; color: var(--fg-muted); font-variant-numeric: tabular-nums; min-width: 48px; text-align: right; }
+.pips { display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; flex: 1; min-width: 0; }
+.pips button { width: 22px; height: 6px; border-radius: 3px; border: 0; padding: 0; background: var(--ctl-line); cursor: pointer; }
+.pips button.on { background: var(--teal); }
+.pips button.done { background: color-mix(in srgb, var(--teal) 45%, transparent); }
+.hint { font-size: 12px; color: var(--fg-muted); text-align: center; }
+kbd { font: inherit; font-size: 11px; border: 1px solid var(--ctl-line); border-radius: 4px; padding: 1px 5px; }
+
+/* ================= ReSpark app mock (fixed light theme) ================= */
+.app { width: 1440px; height: 820px; display: flex; font-family: var(--font); color: var(--a-fg); font-size: 13px; background: var(--a-surface); position: relative; overflow: hidden; }
+.app table { color: inherit; } /* pages render without a doctype, where tables don't inherit text color; keeps the app mock readable in dark mode */
+.app svg.lucide { width: 16px; height: 16px; stroke-width: 1.75; flex-shrink: 0; }
+.side { width: 236px; flex-shrink: 0; background: var(--a-muted-solid); border-right: 1px solid var(--a-border-subtle); display: flex; flex-direction: column; padding: 12px 10px; gap: 10px; }
+.side .top { display: flex; align-items: center; gap: 8px; padding: 2px 4px; }
+.side .top svg.mark { width: 28px; height: 28px; color: #12233e; }
+.yard { flex: 1; display: flex; align-items: center; justify-content: space-between; border: 1px solid var(--a-border); border-radius: 6px; height: 30px; padding-inline: 8px; background: var(--a-surface); font-weight: 500; font-size: 12.5px; }
+.yard svg.lucide { width: 14px; height: 14px; color: var(--a-icon-2); }
+.cmd { display: flex; align-items: center; gap: 8px; height: 30px; border: 1px solid var(--a-border); border-radius: 6px; padding-inline: 8px; color: var(--a-text-3); background: var(--a-surface); font-size: 12.5px; }
+.cmd kbd { margin-left: auto; font-size: 10.5px; border-color: var(--a-border); color: var(--a-text-3); }
+.nav { display: flex; flex-direction: column; gap: 1px; }
+.nrow { display: flex; align-items: center; gap: 8px; padding: 5px 8px; border-radius: 6px; font-weight: 500; color: hsla(217, 55%, 16%, 0.88); }
+.nrow .chev { margin-left: auto; width: 14px; height: 14px; color: var(--a-icon-2); }
+.nrow.sub { padding-left: 30px; font-weight: 450; font-size: 12.5px; color: var(--a-text-2); }
+.nrow.sub svg.lucide { width: 14px; height: 14px; color: var(--a-icon-2); }
+.nrow.active { background: var(--a-nav-selected); color: #fff; }
+.nrow.active svg.lucide { color: #fff; }
+.pill { margin-left: auto; font-size: 10px; font-weight: 600; color: var(--a-text-2); background: var(--a-hover); padding: 1px 6px; border-radius: 999px; }
+.nsep { height: 1px; background: var(--a-border-subtle); margin: 4px 6px; }
+.foot { margin-top: auto; display: flex; align-items: center; gap: 8px; padding: 8px 4px 0; border-top: 1px solid var(--a-border-subtle); }
+.av { width: 28px; height: 28px; border-radius: 50%; background: var(--a-primary-subtle); color: var(--a-primary-hover); display: grid; place-items: center; font-weight: 600; font-size: 11px; }
+.foot .who { display: flex; flex-direction: column; line-height: 1.25; }
+.foot .who small { color: var(--a-text-3); font-size: 11px; }
+.foot .ico { margin-left: auto; display: flex; gap: 4px; }
+.foot .ico span { width: 28px; height: 28px; border: 1px solid var(--a-border-subtle); border-radius: 6px; display: grid; place-items: center; }
+
+.main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.phead { display: flex; align-items: center; gap: 12px; padding: 14px 22px 12px; border-bottom: 1px solid var(--a-border-subtle); }
+.crumbs { font-size: 12px; color: var(--a-text-3); display: flex; align-items: center; gap: 4px; }
+.crumbs svg.lucide { width: 12px; height: 12px; }
+.phead h1 { font-size: 20px; font-weight: 600; margin: 0; letter-spacing: -0.015em; }
+.phead .left { display: flex; flex-direction: column; gap: 4px; }
+.phead .acts { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+
+.rb { font: inherit; font-size: 13px; font-weight: 500; height: 32px; padding-inline: 12px; border-radius: 6px; display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--a-border); background: var(--a-surface); color: var(--a-fg); cursor: default; white-space: nowrap; }
+.rb.pri { background: var(--a-primary); border-color: var(--a-primary); color: #fff; }
+.rb.icon { width: 32px; padding: 0; justify-content: center; }
+.badge { display: inline-flex; align-items: center; height: 20px; padding-inline: 8px; border-radius: 999px; font-size: 11.5px; font-weight: 500; white-space: nowrap; }
+.b-success { background: hsla(162, 73%, 37%, 0.14); color: var(--a-success-strong); }
+.b-accent { background: hsla(252, 89%, 65%, 0.14); color: var(--a-accent-strong); }
+.b-neutral { background: hsla(217, 55%, 16%, 0.07); color: var(--a-text-2); }
+
+
+/* ---- app shell sidebar (Supply Radar build, from the product demo video) ---- */
+.sb { width: 236px; flex-shrink: 0; background: var(--a-muted-solid); border-right: 1px solid var(--a-border-subtle); display: flex; flex-direction: column; padding: 10px 8px 8px; gap: 1px; }
+.sb .yd { display: flex; align-items: center; gap: 8px; padding: 2px 4px 8px; }
+.sb .yd svg.mark { width: 30px; height: 30px; color: #12233e; }
+.sb .yd b { display: flex; align-items: center; gap: 4px; font-size: 14px; font-weight: 600; }
+.sb .yd b svg.lucide { width: 14px; height: 14px; color: var(--a-icon-2); }
+.sb .yd small { display: block; font-size: 11.5px; color: var(--a-text-3); }
+.sb .it { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 6px; font-weight: 500; color: hsla(217, 55%, 16%, 0.88); white-space: nowrap; }
+.sb .it svg.lucide { width: 15px; height: 15px; color: hsla(217, 55%, 16%, 0.7); }
+.sb .it kbd { margin-left: auto; font-size: 10px; border: 1px solid var(--a-border); color: var(--a-text-3); }
+.sb .it .chev { margin-left: auto; width: 14px; height: 14px; }
+.sb .it.grp { background: var(--a-hover); }
+.sb .it.sub { margin-left: 8px; padding-left: 12px; font-weight: 450; font-size: 12.5px; color: var(--a-text-2); }
+.sb .it.sub svg.lucide { width: 14px; height: 14px; color: var(--a-icon-2); }
+.sb .it.on { background: var(--a-nav-selected); color: #fff; }
+.sb .it.on svg.lucide { color: #fff; }
+.sb .bot { margin-top: auto; display: flex; align-items: center; gap: 6px; padding-top: 8px; border-top: 1px solid var(--a-border-subtle); }
+.spk { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding-inline: 12px 16px; border-radius: 6px; background: var(--a-accent); color: #fff; font-weight: 500; font-size: 13px; }
+.spk svg.lucide { width: 15px; height: 15px; }
+.spk.on { box-shadow: 0 0 0 3px var(--a-accent-subtle); background: var(--a-accent-strong); }
+.sb .bot .sq { width: 30px; height: 30px; display: grid; place-items: center; border-radius: 6px; color: var(--a-text-2); }
+
+/* ---- Supply Radar page header + tabs ---- */
+.main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.app.docked .main { margin-right: 440px; }
+.srh { display: flex; align-items: center; gap: 28px; padding: 0 22px; height: 58px; border-bottom: 1px solid var(--a-border-subtle); flex-shrink: 0; }
+.srh h1 { margin: 0; font-size: 20px; font-weight: 600; letter-spacing: -0.015em; }
+.srh .tabs { display: flex; gap: 4px; align-self: stretch; }
+.srh .tabs span { display: flex; align-items: center; padding: 0 12px; color: var(--a-text-2); font-weight: 500; border-bottom: 2px solid transparent; }
+.srh .tabs span.on { color: var(--a-primary-hover); border-bottom-color: var(--a-primary); }
+.srh .acts { margin-left: auto; display: flex; gap: 8px; }
+.rb.out { border-color: var(--a-primary); color: var(--a-primary-hover); }
+
+/* ---- Today page ---- */
+.td { flex: 1; min-height: 0; padding: 18px 22px; display: flex; flex-direction: column; gap: 14px; overflow: hidden; }
+.td .tt { display: flex; align-items: flex-start; gap: 10px; }
+.td .tt h2 { margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -0.015em; }
+.td .tt small { display: block; color: var(--a-text-3); font-size: 13px; margin-top: 4px; }
+.td .tt .r { margin-left: auto; display: flex; gap: 8px; }
+.kp { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.kp > div { border: 1px solid var(--a-border); border-radius: 8px; padding: 12px 16px; }
+.kp small { color: var(--a-text-2); font-size: 12.5px; }
+.kp b { display: block; font-size: 26px; font-weight: 600; margin: 4px 0; }
+.kp b.red { color: var(--a-error); }
+.kp span { display: flex; align-items: center; gap: 6px; color: var(--a-text-2); font-size: 12.5px; }
+.kp span svg.lucide { width: 14px; height: 14px; }
+.tcols { flex: 1; min-height: 0; display: flex; gap: 14px; }
+.card2 { border: 1px solid var(--a-border); border-radius: 8px; padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; overflow: hidden; }
+.card2 h3 { margin: 0 0 6px; font-size: 16px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+.tasks { flex: 1; min-width: 0; }
+.nns { width: 300px; flex-shrink: 0; }
+.app.docked .nns { display: none; }
+.gh2 { display: flex; align-items: center; gap: 8px; height: 30px; padding-inline: 12px; border-radius: 6px; font-weight: 600; background: var(--a-muted-solid); }
+.gh2.od { background: hsla(348, 81%, 48%, 0.10); color: var(--a-error-strong); }
+.trow { display: flex; align-items: center; gap: 12px; padding: 7px 4px; border-bottom: 1px solid var(--a-border-subtle); }
+.trow > svg.lucide { color: var(--a-icon-2); }
+.trow .tx { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 1px; }
+.trow .tx b { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.trow .late { color: var(--a-error); font-size: 12px; font-weight: 500; white-space: nowrap; }
+.trow .when { color: var(--a-text-2); font-size: 12px; white-space: nowrap; }
+.ul { color: var(--a-primary-hover); text-decoration: underline; text-underline-offset: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.stg { display: inline-flex; align-items: center; height: 22px; padding-inline: 8px; border-radius: 5px; font-size: 12px; font-weight: 500; white-space: nowrap; }
+.stg.q { background: hsla(162, 73%, 37%, 0.12); color: var(--a-success-strong); }
+.stg.c { background: hsla(28, 95%, 50%, 0.12); color: hsl(25 85% 38%); }
+.stg.n { background: hsla(217, 55%, 16%, 0.07); color: var(--a-text-2); }
+.nrow2 { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--a-border-subtle); }
+.nrow2 div { flex: 1; min-width: 0; display: flex; flex-direction: column; font-size: 12px; color: var(--a-text-3); }
+.rb.xs { height: 28px; font-size: 12px; padding-inline: 9px; }
+
+/* ---- Prospect page ---- */
+.pp { flex: 1; min-height: 0; padding: 14px 22px; display: flex; flex-direction: column; gap: 12px; overflow: hidden; }
+.pp .bc { color: var(--a-primary-hover); font-weight: 500; display: flex; align-items: center; gap: 2px; }
+.pp .bc svg.lucide { width: 14px; height: 14px; }
+.pp .ph1 { display: flex; align-items: flex-start; gap: 12px; }
+.pp h2 { margin: 0; font-size: 26px; font-weight: 700; letter-spacing: -0.02em; }
+.pp .ad { color: var(--a-text-2); margin-top: 4px; }
+.pp .ph1 .rc { margin-left: auto; display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
+.pp .ph1 .r { display: flex; gap: 8px; }
+.pp .tbar { display: flex; align-items: flex-end; border-bottom: 1px solid var(--a-border-subtle); }
+.pp .tbar span.t { padding: 8px 12px; color: var(--a-text-2); font-weight: 500; border-bottom: 2px solid transparent; }
+.pp .tbar span.t.on { color: var(--a-primary-hover); border-bottom-color: var(--a-primary); }
+.pp .stp { display: flex; align-items: center; gap: 7px; white-space: nowrap; font-size: 12px; color: var(--a-text-2); }
+.pp .stp i.d { width: 12px; height: 12px; border-radius: 50%; border: 1.5px solid var(--a-border); display: inline-block; }
+.pp .stp i.d.on { background: var(--a-primary); border-color: var(--a-primary); }
+.pp .stp i.d.dn { background: hsla(183, 100%, 33%, 0.35); border-color: transparent; }
+.pp .stp .ln { width: 18px; height: 1.5px; background: var(--a-border); }
+.pp .stp .dy { display: inline-flex; align-items: center; gap: 4px; margin-right: 6px; }
+.pp .stp .dy svg.lucide { width: 13px; height: 13px; }
+.nx { display: flex; align-items: center; gap: 12px; }
+.nx .ci { width: 36px; height: 36px; border-radius: 50%; background: var(--a-primary-subtle); color: var(--a-primary-hover); display: grid; place-items: center; }
+.nx small { display: block; font-size: 11px; font-weight: 600; letter-spacing: 0.05em; color: var(--a-primary-hover); }
+.nx b { font-size: 15px; font-weight: 600; }
+.nx .sub { color: var(--a-text-2); font-size: 12.5px; }
+.nx .r { margin-left: auto; display: flex; gap: 8px; }
+.pgrid { flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: start; }
+.pgrid .card2 h3 { justify-content: space-between; font-size: 15px; }
+.pgrid .card2 h3 span { font-size: 12.5px; font-weight: 500; color: var(--a-primary-hover); }
+.ctc { display: flex; align-items: center; gap: 10px; }
+.ctc small { display: block; color: var(--a-text-3); font-size: 12px; }
+.act { display: flex; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--a-border-subtle); }
+.act:last-child { border-bottom: 0; }
+.act > svg.lucide { margin-top: 2px; color: var(--a-icon-2); }
+.act div { display: flex; flex-direction: column; gap: 1px; font-size: 12.5px; }
+.act small { color: var(--a-text-3); font-size: 11.5px; }
+.kv2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 12.5px; }
+.kv2 small { display: block; color: var(--a-text-3); font-size: 12px; }
+
+/* ---- Sparky docked panel (AppLayout.jsx + ChatComponentBackend.tsx) ---- */
+.dock { position: absolute; top: 0; right: 0; bottom: 0; width: 440px; background: var(--a-surface); border-left: 1px solid var(--a-border); display: flex; flex-direction: column; z-index: 5; animation: dockIn .3s ease; }
+.dock.still { animation: none; }
+@keyframes dockIn { from { transform: translateX(24px); opacity: 0; } to { transform: none; opacity: 1; } }
+.dk-h { display: flex; align-items: center; gap: 4px; padding: 6px 12px 6px 16px; height: 44px; border-bottom: 1px solid var(--a-border-subtle); flex-shrink: 0; }
+.dk-h b { flex: 1; font-size: 15px; font-weight: 600; margin-left: 4px; }
+.dk-h .ib { color: var(--a-text-2); }
+.dk-t { flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end; gap: 12px; padding: 12px 16px; }
+.dk-t.top { justify-content: flex-start; padding-top: 28px; }
+.dk-f { padding: 0 16px 14px; flex-shrink: 0; }
+.composer { display: flex; align-items: flex-end; gap: 8px; border: 1px solid hsla(217, 55%, 16%, 0.16); border-radius: 22px; padding: 8px 8px 8px 12px; background: var(--a-surface); }
+.composer.typed { border-color: var(--a-primary); box-shadow: 0 0 0 2px hsla(183, 100%, 33%, 0.10); }
+.composer .cl { color: var(--a-text-2); width: 26px; height: 32px; display: grid; place-items: center; }
+.composer .ta { flex: 1; min-height: 32px; display: flex; align-items: center; font-size: 13.5px; color: var(--a-fg); }
+.composer .ta.ph { color: var(--a-text-3); }
+.composer .ta .caret { display: inline-block; width: 1.5px; height: 16px; background: var(--a-fg); margin-left: 1px; animation: blink 1s steps(1) infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+.composer .snd { width: 34px; height: 34px; border-radius: 11px; display: grid; place-items: center; background: hsla(217, 55%, 16%, 0.08); color: var(--a-text-3); flex-shrink: 0; }
+.composer.typed .snd { background: var(--a-primary); color: #fff; }
+
+.hello { padding: 0 4px 18px; }
+.hello h3 { margin: 0 0 4px; font-size: 26px; font-weight: 700; letter-spacing: -0.01em; }
+.hello h3 span { background: linear-gradient(135deg, #00C9D4 0%, #0090A0 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; font-weight: 800; }
+.hello p { margin: 0; color: var(--a-text-2); font-size: 13.5px; }
+
+.msg { display: flex; flex-shrink: 0; }
+.msg.new { animation: enter .25s ease-out; }
+@keyframes enter { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.msg.u { justify-content: flex-end; }
+.msg.u .bub { max-width: 82%; padding: 8px 14px; border-radius: 18px 18px 6px 18px; background: var(--a-primary); color: #fff; font-size: 13.5px; line-height: 1.5; }
+.msg.a .av2 { width: 26px; height: 26px; border-radius: 30%; background: var(--a-dark); display: grid; place-items: center; margin: 2px 10px 0 0; flex-shrink: 0; }
+.msg.a .av2 svg.mark { width: 18px; height: 18px; color: #fff; }
+.msg.a .bub { min-width: 0; flex: 1; padding: 10px 14px; border-radius: 18px 18px 18px 6px; border: 1px solid hsla(217, 55%, 16%, 0.07); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05); font-size: 13px; line-height: 1.5; }
+.bub p { margin: 0 0 7px; } .bub p:last-child { margin-bottom: 0; }
+.bub ol, .bub ul { margin: 0 0 7px; padding-left: 18px; } .bub li { margin: 2px 0; }
+.bub .lk { color: var(--a-primary-hover); text-decoration: underline; text-underline-offset: 2px; font-weight: 500; }
+.bub .mt { color: var(--a-text-2); }
+.bub .q { display: block; color: var(--a-text-2); font-style: italic; }
+.bub li.hl { background: transparent; }
+.cot { margin-bottom: 6px; }
+.cot .cb { display: inline-flex; align-items: center; gap: 2px; color: var(--a-text-2); font-size: 13px; }
+.cot .cb svg.lucide { width: 14px; height: 14px; transform: rotate(90deg); }
+.cot .cs { margin: 2px 0 0 4px; padding-left: 10px; border-left: 2px solid var(--a-border-subtle); font-size: 12px; }
+.cot .cs div { display: flex; align-items: center; gap: 6px; color: var(--a-text-2); font-weight: 500; padding-top: 3px; }
+.cot .cs div svg.lucide { width: 14px; height: 14px; color: hsla(217, 55%, 16%, 0.35); }
+.cot .cs small { display: block; color: var(--a-text-3); margin-left: 20px; }
+.rtb { width: 100%; border-collapse: collapse; font-size: 12.5px; margin: 4px 0 8px; font-variant-numeric: tabular-nums; }
+.rtb th { text-align: left; font-weight: 600; background: #f5f5f5; border: 1px solid rgba(0, 0, 0, 0.12); padding: 5px 8px; }
+.rtb td { border: 1px solid rgba(0, 0, 0, 0.12); padding: 4px 8px; }
+.rtb .n { text-align: right; }
+/* intro / outro */
+.cover { position: absolute; inset: 0; background: rgba(248, 250, 252, 0.88); backdrop-filter: blur(3px); display: grid; place-items: center; z-index: 10; }
+.cover .card { width: 700px; display: flex; flex-direction: column; gap: 14px; align-items: flex-start; }
+.cover .eyebrow { font-size: 13px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--a-primary-hover); display: flex; align-items: center; gap: 8px; }
+.cover h2 { margin: 0; font-size: 40px; line-height: 1.12; letter-spacing: -0.025em; font-weight: 700; text-wrap: balance; }
+.cover p { margin: 0; font-size: 17px; line-height: 1.55; color: var(--a-text-2); max-width: 620px; }
+.cover .chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.cover .chips code { font-family: var(--mono); font-size: 14px; padding: 5px 10px; border-radius: 6px; background: var(--a-surface); border: 1px solid var(--a-border); }
+.cover .cta { display: flex; gap: 10px; margin-top: 8px; }
+.cover .go { font: inherit; font-size: 15px; font-weight: 600; height: 44px; padding-inline: 20px; border-radius: 8px; border: 0; background: var(--a-primary); color: #fff; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; text-decoration: none; }
+.cover .go.sec { background: var(--a-surface); color: var(--a-fg); border: 1px solid var(--a-border); }
+.cover .go:hover { background: var(--a-primary-hover); }
+.cover .go.sec:hover { background: var(--a-muted-solid); }
+.cover .go svg.lucide { width: 18px; height: 18px; }
+.cover .go:focus-visible { outline: 3px solid var(--a-primary); outline-offset: 2px; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+</style>
+
+<div class="wrap">
+  <div class="head">
+    <div class="brand" id="brand"></div>
+    <div class="tag">Interactive demo · Web console</div>
+  </div>
+
+  <div class="frame">
+    <div class="bar">
+      <div class="dots"><i></i><i></i><i></i></div>
+      <div class="url"><i data-lucide="lock"></i><span id="url">app.respark.com</span></div>
+      <div style="width:42px"></div>
+      <div class="progress" id="progress"></div>
+    </div>
+    <div class="stage" id="stage">
+      <div class="canvas" id="canvas"></div>
+      <div class="overlay" id="overlay"></div>
+    </div>
+  </div>
+
+  <div class="caption" id="caption" aria-live="polite"></div>
+
+  <div class="controls">
+    <button class="btn" id="back" type="button"><i data-lucide="arrow-left"></i>Back</button>
+    <div class="pips" id="pips" role="tablist" aria-label="Demo steps"></div>
+    <span class="count" id="count"></span>
+    <button class="btn primary" id="next" type="button">Next<i data-lucide="arrow-right"></i></button>
+  </div>
+  <div class="hint">Click the pulsing dot, or use <kbd>←</kbd> <kbd>→</kbd></div>
+</div>
+
+<script>
+(() => {
+  const W = 1440, H = 820;
+  const MARK = '<svg class="mark" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M152.38 13.33C171.29 13.33 186.67 28.71 186.67 47.62V152.38C186.67 171.29 171.29 186.67 152.38 186.67H47.62C28.71 186.67 13.33 171.29 13.33 152.38V47.62C13.33 28.71 28.71 13.33 47.62 13.33H152.38ZM152.38 0H47.62C21.32 0 0 21.32 0 47.62V152.38C0 178.68 21.32 200 47.62 200H152.38C178.68 200 200 178.68 200 152.38V47.62C200 21.32 178.68 0 152.38 0Z" fill="#00C9D4"/><path d="M93.39 62.1C89.98 59.66 84.7 58.7 80.99 58.69L26.11 58.74L44.28 71.71H82.53C83.21 71.71 83.79 71.96 84.24 72.29C85.21 72.98 85.5 74.27 84.5 75.67L72.84 92.1L84.25 100.24L96.2 83.46C101.27 76.35 101.05 67.54 93.42 62.1L93.4 62.08Z" fill="currentColor"/><path d="M49.21 102.91C53.53 102.91 58.53 105.26 61.64 107.48L107.62 140.38H84.65L52.58 117.49C52.03 117.05 51.38 116.94 50.8 116.94C49.57 116.94 48.56 117.84 48.56 119.62L48.53 140.38H34.11V119.16C34.11 110.16 39.55 102.91 49.19 102.91Z" fill="currentColor"/><path d="M166.27 115.45V103.76C166.27 96.91 164.14 91.42 159.86 87.3C155.58 83.18 149.91 81.1 142.82 81.1H133.49C128.74 81.1 124.57 82.06 120.95 83.97C117.32 85.88 114.54 88.56 112.55 92.02C110.56 95.49 109.58 99.5 109.58 104.01V119.65C109.58 123.94 110.56 127.7 112.55 130.98C114.54 134.26 117.3 136.82 120.92 138.62C124.55 140.39 128.72 141.3 133.46 141.3H142.32C149.41 141.3 155.11 139.5 159.47 135.92C163.83 132.34 166.02 127.59 166.02 121.67H152.85C152.85 124.15 151.9 126.15 149.99 127.68C148.08 129.18 145.57 129.95 142.46 129.95H133.49C130.3 129.95 127.76 128.99 125.85 127.14C123.94 125.26 122.99 122.77 122.99 119.66V115.46H166.27ZM122.72 105.4V104.34C122.72 100.76 123.7 97.84 125.69 95.63C127.65 93.42 130.24 92.3 133.43 92.3H142.89C145.94 92.3 148.37 93.36 150.25 95.47C152.13 97.57 153.06 100.36 153.06 103.77V105.41H122.71Z" fill="currentColor"/></svg>';
+  document.getElementById('brand').innerHTML = MARK + '<span>ReSpark</span>';
+
+  const ic = (n, extra = '') => `<i data-lucide="${n}" ${extra}></i>`;
+  // Sample data (illustrative): a fictional yard group with North Yard and
+  // South Yard, buyers Jordan Pike and Casey Morgan, demo date Monday, Nov 2.
+  // Everything on screen follows greenspark-aws branch
+  // feature/supply-radar-v2-11-sparky-tools (01cd42cbd2, Oct 30, 2026):
+  //  - Sparky tools: backend/sparky/src/services/chat/supply-radar/tools/
+  //    get-radar-work-counts.ts (stale + no-next-step lists, up to 5 each, Today link),
+  //    find-radar-prospects.ts (50 miles by default, nearest first, stage + buyer of the nearest Location),
+  //    get-radar-prospect-history.ts (first page, newest first; phones and emails read "contact details changed"),
+  //    get-radar-report.ts (Manage only, same filters as Reports, pipeline has no period, Reports link)
+  //  - rules for every answer: supply-radar-toolset.ts (SUPPLY_RADAR_ON_NOTE); links: supply-radar-links.ts
+  //  - tool labels in the reasoning steps: frontend/client/src/utils/chat/toolDisplay.ts
+  //  - chat: components/layouts/AppLayout.jsx (docked panel, 440px default via utils/chat/sparkyDockPreferences.ts),
+  //    ChatComponentBackend.tsx (dock header), chat/EmptyState.tsx, chat/MessageInput.tsx ("Message Sparky..."),
+  //    chat/assistant-ui/SparkyThread, AssistantMessage, UserMessage, ChainOfThought ("Reasoning · N steps"),
+  //    SparkyLink (an in-app link opens the page beside the docked chat)
+  //  - app shell, Today and Prospect pages: the Supply Radar product demo video.
+  const PID = '4b7e1d2a-9c3f-4e18-a6d5-2f90c1b8e734';
+  const U_TODAY = '/app/supply-radar', U_PROS = '/app/supply-radar/prospects/' + PID;
+  const lk = (t, id = '') => `<span class="lk"${id ? ` id="${id}"` : ''}>${t}</span>`;
+
+  const Q1 = 'Which deals are going stale?';
+  const Q2 = 'Which prospects near North Yard have aluminum?';
+  const Q3 = 'How is the pipeline looking this month?';
+  const Q4 = 'What happened with Delta Fabrication lately?';
+
+  const cot = (label, detail) => `<div class="cot"><span class="cb">Reasoning · 1 step${ic('chevron-right')}</span>
+    <div class="cs"><div>${ic('circle-check')}${label}</div><small>${detail}</small></div></div>`;
+
+  const A1 = `<div id="a-stale">${cot('Checked Supply Radar work', 'Your open Opportunities, current as of now')}
+    <p>You have <b>7 stale Opportunities</b> in the yards you can see, current as of now. These 5 are furthest past their stage limit:</p>
+    <ol>
+      <li>${lk('Delta Fabrication')} <span class="mt">· Qualified · North Yard · 27 days, 6 past the 21-day limit</span></li>
+      <li>${lk('Acme Fabrication')} <span class="mt">· Contacted · North Yard · 19 days, 5 past the 14-day limit</span></li>
+      <li>${lk('Riverbend Auto Parts')} <span class="mt">· New · South Yard · 11 days, 4 past the 7-day limit</span></li>
+      <li>${lk('Copperline Electric')} <span class="mt">· Contacted · North Yard · 16 days, 2 past the limit</span></li>
+      <li>${lk('Granite Valley Roofing')} <span class="mt">· New · North Yard · 8 days, 1 past the limit</span></li>
+    </ol>
+    <p>You're the buyer on all five. The other 2 are on ${lk('Today')}.</p></div>`;
+
+  const A2 = `<div id="a-near">${cot('Searched Supply Radar Prospects', 'Aluminum, within 50 miles of North Yard')}
+    <p><b>11 Prospects</b> with Aluminum are within 50 miles of North Yard. You didn't give a distance, so I used 50 miles. The nearest 5:</p>
+    <ol>
+      <li>${lk('Harbor Line Marine')} <span class="mt">· 2.4 mi · Contacted · Jordan Pike</span></li>
+      <li>${lk('Delta Fabrication')} <span class="mt">· 3.8 mi · Qualified · Jordan Pike</span></li>
+      <li>${lk('Summit Window &amp; Door')} <span class="mt">· 6.1 mi · New · Casey Morgan</span></li>
+      <li>${lk('Brightway Sign Co.')} <span class="mt">· 9.7 mi · New · Unassigned</span></li>
+      <li>${lk('Eastgate HVAC Service')} <span class="mt">· 14.2 mi · Contacted · Casey Morgan</span></li>
+    </ol>
+    <p>Prospects with no map location aren't included. Add a stage or a smaller distance to narrow the list.</p></div>`;
+
+  const A3 = `<div id="a-report">${cot('Read Supply Radar report', 'Pipeline · North Yard, South Yard')}
+    <p><b>Pipeline for North Yard and South Yard</b>, current as of now. The pipeline report has no period, so these are all open Opportunities today, not only this month's.</p>
+    <p>41 open: <b>15</b> New, <b>17</b> Contacted, <b>9</b> Qualified, about <b>386 tons per month</b>. 3 have no owner.</p>
+    <table class="rtb"><thead><tr><th>Buyer</th><th class="n">Open</th><th class="n">Tons / month</th></tr></thead><tbody>
+      <tr><td>Jordan Pike</td><td class="n">24</td><td class="n">212</td></tr>
+      <tr><td>Casey Morgan</td><td class="n">14</td><td class="n">151</td></tr>
+      <tr><td>Unassigned</td><td class="n">3</td><td class="n">23</td></tr></tbody></table>
+    <p>Same figures and filters as the ${lk('Reports')} page.</p></div>`;
+
+  const A4 = `<div id="a-hist">${cot('Read Prospect history', 'Delta Fabrication · newest entries first')}
+    <p><b>Delta Fabrication</b>, newest first. There are 9 entries in all; here are the latest 5:</p>
+    <ul>
+      <li><b>Oct 29</b> · Call logged by Jordan Pike. Outcome: No answer.</li>
+      <li id="h-contact"><b>Oct 22</b> · Contact updated: Dana Ruiz; contact details changed. By Jordan Pike.</li>
+      <li><b>Oct 15</b> · Visit logged by Jordan Pike. Outcome: Interested.<span class="q">“Counted 4 bins of extrusion offcuts. Wants a pickup every two weeks.”</span></li>
+      <li><b>Oct 6</b> · Stage changed from Contacted to Qualified, by Jordan Pike.</li>
+      <li><b>Sep 30</b> · Task completed by Jordan Pike.</li>
+    </ul>
+    <p>The full history is on the ${lk('Delta Fabrication', 'link-delta')} Prospect page.</p></div>`;
+
+  const THREADS = { q1: [Q1, A1], q2: [Q2, A2], q3: [Q3, A3], q4: [Q4, A4] };
+
+  // ---------- steps ----------
+  const STEPS = [
+    { cover: 'intro', view: 'today', url: U_TODAY },
+    { view: 'today', t: '#spk-btn', place: 'right', url: U_TODAY,
+      tip: 'Sparky is on every page. Click <b>Sparky</b> at the bottom of the sidebar to open it beside Supply Radar.' },
+    { view: 'today', dock: 'empty', typed: Q1, t: '#composer', place: 'left', url: U_TODAY,
+      tip: 'Ask in plain words, like <b>Which deals are going stale?</b> Sparky reads Supply Radar as you, so it sees only what you can see in the app.' },
+    { view: 'today', dock: ['q1'], t: '#a-stale', place: 'left', url: U_TODAY,
+      tip: 'Sparky names each stale Opportunity with its stage, yard and days past the stage limit, and links each one. Lists stop at 5, with a link to <b>Today</b> for the rest.' },
+    { view: 'today', dock: ['q1', 'q2'], t: '#a-near', place: 'left', url: U_TODAY,
+      tip: 'Search Prospects by name, commodity, grade or stage near a yard. With no distance it searches 50 miles, nearest first, with each Prospect’s stage and buyer.' },
+    { view: 'today', dock: ['q1', 'q2', 'q3'], t: '#a-report', place: 'left', url: U_TODAY,
+      tip: 'Managers can ask for pipeline, follow-up, outreach and win/loss figures. Sparky uses the same filters as the <b>Reports</b> page, names the yards and period, and links to it.' },
+    { view: 'today', dock: ['q2', 'q3', 'q4'], t: '#a-hist', place: 'left', url: U_TODAY,
+      tip: 'Ask what happened with one Prospect. Sparky reads the newest page of its history: calls, visits, stage changes, Tasks and contact changes, each with a date and a person.' },
+    { view: 'today', dock: ['q2', 'q3', 'q4'], t: '#h-contact', place: 'left', url: U_TODAY,
+      tip: 'Phone numbers and emails never appear in an answer. A changed phone or email reads <b>contact details changed</b>, with no value.' },
+    { view: 'today', dock: ['q2', 'q3', 'q4'], t: '#link-delta', place: 'left', url: U_TODAY,
+      tip: 'Every name is a link. Click <b>Delta Fabrication</b> to open its Prospect page.' },
+    { view: 'prospect', dock: ['q2', 'q3', 'q4'], t: '#pp-title', place: 'bottom', url: U_PROS,
+      tip: 'The Prospect page opens beside the conversation, so you can check it and keep asking. Sparky only reads; you log the next call or visit here.' },
+    { cover: 'outro', view: 'prospect', dock: ['q2', 'q3', 'q4'], url: U_PROS },
+  ];
+
+  // ---------- chrome ----------
+  function sidebar(s) {
+    const it = (i, l, cls = '', extra = '') => `<div class="it${cls}">${ic(i)}<span>${l}</span>${extra}</div>`;
+    const chev = ic('chevron-down', 'class="chev"');
+    return `<aside class="sb">
+      <div class="yd">${MARK}<div><b>North Yard${ic('chevron-down')}</b><small>Yard</small></div></div>
+      ${it('inbox', 'Inbox')}${it('messages-square', 'ScrapChat')}${it('search', 'Search &amp; actions', '', '<kbd>⌘K</kbd>')}
+      ${it('radar', 'Supply Radar', ' grp', chev)}${it('circle', 'Supply Radar', ' sub on')}
+      ${it('shopping-cart', 'Purchases', '', chev)}${it('ticket', 'Purchase Tickets', ' sub')}${it('wallet', 'AP Center', ' sub')}${it('receipt', 'Bills', ' sub')}
+      ${it('tag', 'Sales', '', chev)}${it('ticket', 'Outbound Tickets', ' sub')}${it('file-text', 'Invoices', ' sub')}
+      ${it('file-signature', 'Contracts', '', chev)}${it('file-text', 'Sales Orders', ' sub')}${it('file-text', 'Purchase Orders', ' sub')}
+      ${it('boxes', 'Inventory', '', chev)}${it('layout-grid', 'Inventory Overview', ' sub')}${it('arrow-left-right', 'Regrades', ' sub')}
+      <div class="bot"><span class="spk${s.dock ? ' on' : ''}" id="spk-btn">${ic('sparkles')}Sparky</span>
+        <span class="sq">${ic('message-square')}</span><span class="sq">${ic('user')}</span><span class="sq">${ic('settings')}</span></div>
+    </aside>`;
+  }
+
+  function srHead(tab) {
+    const tabs = ['Today', 'Explore', 'Pipeline', 'Reports'].map(t => `<span${t === tab ? ' class="on"' : ''}>${t}</span>`).join('');
+    return `<div class="srh"><h1>Supply Radar</h1>${tab ? `<div class="tabs">${tabs}</div>` : ''}
+      <div class="acts"><span class="rb icon">${ic('settings')}</span><span class="rb icon">${ic('refresh-cw')}</span>${tab ? `<span class="rb out">${ic('plus')}Add prospect</span>` : ''}</div></div>`;
+  }
+
+  function today() {
+    const st = { Q: 'q', C: 'c', N: 'n' }, nm = { Q: 'Qualified', C: 'Contacted', N: 'New' };
+    const task = (i, t, p, g, when, late, btn) => `<div class="trow">${ic(i)}<div class="tx"><b>${t}</b><span class="ul">${p}</span></div>
+      <span class="stg ${st[g]}">${nm[g]}</span>${late ? `<span class="late">${when}</span>` : `<span class="when">${when}</span>`}<span class="rb xs">${btn}</span></div>`;
+    const nn = (p, g) => `<div class="nrow2"><div><span class="ul">${p}</span>${nm[g]}</div><span class="rb xs out">${ic('plus')}Add task</span></div>`;
+    return `<div class="td">
+      <div class="tt"><div><h2>Today’s priorities</h2><small>Monday, Nov 2 · North Yard</small></div>
+        <div class="r"><span class="rb">Assigned to: Me${ic('chevron-down')}</span><span class="rb pri">${ic('map-pin')}Plan today’s route</span></div></div>
+      <div class="kp"><div><small>Overdue</small><b class="red">3</b><span>${ic('clock')}Needs attention</span></div>
+        <div><small>Due today</small><b>4</b><span>${ic('calendar')}Due by end of day</span></div>
+        <div><small>No next step</small><b>6</b><span>${ic('triangle-alert')}Add a follow-up</span></div></div>
+      <div class="tcols">
+        <div class="card2 tasks"><h3>Your tasks <span class="tagn">7</span></h3>
+          <div class="gh2 od">Overdue <span class="tagn">3</span></div>
+          ${task('phone', 'Call about the bin swap', 'Copperline Electric', 'C', '2 days late', 1, 'Log call')}
+          ${task('mail', 'Send pickup schedule', 'Harbor Line Marine', 'C', '1 day late', 1, 'Log email')}
+          ${task('message-square', 'Text', 'Granite Valley Roofing', 'N', '1 day late', 1, 'Log text')}
+          <div class="gh2">Due today <span class="tagn">4</span></div>
+          ${task('building-2', 'Visit and count the bins', 'Delta Fabrication', 'Q', '10:30 AM', 0, 'Log visit')}
+          ${task('phone', 'Call', 'Riverbend Auto Parts', 'N', 'Any time', 0, 'Log call')}
+          ${task('phone', 'Call', 'Pinecrest Cabinet Works', 'N', 'Any time', 0, 'Log call')}
+        </div>
+        <div class="card2 nns"><h3>${ic('triangle-alert')}No next step <span class="tagn">6</span></h3>
+          ${nn('Acme Fabrication', 'C')}${nn('Ironwood Millwork', 'N')}${nn('Bayside Tool &amp; Die', 'Q')}${nn('Northgate Signs', 'N')}${nn('Lakeshore Gutter Co.', 'C')}${nn('Maple Ridge Plumbing', 'Q')}
+        </div>
+      </div></div>`;
+  }
+
+  function prospect() {
+    const step = (l, c) => `<i class="d${c}"></i><span>${l}</span>`;
+    const act = (i, t, d, n) => `<div class="act">${ic(i)}<div><span>${t}</span>${n ? `<small>${n}</small>` : ''}<small>${d}</small></div></div>`;
+    return `<div class="pp">
+      <span class="bc">${ic('chevron-left')}Pipeline</span>
+      <div class="ph1"><div id="pp-title"><h2>Delta Fabrication</h2><div class="ad">1180 Mill Street, North Yard area · Owner: Jordan Pike</div></div>
+        <div class="rc"><div class="r"><span class="rb">${ic('map-pin')}Check in</span><span class="rb">Change stage</span><span class="rb">More${ic('chevron-down')}</span></div>
+          <span class="stp"><span class="dy">${ic('clock')}27 days in Qualified</span>${step('New', ' dn')}<i class="ln"></i>${step('Contacted', ' dn')}<i class="ln"></i>${step('Qualified', ' on')}<i class="ln"></i>${step('Won', '')}</span></div></div>
+      <div class="tbar"><span class="t on">Overview</span><span class="t">Opportunities (1)</span><span class="t">Locations (1)</span><span class="t">Timeline</span></div>
+      <div class="card2"><div class="nx"><span class="ci">${ic('building-2')}</span><div><small>NEXT STEP</small><b>Visit</b><div class="sub">Due Monday, Nov 2 · owner: you</div></div>
+        <div class="r"><span class="rb pri sm">${ic('check')}Done and log</span><span class="rb sm">Reschedule</span></div></div></div>
+      <div class="pgrid">
+        <div class="card2"><h3>Contacts <span>${ic('plus')} Add</span></h3>
+          <div class="ctc"><span class="av">DR</span><div><b>Dana Ruiz</b><small>Plant manager · Primary contact</small></div></div>
+          <h3 style="margin-top:10px">Company details <span>Edit</span></h3>
+          <div class="kv2"><div><small>Business type</small>Manufacturing</div><div><small>Commodities</small>Aluminum, Copper</div></div></div>
+        <div class="card2"><h3>Recent activity <span>Full timeline</span></h3>
+          ${act('phone', 'Call · No answer', 'Oct 29 · Jordan Pike')}
+          ${act('user-pen', 'Contact updated: Dana Ruiz', 'Oct 22 · Jordan Pike')}
+          ${act('building-2', 'Visit · Interested', 'Oct 15 · Jordan Pike', 'Counted 4 bins of extrusion offcuts.')}
+          ${act('arrow-right', 'Stage changed to Qualified', 'Oct 6 · Jordan Pike')}</div>
+      </div></div>`;
+  }
+
+  function dock(s) {
+    if (!s.dock) return '';
+    const prev = STEPS[step - 1];
+    const still = prev && prev.dock ? ' still' : '';
+    let body;
+    if (s.dock === 'empty') {
+      body = `<div class="hello"><h3>Hello! I’m <span>Sparky</span></h3><p>What would you like to get done?</p></div>`;
+    } else {
+      const prevKeys = prev && Array.isArray(prev.dock) ? prev.dock : [];
+      body = s.dock.map(k => {
+        const [q, a] = THREADS[k], fresh = !prevKeys.includes(k) ? ' new' : '';
+        return `<div class="msg u${fresh}"><div class="bub">${q}</div></div>
+          <div class="msg a${fresh}"><span class="av2">${MARK}</span><div class="bub">${a}</div></div>`;
+      }).join('');
+    }
+    const typed = s.typed ? ` typed` : '';
+    const ta = s.typed ? `<span class="ta">${s.typed}<i class="caret"></i></span>` : '<span class="ta ph">Message Sparky...</span>';
+    return `<aside class="dock${still}" aria-label="Sparky chat">
+      <div class="dk-h"><span class="ib">${ic('messages-square')}</span><b>Sparky</b><span class="ib">${ic('maximize-2')}</span><span class="ib">${ic('x')}</span></div>
+      <div class="dk-t${s.dock === 'empty' ? ' top' : ''}">${body}</div>
+      <div class="dk-f"><div class="composer${typed}" id="composer"><span class="cl">${ic('paperclip')}</span>${ta}<span class="snd">${ic('send')}</span></div></div>
+    </aside>`;
+  }
+
+  function page(s) {
+    if (s.view === 'prospect') return `<main class="main">${srHead('')}${prospect()}</main>`;
+    return `<main class="main">${srHead('Today')}${today()}</main>`;
+  }
+
+  function cover(kind) {
+    if (kind === 'intro') {
+      return `<div class="cover"><div class="card">
+        <div class="eyebrow">${ic('sparkles')}Supply Radar · Ask Sparky</div>
+        <h2>Ask Sparky about your Supply Radar work</h2>
+        <p>Sparky, ReSpark’s AI assistant, can now read Supply Radar. Ask which deals are going stale, which Prospects are near a yard, what happened with a Prospect lately, or how the pipeline looks, and get answers that name names and link to the page.</p>
+        <div class="cta"><button class="go" type="button" data-go="next">Get started${ic('arrow-right')}</button></div>
+      </div></div>`;
+    }
+    return `<div class="cover"><div class="card">
+      <div class="eyebrow">${ic('circle-check')}Supply Radar · Ask Sparky</div>
+      <h2>Answers from Supply Radar, linked to the source</h2>
+      <p>Sparky reads Supply Radar as you, so it sees only what you can see. Ask about stale Opportunities and ones with no next step, find Prospects near a yard, read a Prospect’s recent history, or, as a manager, get report figures. Lists stop at 5 with a link to the rest, phone numbers and emails are never shown, and Sparky only reads: it doesn’t change any records.</p>
+      <div class="cta"><button class="go sec" type="button" data-go="restart">${ic('rotate-ccw')}Replay</button></div>
+    </div></div>`;
+  }
+
+  function renderApp(s) {
+    return `<div class="app${s.dock ? ' docked' : ''}">${sidebar(s)}${page(s)}${dock(s)}${s.cover ? cover(s.cover) : ''}</div>`;
+  }
+  function anchorMenus() {}
+
+  // ---------- player ----------
+  const stage = document.getElementById('stage');
+  const canvas = document.getElementById('canvas');
+  const overlay = document.getElementById('overlay');
+  const caption = document.getElementById('caption');
+  const pips = document.getElementById('pips');
+  const backBtn = document.getElementById('back');
+  const nextBtn = document.getElementById('next');
+  let step = 0;
+  const guided = STEPS.map((s, i) => (s.tip ? i : null)).filter(i => i !== null);
+
+  pips.innerHTML = STEPS.map((_, i) => `<button type="button" role="tab" aria-label="Step ${i + 1}" data-i="${i}"></button>`).join('');
+  pips.addEventListener('click', e => { const b = e.target.closest('button'); if (b) go(+b.dataset.i); });
+
+  function scale() {
+    const k = stage.clientWidth / W;
+    canvas.style.transform = `scale(${k})`;
+    document.body.classList.toggle('narrow', stage.clientWidth < 700);
+    return k;
+  }
+
+  function place() {
+    overlay.innerHTML = '';
+    const s = STEPS[step];
+    anchorMenus(s);
+    if (!s.t) return;
+    const el = canvas.querySelector(s.t);
+    if (!el) return;
+    const sr = stage.getBoundingClientRect();
+    const r = el.getBoundingClientRect();
+    const x = r.left - sr.left, y = r.top - sr.top, w = r.width, h = r.height;
+    const n = guided.indexOf(step) + 1;
+    const label = `<span class="n">Step ${n} of ${guided.length}</span>`;
+
+    const ring = document.createElement('div');
+    ring.className = 'ring';
+    Object.assign(ring.style, { left: x - 3 + 'px', top: y - 3 + 'px', width: w + 6 + 'px', height: h + 6 + 'px' });
+    const hot = document.createElement('button');
+    hot.className = 'hot';
+    hot.type = 'button';
+    hot.setAttribute('aria-label', 'Continue to next step');
+    hot.style.left = x + w / 2 + 'px';
+    hot.style.top = y + h / 2 + 'px';
+    hot.addEventListener('click', () => go(step + 1));
+    overlay.append(ring, hot);
+
+    caption.innerHTML = label + s.tip;
+    if (document.body.classList.contains('narrow')) return;
+
+    const tip = document.createElement('div');
+    tip.className = 'tip';
+    tip.innerHTML = label + s.tip;
+    overlay.append(tip);
+    const tw = tip.offsetWidth, th = tip.offsetHeight, gap = 18;
+    const SW = stage.clientWidth, SH = stage.clientHeight;
+    let tx, ty;
+    const side = s.place || 'right';
+    if (side === 'right') { tx = x + w + gap; ty = y + h / 2 - th / 2; }
+    if (side === 'left') { tx = x - tw - gap; ty = y + h / 2 - th / 2; }
+    if (side === 'bottom') { tx = x + w / 2 - tw / 2; ty = y + h + gap; }
+    if (side === 'top') { tx = x + w / 2 - tw / 2; ty = y - th - gap; }
+    if (side === 'right' && tx + tw > SW - 8) { tx = x - tw - gap; }
+    if (side === 'left' && tx < 8) { tx = x + w + gap; }
+    tx = Math.max(10, Math.min(SW - tw - 10, tx));
+    ty = Math.max(10, Math.min(SH - th - 10, ty));
+    tip.style.left = tx + 'px';
+    tip.style.top = ty + 'px';
+  }
+
+  function render() {
+    const s = STEPS[step];
+    canvas.innerHTML = renderApp(s);
+    if (window.lucide) lucide.createIcons({ attrs: { 'aria-hidden': 'true' } });
+    document.getElementById('url').textContent = 'app.respark.com' + s.url;
+    document.getElementById('progress').style.width = (step / (STEPS.length - 1)) * 100 + '%';
+    [...pips.children].forEach((b, i) => { b.className = i === step ? 'on' : i < step ? 'done' : ''; b.setAttribute('aria-selected', i === step); });
+    const n = guided.indexOf(step);
+    document.getElementById('count').textContent = s.cover === 'intro' ? 'Intro' : s.cover === 'outro' ? 'Done' : `${n + 1} / ${guided.length}`;
+    backBtn.disabled = step === 0;
+    nextBtn.disabled = step === STEPS.length - 1;
+    if (s.cover) caption.innerHTML = s.cover === 'intro'
+      ? '<span class="n">Intro</span>Sparky can now read Supply Radar. Ask about stale deals, Prospects near a yard, a Prospect’s history or the pipeline, and get named answers with links.'
+      : '<span class="n">Done</span>Sparky reads Supply Radar as you and sees only what you can see. Lists stop at 5 with a link to the rest, phones and emails are never shown, report figures are for managers, and Sparky never changes records.';
+    scale();
+    // Measure only after entrance animations (panels sliding in, menus
+    // popping, pins dropping) finish, or the ring lands where the element
+    // was mid-animation instead of where it ends up.
+    const token = ++renderToken;
+    settle().then(() => { if (token === renderToken) place(); });
+  }
+
+  let renderToken = 0;
+  function settle() {
+    const finite = (canvas.getAnimations ? canvas.getAnimations({ subtree: true }) : [])
+      .filter(a => a.effect && a.effect.getComputedTiming().iterations !== Infinity);
+    const done = Promise.all(finite.map(a => a.finished.catch(() => {})));
+    const timeout = new Promise(r => setTimeout(r, 1200));
+    // If the timeline is throttled (background tab), snap leftovers to their
+    // end state so the measurement still matches the final layout.
+    return Promise.race([done, timeout]).then(() => {
+      finite.forEach(a => { if (a.playState !== 'finished') try { a.finish(); } catch (e) {} });
+      return new Promise(r => setTimeout(r, 30));
+    });
+  }
+
+  // Self-check used before publishing: walks every step and reports any
+  // highlight that doesn't sit on its target, targets that are missing or
+  // clipped, and tooltips that cover the thing they point at.
+  function checkStep() {
+    const s = STEPS[step];
+    if (!s.t) return { step, ok: true };
+    const el = canvas.querySelector(s.t), ring = overlay.querySelector('.ring'), tip = overlay.querySelector('.tip');
+    if (!el) return { step, ok: false, why: `target ${s.t} not found` };
+    if (!ring) return { step, ok: false, why: 'highlight not drawn' };
+    const a = el.getBoundingClientRect(), b = ring.getBoundingClientRect(), st = stage.getBoundingClientRect();
+    const off = Math.max(Math.abs(a.left - 3 - b.left), Math.abs(a.top - 3 - b.top), Math.abs(a.width + 6 - b.width), Math.abs(a.height + 6 - b.height));
+    const issues = [];
+    if (off > 2) issues.push(`highlight off by ${Math.round(off)}px`);
+    if (a.width < 4 || a.height < 4) issues.push('target has no size');
+    if (a.left < st.left - 1 || a.top < st.top - 1 || a.right > st.right + 1 || a.bottom > st.bottom + 1) issues.push('target clipped by frame');
+    if (tip) {
+      const t = tip.getBoundingClientRect();
+      const ix = Math.max(0, Math.min(a.right, t.right) - Math.max(a.left, t.left)), iy = Math.max(0, Math.min(a.bottom, t.bottom) - Math.max(a.top, t.top));
+      if (ix * iy > 0.25 * a.width * a.height) issues.push('tooltip covers target');
+    }
+    return { step, target: s.t, ok: issues.length === 0, issues };
+  }
+  window.walkthroughAudit = async () => {
+    const results = [];
+    for (let i = 0; i < STEPS.length; i++) {
+      go(i);
+      await settle();
+      await new Promise(r => setTimeout(r, 60));
+      results.push(checkStep());
+    }
+    go(0);
+    return { ok: results.every(r => r.ok), problems: results.filter(r => !r.ok), steps: results.length };
+  };
+
+  function go(i) {
+    step = Math.max(0, Math.min(STEPS.length - 1, i));
+    render();
+  }
+
+  canvas.addEventListener('click', e => {
+    const g = e.target.closest('[data-go]');
+    if (g) { go(g.dataset.go === 'restart' ? 0 : step + 1); return; }
+    const s = STEPS[step];
+    if (s.t && e.target.closest(s.t)) go(step + 1);
+  });
+  backBtn.addEventListener('click', () => go(step - 1));
+  nextBtn.addEventListener('click', () => go(step + 1));
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight') go(step + 1);
+    if (e.key === 'ArrowLeft') go(step - 1);
+  });
+  new ResizeObserver(() => { scale(); settle().then(place); }).observe(stage);
+  if (document.fonts) document.fonts.ready.then(place);
+
+  if (window.lucide) lucide.createIcons({ attrs: { 'aria-hidden': 'true' } });
+  render();
+})();
+</script>

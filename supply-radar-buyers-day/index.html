@@ -1,0 +1,865 @@
+<meta charset="utf-8">
+<title>ReSpark Supply Radar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+<style>
+/* Layout: an Arcade-style player. One framed browser window holds a scaled
+   1440×820 mock of ReSpark Supply Radar (Prospect Tracker: the Today tab and a
+   prospect's check-in); a pulsing hotspot + tooltip guides each step; step controls sit
+   under the frame. The app mock keeps ReSpark's light theme (it stands in
+   for a screenshot); the page around it follows the viewer's theme.
+   Screens follow greenspark-aws, branch feature/supply-radar-v2-12-local-e2e,
+   frontend/client/src/modules/supply-radar/_components:
+     RadarAccessPage; prospects/today/{RadarTodayPage, TodayHeader, TodaySummaryStrip,
+     TodayTasksSection, TodayTaskRow, TodayTaskToolbar, TodayCard, TodayOpportunitySection,
+     TodayOpportunityRow, TodayNearbySection}; prospects/{ProspectSections, ProspectHeader};
+     prospects/prospect-header/{StageTrack, HeaderActions}; prospects/check-in/{CheckInButton,
+     CheckInPage, CheckInLocationBanner, CheckInChoice}; prospects/activity-timeline/
+     {ActivityTimeline, TimelineEntry}; plus _state/check-in-state.ts. */
+:root {
+  --bg: #f3f5f8;
+  --glow: rgba(0, 168, 176, 0.10);
+  --fg: #12233e;
+  --fg-muted: rgba(18, 35, 62, 0.62);
+  --frame: #ffffff;
+  --frame-bar: #eef1f5;
+  --frame-line: rgba(18, 35, 62, 0.12);
+  --ctl: #ffffff;
+  --ctl-line: rgba(18, 35, 62, 0.16);
+  --teal: #00a3a8;
+  --teal-strong: #008a8f;
+  --tip-bg: #12233e;
+  --tip-fg: #ffffff;
+
+  /* ReSpark app tokens (frontend/client/src/global.css, light mode) */
+  --a-fg: hsl(217 55% 16%);
+  --a-surface: #ffffff;
+  --a-muted: hsla(217, 55%, 16%, 0.03);
+  --a-muted-solid: #f8f9fa;
+  --a-hover: hsla(217, 55%, 16%, 0.06);
+  --a-border: hsla(217, 55%, 16%, 0.14);
+  --a-border-subtle: hsla(217, 55%, 16%, 0.08);
+  --a-text-2: hsla(217, 55%, 16%, 0.75);
+  --a-text-3: hsla(217, 55%, 16%, 0.52);
+  --a-icon-2: hsla(217, 55%, 16%, 0.42);
+  --a-primary: hsl(183 100% 33%);
+  --a-primary-hover: hsl(183 100% 27%);
+  --a-primary-subtle: hsla(183, 100%, 33%, 0.10);
+  --a-success: hsl(162 73% 37%);
+  --a-success-strong: hsl(162 73% 30%);
+  --a-error: hsl(348 81% 48%);
+  --a-error-strong: hsl(348 81% 38%);
+  --a-accent: hsl(252 89% 65%);
+  --a-accent-strong: hsl(252 60% 50%);
+  --a-accent-subtle: hsla(252, 89%, 65%, 0.10);
+  --a-dark: hsl(217 45% 14%);
+  --a-nav-selected: hsl(217 55% 16%);
+
+  --font: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0c1422; --glow: rgba(0, 201, 212, 0.10); --fg: #e8eef7; --fg-muted: rgba(232, 238, 247, 0.62);
+    --frame: #17202f; --frame-bar: #1c2738; --frame-line: rgba(232, 238, 247, 0.12);
+    --ctl: #17202f; --ctl-line: rgba(232, 238, 247, 0.18); --teal: #19c3cb; --teal-strong: #4fd6dc;
+    --tip-bg: #00a3a8; --tip-fg: #ffffff; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0c1422; --glow: rgba(0, 201, 212, 0.10); --fg: #e8eef7; --fg-muted: rgba(232, 238, 247, 0.62);
+  --frame: #17202f; --frame-bar: #1c2738; --frame-line: rgba(232, 238, 247, 0.12);
+  --ctl: #17202f; --ctl-line: rgba(232, 238, 247, 0.18); --teal: #19c3cb; --teal-strong: #4fd6dc;
+  --tip-bg: #00a3a8; --tip-fg: #ffffff; color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--fg); font-family: var(--font);
+  background-image: radial-gradient(60% 50% at 50% 38%, var(--glow), transparent 70%);
+  min-height: 100vh; padding-inline: 16px; padding-block: 28px 40px;
+}
+.wrap { max-width: 1180px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
+.head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 15px; letter-spacing: -0.01em; }
+.brand svg { width: 28px; height: 28px; color: var(--fg); }
+.head .tag { font-size: 12px; color: var(--fg-muted); font-weight: 500; }
+
+.frame { background: var(--frame); border: 1px solid var(--frame-line); border-radius: 12px; overflow: hidden;
+  box-shadow: 0 30px 60px -20px rgba(18, 35, 62, 0.28), 0 8px 18px -8px rgba(18, 35, 62, 0.18); }
+.bar { height: 38px; background: var(--frame-bar); border-bottom: 1px solid var(--frame-line); display: flex; align-items: center; gap: 12px; padding-inline: 14px; position: relative; }
+.dots { display: flex; gap: 6px; }
+.dots i { width: 10px; height: 10px; border-radius: 50%; background: var(--frame-line); display: block; }
+.url { flex: 1; max-width: 460px; margin-inline: auto; height: 24px; border-radius: 6px; background: var(--frame); border: 1px solid var(--frame-line);
+  display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 12px; color: var(--fg-muted); padding-inline: 10px; min-width: 0; overflow: hidden; white-space: nowrap; }
+.url span { overflow: hidden; text-overflow: ellipsis; }
+.url svg { width: 12px; height: 12px; flex-shrink: 0; }
+.progress { position: absolute; left: 0; bottom: -1px; height: 2px; background: var(--teal); transition: width .35s ease; }
+
+.stage { position: relative; width: 100%; aspect-ratio: 1440 / 820; max-width: 100%; overflow: hidden; background: #fff; }
+.canvas { position: absolute; left: 0; top: 0; width: 1440px; height: 820px; transform-origin: 0 0; }
+.overlay { position: absolute; inset: 0; pointer-events: none; }
+
+.ring { position: absolute; border-radius: 6px; box-shadow: 0 0 0 2px var(--a-primary), 0 0 0 6px hsla(183, 100%, 33%, 0.18); transition: all .3s ease; pointer-events: none; }
+.hot { position: absolute; width: 26px; height: 26px; margin: -13px 0 0 -13px; border-radius: 50%; pointer-events: auto; cursor: pointer;
+  background: hsla(183, 100%, 33%, 0.28); border: 0; padding: 0; transition: left .3s ease, top .3s ease; }
+.hot::before { content: ""; position: absolute; inset: 7px; border-radius: 50%; background: var(--a-primary); box-shadow: 0 0 0 2px #fff; }
+.hot::after { content: ""; position: absolute; inset: 0; border-radius: 50%; border: 2px solid var(--a-primary); animation: pulse 1.6s ease-out infinite; }
+.hot:focus-visible { outline: 3px solid var(--teal-strong); outline-offset: 3px; }
+@keyframes pulse { 0% { transform: scale(.7); opacity: .9; } 100% { transform: scale(2.1); opacity: 0; } }
+
+.tip { position: absolute; max-width: 310px; background: var(--tip-bg); color: var(--tip-fg); border-radius: 10px; padding: 12px 14px;
+  font-size: 14px; line-height: 1.45; box-shadow: 0 12px 28px -8px rgba(12, 20, 34, 0.45); pointer-events: auto; animation: tipIn .25s ease; }
+.tip b { font-weight: 600; }
+.tip code, .caption code { font-family: var(--mono); font-size: 12.5px; background: rgba(255, 255, 255, 0.16); padding: 1px 5px; border-radius: 4px; }
+.caption code { background: var(--frame-bar); }
+.tip .n, .caption .n { display: block; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; opacity: .7; margin-bottom: 4px; }
+@keyframes tipIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+.caption { display: none; background: var(--frame); border: 1px solid var(--frame-line); border-radius: 10px; padding: 12px 14px; font-size: 14px; line-height: 1.5; }
+body.narrow .caption { display: block; }
+body.narrow .tip { display: none; }
+
+.controls { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.btn { font: inherit; font-size: 13px; font-weight: 600; height: 36px; padding-inline: 14px; border-radius: 8px; border: 1px solid var(--ctl-line);
+  background: var(--ctl); color: var(--fg); cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+.btn:hover { border-color: var(--teal); }
+.btn:disabled { opacity: .4; cursor: default; border-color: var(--ctl-line); }
+.btn:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+.btn.primary { background: var(--teal); border-color: var(--teal); color: #fff; }
+.btn svg { width: 16px; height: 16px; }
+.count { font-size: 13px; color: var(--fg-muted); font-variant-numeric: tabular-nums; min-width: 48px; text-align: right; }
+.pips { display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; flex: 1; min-width: 0; }
+.pips button { width: 22px; height: 6px; border-radius: 3px; border: 0; padding: 0; background: var(--ctl-line); cursor: pointer; }
+.pips button.on { background: var(--teal); }
+.pips button.done { background: color-mix(in srgb, var(--teal) 45%, transparent); }
+.hint { font-size: 12px; color: var(--fg-muted); text-align: center; }
+kbd { font: inherit; font-size: 11px; border: 1px solid var(--ctl-line); border-radius: 4px; padding: 1px 5px; }
+
+/* ================= ReSpark app mock (fixed light theme) ================= */
+.app { width: 1440px; height: 820px; display: flex; font-family: var(--font); color: var(--a-fg); font-size: 13px; background: var(--a-surface); position: relative; overflow: hidden; }
+.app table { color: inherit; } /* pages render without a doctype, where tables don't inherit text color; keeps the app mock readable in dark mode */
+.app svg.lucide { width: 16px; height: 16px; stroke-width: 1.75; flex-shrink: 0; }
+.side { width: 236px; flex-shrink: 0; background: var(--a-muted-solid); border-right: 1px solid var(--a-border-subtle); display: flex; flex-direction: column; padding: 12px 10px; gap: 10px; }
+.side .top { display: flex; align-items: center; gap: 8px; padding: 2px 4px; }
+.side .top svg.mark { width: 28px; height: 28px; color: #12233e; }
+.yard { flex: 1; display: flex; align-items: center; justify-content: space-between; border: 1px solid var(--a-border); border-radius: 6px; height: 30px; padding-inline: 8px; background: var(--a-surface); font-weight: 500; font-size: 12.5px; }
+.yard svg.lucide { width: 14px; height: 14px; color: var(--a-icon-2); }
+.cmd { display: flex; align-items: center; gap: 8px; height: 30px; border: 1px solid var(--a-border); border-radius: 6px; padding-inline: 8px; color: var(--a-text-3); background: var(--a-surface); font-size: 12.5px; }
+.cmd kbd { margin-left: auto; font-size: 10.5px; border-color: var(--a-border); color: var(--a-text-3); }
+.nav { display: flex; flex-direction: column; gap: 1px; }
+.nrow { display: flex; align-items: center; gap: 8px; padding: 5px 8px; border-radius: 6px; font-weight: 500; color: hsla(217, 55%, 16%, 0.88); }
+.nrow .chev { margin-left: auto; width: 14px; height: 14px; color: var(--a-icon-2); }
+.nrow.sub { padding-left: 30px; font-weight: 450; font-size: 12.5px; color: var(--a-text-2); }
+.nrow.sub svg.lucide { width: 14px; height: 14px; color: var(--a-icon-2); }
+.nrow.active { background: var(--a-nav-selected); color: #fff; }
+.nrow.active svg.lucide { color: #fff; }
+.pill { margin-left: auto; font-size: 10px; font-weight: 600; color: var(--a-text-2); background: var(--a-hover); padding: 1px 6px; border-radius: 999px; }
+.nsep { height: 1px; background: var(--a-border-subtle); margin: 4px 6px; }
+.foot { margin-top: auto; display: flex; align-items: center; gap: 8px; padding: 8px 4px 0; border-top: 1px solid var(--a-border-subtle); }
+.av { width: 28px; height: 28px; border-radius: 50%; background: var(--a-primary-subtle); color: var(--a-primary-hover); display: grid; place-items: center; font-weight: 600; font-size: 11px; }
+.foot .who { display: flex; flex-direction: column; line-height: 1.25; }
+.foot .who small { color: var(--a-text-3); font-size: 11px; }
+.foot .ico { margin-left: auto; display: flex; gap: 4px; }
+.foot .ico span { width: 28px; height: 28px; border: 1px solid var(--a-border-subtle); border-radius: 6px; display: grid; place-items: center; }
+
+.main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.phead { display: flex; align-items: center; gap: 12px; padding: 14px 22px 12px; border-bottom: 1px solid var(--a-border-subtle); }
+.crumbs { font-size: 12px; color: var(--a-text-3); display: flex; align-items: center; gap: 4px; }
+.crumbs svg.lucide { width: 12px; height: 12px; }
+.phead h1 { font-size: 20px; font-weight: 600; margin: 0; letter-spacing: -0.015em; }
+.phead .left { display: flex; flex-direction: column; gap: 4px; }
+.phead .acts { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+
+.rb { font: inherit; font-size: 13px; font-weight: 500; height: 32px; padding-inline: 12px; border-radius: 6px; display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--a-border); background: var(--a-surface); color: var(--a-fg); cursor: default; white-space: nowrap; }
+.rb.pri { background: var(--a-primary); border-color: var(--a-primary); color: #fff; }
+.rb.icon { width: 32px; padding: 0; justify-content: center; }
+.badge { display: inline-flex; align-items: center; height: 20px; padding-inline: 8px; border-radius: 999px; font-size: 11.5px; font-weight: 500; white-space: nowrap; }
+.b-success { background: hsla(162, 73%, 37%, 0.14); color: var(--a-success-strong); }
+.b-accent { background: hsla(252, 89%, 65%, 0.14); color: var(--a-accent-strong); }
+.b-neutral { background: hsla(217, 55%, 16%, 0.07); color: var(--a-text-2); }
+
+
+/* ================= Supply Radar (modules/supply-radar) ================= */
+:root {
+  --a-warning: hsl(38 92% 50%);
+  --a-warning-strong: hsl(32 90% 36%);
+  --a-info: hsl(210 80% 48%);
+  --st-new: #64748b; --st-contacted: #d97706; --st-qualified: #15803d;
+}
+.nrow.grp { font-weight: 600; }
+.nrow.grp .chev { transform: rotate(90deg); }
+
+/* module header (RadarAccessPage: AppFrame.Header + RadarNav) */
+.rhead { height: 56px; flex-shrink: 0; display: flex; align-items: stretch; gap: 32px; padding-inline: 20px; border-bottom: 1px solid var(--a-border-subtle); }
+.rhead h1 { margin: 0; align-self: center; font-size: 22px; font-weight: 700; letter-spacing: -0.02em; }
+.rtabs { display: flex; gap: 4px; }
+.rtabs span { display: flex; align-items: center; padding-inline: 12px; font-weight: 500; color: var(--a-text-2); border-bottom: 2px solid transparent; }
+.rtabs span.on { color: var(--a-primary-hover); border-bottom-color: var(--a-primary); }
+.rhead .ra { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+.rb.lg { height: 38px; font-size: 14px; padding-inline: 14px; font-weight: 600; }
+.rb.ghost { border-color: transparent; background: transparent; }
+.rb[disabled] { opacity: .5; }
+
+/* Today (prospects/today/*) */
+.today { flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; gap: 14px; padding: 14px 20px 0; }
+.thead { display: flex; align-items: flex-end; gap: 12px; }
+.thead .tl { flex: 1; display: flex; flex-direction: column; gap: 3px; }
+.thead h2 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.02em; }
+.thead p { margin: 0; font-size: 14px; color: var(--a-text-2); }
+.sel { height: 38px; min-width: 190px; border: 1px solid var(--a-border); border-radius: 6px; display: flex; align-items: center; gap: 6px; padding-inline: 10px; font-size: 13px; background: var(--a-surface); }
+.sel .pre { color: var(--a-text-3); }
+.sel svg.lucide { margin-left: auto; color: var(--a-icon-2); width: 14px; height: 14px; }
+.tcard { border: 1px solid var(--a-border); border-radius: 12px; background: var(--a-surface); padding: 12px 16px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.strip { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+.strip h3 { margin: 0 0 6px; font-size: 13px; font-weight: 600; }
+.strip .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.gch { display: inline-flex; align-items: center; gap: 4px; height: 28px; padding-inline: 9px; border-radius: 6px; font-weight: 500; font-size: 13px; background: var(--a-hover); }
+.gch svg.lucide { width: 13px; height: 13px; color: var(--a-icon-2); }
+.gch.err { background: hsla(348, 81%, 48%, 0.10); color: var(--a-error); }
+.gch.err svg.lucide { color: var(--a-error); }
+.prog { height: 8px; border-radius: 999px; background: var(--a-hover); margin-top: 8px; overflow: hidden; }
+.prog i { display: block; height: 100%; background: var(--a-primary); border-radius: 999px; }
+.tcols { flex: 1; min-height: 0; display: flex; gap: 14px; align-items: flex-start; }
+.tcols .lc { flex: 1; min-width: 0; }
+.tcols .rc { width: 400px; flex-shrink: 0; display: flex; flex-direction: column; gap: 12px; }
+.ch { display: flex; align-items: flex-start; gap: 10px; min-width: 0; }
+.ch .ic { height: 26px; display: flex; align-items: center; }
+.ch .ic svg.lucide { width: 20px; height: 20px; }
+.ch .tt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.ch .tt .r { display: flex; align-items: center; gap: 8px; min-height: 26px; }
+.ch h4 { margin: 0; font-size: 16px; font-weight: 600; }
+.ch h4.lg { font-size: 18px; }
+.ch .tt p { margin: 0; font-size: 12.5px; color: var(--a-text-2); }
+.cnt { display: inline-flex; align-items: center; height: 19px; padding-inline: 7px; border-radius: 999px; font-size: 11px; font-weight: 600; background: hsla(217, 55%, 16%, 0.07); color: var(--a-text-2); }
+.cnt.err { background: hsla(348, 81%, 48%, 0.12); color: var(--a-error); }
+.ulink { color: var(--a-primary-hover); text-decoration: underline; text-underline-offset: 2px; font-weight: 500; font-size: 12.5px; display: inline-flex; align-items: center; gap: 4px; }
+.ulink svg.lucide { width: 14px; height: 14px; }
+.toolbar { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.srch { height: 32px; width: 210px; border: 1px solid var(--a-border); border-radius: 6px; display: flex; align-items: center; gap: 6px; padding-inline: 9px; color: var(--a-text-3); font-size: 12.5px; }
+.srch svg.lucide { width: 14px; height: 14px; }
+.cb { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; }
+.cb i { width: 15px; height: 15px; border-radius: 4px; border: 1.5px solid var(--a-border); display: inline-block; }
+.cb i.on { background: var(--a-primary); border-color: var(--a-primary); }
+.glabel { display: flex; align-items: center; gap: 8px; min-height: 30px; color: var(--a-primary-hover); font-weight: 600; font-size: 14px; }
+.glabel.err { color: var(--a-error); }
+.glabel svg.lucide { width: 15px; height: 15px; }
+.rows > * + * { border-top: 1px solid var(--a-border-subtle); }
+.trow { display: flex; align-items: flex-start; gap: 10px; padding: 8px 0; }
+.trow .cbx { margin-top: 9px; }
+.tbox { width: 72px; flex-shrink: 0; border-radius: 6px; background: var(--a-muted-solid); padding: 9px 4px; text-align: center; font-size: 11px; font-weight: 600; text-transform: uppercase; color: var(--a-text-2); }
+.tbox.late { background: hsla(348, 81%, 48%, 0.10); color: var(--a-error); }
+.trow .bd { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.trow .t1 { display: flex; align-items: center; gap: 7px; font-size: 14px; font-weight: 500; }
+.trow .t1 svg.lucide { width: 15px; height: 15px; color: var(--a-text-3); }
+.trow .t2 { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--a-text-2); flex-wrap: wrap; }
+.plink { color: var(--a-primary-hover); font-weight: 500; }
+.trow .t2 small { font-size: 11.5px; color: var(--a-text-3); }
+.trow .acts { display: flex; align-items: center; gap: 4px; }
+.chip { display: inline-flex; align-items: center; height: 21px; padding-inline: 8px; border-radius: 999px; font-size: 11.5px; font-weight: 500; }
+.chip.new { background: hsla(215, 16%, 47%, 0.13); color: hsl(215 19% 35%); }
+.chip.contacted { background: hsla(38, 92%, 50%, 0.16); color: var(--a-warning-strong); }
+.chip.qualified { background: hsla(162, 73%, 37%, 0.14); color: var(--a-success-strong); }
+.bwarn { display: inline-flex; align-items: center; height: 20px; padding-inline: 7px; border-radius: 999px; font-size: 11px; font-weight: 500; background: hsla(38, 92%, 50%, 0.16); color: var(--a-warning-strong); }
+.nowln { display: flex; align-items: center; gap: 8px; padding: 4px 0; color: var(--a-primary-hover); font-size: 12.5px; font-weight: 500; }
+.nowln i { flex: 1; height: 1px; background: var(--a-primary); }
+.orow { display: flex; align-items: center; gap: 10px; min-height: 46px; padding: 5px 0; }
+.orow .bd { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.orow .bd a, .orow .bd .plink { font-size: 14px; }
+.orow .bd span.s { font-size: 12.5px; color: var(--a-text-2); }
+.orow .bd span.w { font-size: 12.5px; color: var(--a-warning-strong); }
+.orow .mi { font-size: 14px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.rc .rows { border-top: 1px solid var(--a-border-subtle); }
+.rc .tcard { padding: 10px 14px; gap: 6px; }
+.rc .orow { min-height: 40px; padding: 3px 0; }
+.rb.out { height: 30px; font-size: 12.5px; }
+.rb.out svg.lucide { width: 14px; height: 14px; }
+
+/* prospect page (ProspectSections, ProspectHeader, StageTrack, HeaderActions) */
+.prs { flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; gap: 16px; padding: 0 20px; }
+.phd { display: flex; flex-direction: column; gap: 10px; padding-top: 14px; border-bottom: 1px solid var(--a-border); }
+.phd .r1 { display: flex; align-items: center; gap: 16px; }
+.phd .bk { width: 32px; height: 32px; border-radius: 8px; display: grid; place-items: center; }
+.phd .bk svg.lucide { width: 18px; height: 18px; }
+.phd .nm { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.phd .nm .a { display: flex; align-items: center; gap: 8px; }
+.phd h2 { margin: 0; font-size: 21px; font-weight: 700; letter-spacing: -0.015em; }
+.phd .meta { display: flex; align-items: center; gap: 12px; font-size: 12px; color: var(--a-text-2); }
+.phd .meta span { display: inline-flex; align-items: center; gap: 4px; }
+.phd .meta svg.lucide { width: 13px; height: 13px; }
+.trk { width: 320px; flex-shrink: 0; display: flex; margin: 0; padding: 0; list-style: none; }
+.trk li { position: relative; flex: 1; display: flex; flex-direction: column; align-items: center; gap: 5px; }
+.trk li .ln { position: absolute; top: 10px; height: 2px; right: calc(50% + 16px); width: calc(100% - 32px); background: var(--a-border); transform: translateY(-50%); }
+.trk .dot { width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; font-size: 11px; font-weight: 600; border: 1px solid var(--a-border); color: var(--a-text-2); background: var(--a-surface); position: relative; }
+.trk .dot.fill { color: #fff; border-color: transparent; }
+.trk .dot.cur { box-shadow: 0 0 0 2px var(--a-surface), 0 0 0 4px hsla(183, 100%, 33%, 0.22); }
+.trk .lb { font-size: 12.5px; font-weight: 500; color: var(--a-text-2); }
+.trk .lb.cur { font-weight: 600; }
+.trk .dy { font-size: 11px; color: var(--a-text-3); margin-top: -3px; }
+.splitb { display: inline-flex; }
+.splitb .rb:first-child { border-radius: 6px 0 0 6px; }
+.splitb .rb:last-child { border-radius: 0 6px 6px 0; width: 32px; padding: 0; justify-content: center; border-left-color: rgba(255,255,255,.25); }
+.ptabs { display: flex; gap: 2px; }
+.ptabs span { padding: 8px 12px 10px; font-weight: 500; color: var(--a-text-2); border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.ptabs span.on { color: var(--a-primary-hover); border-bottom-color: var(--a-primary); }
+.ovw { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
+.ovw .col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.ocard { border: 1px solid var(--a-border); border-radius: 12px; padding: 14px 18px; display: flex; flex-direction: column; gap: 10px; }
+.ocard .hd { display: flex; align-items: center; justify-content: space-between; }
+.ocard h3 { margin: 0; font-size: 15px; font-weight: 600; }
+.ocard .hd .ulink { text-decoration: none; }
+.ctc { display: flex; flex-direction: column; gap: 2px; }
+.ctc b { font-weight: 600; display: flex; align-items: center; gap: 6px; }
+.ctc small { color: var(--a-text-2); font-size: 12.5px; }
+.facts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 16px; margin: 0; }
+.facts dt { font-size: 11.5px; color: var(--a-text-3); }
+.facts dd { margin: 2px 0 0; font-size: 13px; }
+.nst { display: flex; align-items: center; gap: 12px; }
+.nst .ci { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: var(--a-primary-subtle); color: var(--a-primary-hover); flex-shrink: 0; }
+.nst .ci svg.lucide { width: 20px; height: 20px; }
+.nst small.k { font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--a-primary-hover); }
+.nst b { display: block; font-size: 15px; font-weight: 600; }
+.nst p { margin: 0; font-size: 12.5px; color: var(--a-text-2); }
+.pbook { border-left: 1px solid var(--a-border-subtle); padding-left: 16px; display: flex; flex-direction: column; gap: 3px; }
+.pbook small { font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--a-text-3); }
+.pbook p { margin: 0; font-size: 13px; }
+
+/* timeline (activity-timeline/ActivityTimeline, TimelineEntry) */
+.tlw { display: flex; flex-direction: column; gap: 10px; }
+.tlw h3 { margin: 0; font-size: 15px; font-weight: 600; }
+.seg { display: inline-flex; border: 1px solid var(--a-border); border-radius: 6px; overflow: hidden; }
+.seg span { height: 30px; display: flex; align-items: center; padding-inline: 12px; font-size: 12.5px; font-weight: 500; }
+.seg span + span { border-left: 1px solid var(--a-border); }
+.seg span.on { background: var(--a-nav-selected); color: #fff; }
+.tlbox { border: 1px solid var(--a-border); border-radius: 12px; overflow: hidden; }
+.tlbox h4.day { margin: 0; background: var(--a-muted-solid); padding: 7px 18px; font-size: 13px; font-weight: 600; }
+.tlbox ol { margin: 0; padding: 0; list-style: none; }
+.tle { position: relative; display: flex; gap: 14px; padding: 10px 18px; border-top: 1px solid var(--a-border-subtle); }
+.tlbox ol .tle:first-child { border-top: 0; }
+.tle .av2 { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; flex-shrink: 0; position: relative; }
+.tle .av2 svg.lucide { width: 17px; height: 17px; }
+.tle .av2.primary { background: var(--a-primary); color: #fff; }
+.tle .av2.info { background: var(--a-info); color: #fff; }
+.tle .av2.neutral { background: var(--a-muted-solid); color: var(--a-text-2); border: 1px solid var(--a-border-subtle); }
+.tle .bd { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.tle .mt { font-size: 12px; color: var(--a-text-2); display: flex; gap: 6px; align-items: center; }
+.tle h5 { margin: 0; font-size: 13.5px; font-weight: 600; }
+.tle p { margin: 0; font-size: 13px; }
+.tle .det { font-size: 12.5px; color: var(--a-primary-hover); display: inline-flex; align-items: center; gap: 2px; align-self: flex-start; }
+.tle .det svg.lucide { width: 14px; height: 14px; }
+.tle .chg { display: flex; align-items: center; gap: 6px; font-size: 12.5px; }
+
+/* check-in dialog (check-in/CheckInPage, CheckInLocationBanner, CheckInChoice) */
+.scrim { position: absolute; inset: 0; background: rgba(15, 23, 42, 0.42); z-index: 5; display: grid; place-items: center; }
+.dlg { width: 880px; background: var(--a-surface); border-radius: 12px; box-shadow: 0 24px 60px rgba(12, 20, 34, 0.35); display: flex; flex-direction: column; animation: pop .2s ease; }
+.dlg .dh { display: flex; align-items: flex-start; gap: 12px; padding: 16px 20px 12px; border-bottom: 1px solid var(--a-border-subtle); }
+.dlg .dh .tt { flex: 1; }
+.dlg .dh h3 { margin: 0; font-size: 17px; font-weight: 600; }
+.dlg .dh p { margin: 3px 0 0; font-size: 13px; color: var(--a-text-2); }
+.dlg .dh .x { width: 28px; height: 28px; display: grid; place-items: center; border-radius: 6px; color: var(--a-icon-2); }
+.dlg .db { padding: 16px 20px; display: flex; flex-direction: column; gap: 14px; }
+.dlg .df { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 20px; border-top: 1px solid var(--a-border-subtle); }
+.dlg .df .rb { height: 36px; padding-inline: 16px; }
+.cih { display: flex; flex-direction: column; gap: 3px; }
+.cih .a { display: flex; align-items: center; gap: 8px; }
+.cih h2 { margin: 0; font-size: 18px; font-weight: 600; }
+.cih span, .cih p { margin: 0; font-size: 13px; color: var(--a-text-2); }
+.lban { display: flex; gap: 12px; align-items: flex-start; border-radius: 8px; padding: 11px 14px; border: 1px solid hsla(162, 73%, 37%, 0.4); background: hsla(162, 73%, 37%, 0.10); }
+.lban svg.lucide { width: 20px; height: 20px; color: var(--a-success); margin-top: 1px; }
+.lban b { display: block; font-size: 13px; font-weight: 600; }
+.lban span { font-size: 13px; color: var(--a-text-2); }
+.visit { border: 1px solid var(--a-border); border-radius: 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 32px; padding: 18px; }
+.visit .c { display: flex; flex-direction: column; gap: 18px; }
+.visit .c + .c { border-left: 1px solid var(--a-border-subtle); padding-left: 32px; }
+.visit h4 { margin: 0; font-size: 15px; font-weight: 600; }
+.visit .sub { margin: 2px 0 0; font-size: 12.5px; color: var(--a-text-2); }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+.choice { min-height: 46px; display: flex; align-items: center; gap: 10px; border: 1px solid var(--a-border); border-radius: 8px; padding: 8px 12px; font-size: 13px; }
+.choice i { width: 18px; height: 18px; border-radius: 50%; border: 1px solid var(--a-text-2); display: grid; place-items: center; flex-shrink: 0; }
+.choice.on { border-color: var(--a-primary); background: var(--a-primary-subtle); color: var(--a-primary-hover); }
+.choice.on i { border-color: var(--a-primary); }
+.choice.on i::after { content: ""; width: 10px; height: 10px; border-radius: 50%; background: var(--a-primary); }
+.notes { display: flex; flex-direction: column; gap: 8px; }
+.notes .lr { display: flex; align-items: center; justify-content: space-between; }
+.notes label { font-size: 13px; font-weight: 600; display: flex; gap: 8px; align-items: baseline; }
+.notes label small { font-size: 11.5px; font-weight: 400; color: var(--a-text-2); }
+.notes .ta { min-height: 84px; border: 1px solid var(--a-border); border-radius: 6px; padding: 8px 10px; font-size: 13px; line-height: 1.45; }
+.notes .ta.ph { color: var(--a-text-3); }
+.dict { display: inline-flex; align-items: center; gap: 5px; height: 28px; padding-inline: 9px; border-radius: 6px; font-size: 12.5px; font-weight: 500; color: var(--a-primary-hover); }
+.dict svg.lucide { width: 14px; height: 14px; }
+.mv { display: flex; flex-direction: column; gap: 2px; }
+.mv small { padding-left: 23px; font-size: 11.5px; color: var(--a-text-2); }
+
+/* intro / outro */
+.cover { position: absolute; inset: 0; background: rgba(248, 250, 252, 0.88); backdrop-filter: blur(3px); display: grid; place-items: center; z-index: 10; }
+.cover .card { width: 700px; display: flex; flex-direction: column; gap: 14px; align-items: flex-start; }
+.cover .eyebrow { font-size: 13px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--a-primary-hover); display: flex; align-items: center; gap: 8px; }
+.cover h2 { margin: 0; font-size: 40px; line-height: 1.12; letter-spacing: -0.025em; font-weight: 700; text-wrap: balance; }
+.cover p { margin: 0; font-size: 17px; line-height: 1.55; color: var(--a-text-2); max-width: 620px; }
+.cover .chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.cover .chips code { font-family: var(--mono); font-size: 14px; padding: 5px 10px; border-radius: 6px; background: var(--a-surface); border: 1px solid var(--a-border); }
+.cover .cta { display: flex; gap: 10px; margin-top: 8px; }
+.cover .go { font: inherit; font-size: 15px; font-weight: 600; height: 44px; padding-inline: 20px; border-radius: 8px; border: 0; background: var(--a-primary); color: #fff; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; text-decoration: none; }
+.cover .go.sec { background: var(--a-surface); color: var(--a-fg); border: 1px solid var(--a-border); }
+.cover .go:hover { background: var(--a-primary-hover); }
+.cover .go.sec:hover { background: var(--a-muted-solid); }
+.cover .go svg.lucide { width: 18px; height: 18px; }
+.cover .go:focus-visible { outline: 3px solid var(--a-primary); outline-offset: 2px; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+</style>
+
+<div class="wrap">
+  <div class="head">
+    <div class="brand" id="brand"></div>
+    <div class="tag">Interactive demo · Web console</div>
+  </div>
+
+  <div class="frame">
+    <div class="bar">
+      <div class="dots"><i></i><i></i><i></i></div>
+      <div class="url"><i data-lucide="lock"></i><span id="url">app.respark.com</span></div>
+      <div style="width:42px"></div>
+      <div class="progress" id="progress"></div>
+    </div>
+    <div class="stage" id="stage">
+      <div class="canvas" id="canvas"></div>
+      <div class="overlay" id="overlay"></div>
+    </div>
+  </div>
+
+  <div class="caption" id="caption" aria-live="polite"></div>
+
+  <div class="controls">
+    <button class="btn" id="back" type="button"><i data-lucide="arrow-left"></i>Back</button>
+    <div class="pips" id="pips" role="tablist" aria-label="Demo steps"></div>
+    <span class="count" id="count"></span>
+    <button class="btn primary" id="next" type="button">Next<i data-lucide="arrow-right"></i></button>
+  </div>
+  <div class="hint">Click the pulsing dot, or use <kbd>←</kbd> <kbd>→</kbd></div>
+</div>
+
+<script>
+(() => {
+  const W = 1440, H = 820;
+  const MARK = '<svg class="mark" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M152.38 13.33C171.29 13.33 186.67 28.71 186.67 47.62V152.38C186.67 171.29 171.29 186.67 152.38 186.67H47.62C28.71 186.67 13.33 171.29 13.33 152.38V47.62C13.33 28.71 28.71 13.33 47.62 13.33H152.38ZM152.38 0H47.62C21.32 0 0 21.32 0 47.62V152.38C0 178.68 21.32 200 47.62 200H152.38C178.68 200 200 178.68 200 152.38V47.62C200 21.32 178.68 0 152.38 0Z" fill="#00C9D4"/><path d="M93.39 62.1C89.98 59.66 84.7 58.7 80.99 58.69L26.11 58.74L44.28 71.71H82.53C83.21 71.71 83.79 71.96 84.24 72.29C85.21 72.98 85.5 74.27 84.5 75.67L72.84 92.1L84.25 100.24L96.2 83.46C101.27 76.35 101.05 67.54 93.42 62.1L93.4 62.08Z" fill="currentColor"/><path d="M49.21 102.91C53.53 102.91 58.53 105.26 61.64 107.48L107.62 140.38H84.65L52.58 117.49C52.03 117.05 51.38 116.94 50.8 116.94C49.57 116.94 48.56 117.84 48.56 119.62L48.53 140.38H34.11V119.16C34.11 110.16 39.55 102.91 49.19 102.91Z" fill="currentColor"/><path d="M166.27 115.45V103.76C166.27 96.91 164.14 91.42 159.86 87.3C155.58 83.18 149.91 81.1 142.82 81.1H133.49C128.74 81.1 124.57 82.06 120.95 83.97C117.32 85.88 114.54 88.56 112.55 92.02C110.56 95.49 109.58 99.5 109.58 104.01V119.65C109.58 123.94 110.56 127.7 112.55 130.98C114.54 134.26 117.3 136.82 120.92 138.62C124.55 140.39 128.72 141.3 133.46 141.3H142.32C149.41 141.3 155.11 139.5 159.47 135.92C163.83 132.34 166.02 127.59 166.02 121.67H152.85C152.85 124.15 151.9 126.15 149.99 127.68C148.08 129.18 145.57 129.95 142.46 129.95H133.49C130.3 129.95 127.76 128.99 125.85 127.14C123.94 125.26 122.99 122.77 122.99 119.66V115.46H166.27ZM122.72 105.4V104.34C122.72 100.76 123.7 97.84 125.69 95.63C127.65 93.42 130.24 92.3 133.43 92.3H142.89C145.94 92.3 148.37 93.36 150.25 95.47C152.13 97.57 153.06 100.36 153.06 103.77V105.41H122.71Z" fill="currentColor"/></svg>';
+  document.getElementById('brand').innerHTML = MARK + '<span>ReSpark</span>';
+
+  const ic = (n, extra = '') => `<i data-lucide="${n}" ${extra}></i>`;
+
+  // Sample data (illustrative, all names made up). Jordan Pike, a buyer at
+  // North Yard, works the Today tab, then checks in at Delta Fabrication.
+  // Everything on screen follows greenspark-aws, branch
+  // feature/supply-radar-v2-12-local-e2e, modules/supply-radar:
+  //  - shell + tabs: _components/RadarAccessPage (RadarNav: Today / Explore / Pipeline / Reports)
+  //  - Today: prospects/today/RadarTodayPage, TodayHeader (+ TodayOwnerPicker, useOpenNearMe),
+  //    TodaySummaryStrip, TodayTasksSection, TodayTaskRow, TodayTaskToolbar, TodayCard,
+  //    TodayOpportunitySection + TodayOpportunityRow (No tasks planned, Going stale),
+  //    TodayNearbySection (Near your route)
+  //  - prospect: prospects/ProspectSections, ProspectHeader, prospect-header/StageTrack,
+  //    prospect-header/HeaderActions (+ check-in/CheckInButton), overview/ProspectOverview,
+  //    next-step/NextStepRow, detail-editors/ProspectContacts, overview/KeyFactsCard
+  //  - check-in: prospects/check-in/CheckInPage, CheckInLocationBanner, CheckInChoice,
+  //    _hooks/useDictation; _state/check-in-state (chips, next-step presets, save order)
+  //  - after save: activity-timeline/ActivityTimeline + TimelineEntry (+ _utils/changeLine).
+  //    The New to Contacted move on a first contact is server side:
+  //    backend/supply-radar/src/02-application/use-cases/activities.ts (stageChanged).
+  // The Today tab's "Plan route" and "Open map" both open Explore in near-me mode.
+  const U_TODAY = '/app/supply-radar', U_PROS = '/app/supply-radar/prospects/1187', U_CHECK = '/app/supply-radar/check-in/1187';
+  const PROSPECT = 'Delta Fabrication';
+  const STEPS = [
+    { cover: 'intro', view: 'today', url: U_TODAY },
+    { view: 'today', t: '#sum', place: 'bottom', url: U_TODAY,
+      tip: '<b>Today’s priorities</b> opens with your counts: tasks done so far and anything late, deals that need attention, and your touches this week compared with last week.' },
+    { view: 'today', t: '#myday', place: 'right', url: U_TODAY,
+      tip: '<b>My Day</b> lists your tasks: <b>Carried over</b> from earlier days, <b>Today’s schedule</b> with a line for the current time, and <b>Anytime today</b>. Each one has its own log button.' },
+    { view: 'today', t: '#nearby', place: 'left', url: U_TODAY,
+      tip: '<b>Near your route</b> shows prospects you haven’t visited yet, with their distance. <b>Open map</b> and <b>Plan route</b> both open the Explore map around you.' },
+    { view: 'today', t: '#stale', place: 'left', url: U_TODAY,
+      tip: '<b>Going stale</b> lists deals at their stage limit or within two days of it. Use <b>Plan task</b> to give one a next step.' },
+    { view: 'today', t: '#visit-link', place: 'right', url: U_TODAY,
+      tip: 'Your 10:30 visit is at <b>Delta Fabrication</b>. Click the prospect name to open it.' },
+    { view: 'prospect', t: '#checkin', place: 'bottom', url: U_PROS,
+      tip: 'Delta Fabrication is still <b>New</b>. When you get to the site, click <b>Check in</b>.' },
+    { view: 'checkin', ci: 0, t: '#ci-banner', place: 'bottom', url: U_CHECK,
+      tip: 'The check-in compares your location with the site’s map pin. Within half a mile, it shows <b>Location confirmed</b> and saves that location with the visit.' },
+    { view: 'checkin', ci: 1, t: '#ci-outcome', place: 'right', url: U_CHECK,
+      tip: 'Under <b>How did it go?</b>, pick one outcome: <b>Met the contact</b>, <b>Left a price card</b>, <b>Nobody there</b> or <b>Not interested</b>.' },
+    { view: 'checkin', ci: 2, t: '#ci-next', place: 'bottom', url: U_CHECK,
+      tip: 'Choose the <b>Next step</b>: <b>Call in 1 week</b>, <b>Visit in 2 weeks</b>, <b>Pick a date</b> or <b>None</b>. It becomes a task assigned to you.' },
+    { view: 'checkin', ci: 3, t: '#ci-notes', place: 'right', url: U_CHECK,
+      tip: 'Add <b>Notes</b> if you want, or click <b>Dictate</b> and speak them where your browser supports it.' },
+    { view: 'checkin', ci: 3, t: '#ci-save', place: 'top', url: U_CHECK,
+      tip: 'Click <b>Save visit</b>. The visit is logged and the next-step task is planned in one go.' },
+    { view: 'prospect', saved: true, t: '#tl-visit', place: 'top', url: U_PROS,
+      tip: 'Back on the prospect, the <b>Timeline</b> shows the <b>Visit</b> with its outcome and notes, plus the new task. Since this was the first contact, Delta Fabrication moved from <b>New</b> to <b>Contacted</b>.' },
+    { cover: 'outro', view: 'prospect', saved: true, url: U_PROS },
+  ];
+
+  // ---------- chrome ----------
+  function sidebar() {
+    const row = (i, l, extra = '', cls = '') => `<div class="nrow${cls}">${ic(i)}<span>${l}</span>${extra || ic('chevron-right', 'class="chev"')}</div>`;
+    const sub = (i, l, cls = '') => `<div class="nrow sub${cls}">${ic(i)}<span>${l}</span></div>`;
+    return `<aside class="side">
+      <div class="top">${MARK}<div class="yard"><span>North Yard</span>${ic('chevrons-up-down')}</div></div>
+      <div class="nav">
+        ${row('inbox', 'Inbox', '<span class="pill">3</span>')}
+        ${row('messages-square', 'ScrapChat', ' ')}
+        <div class="cmd" style="margin:2px 0">${ic('search')}<span>Search &amp; actions</span><kbd>⌘K</kbd></div>
+        <div class="nsep"></div>
+        ${row('radar', 'Supply Radar', '', ' grp')}
+        <div class="nrow sub active" style="padding-left:30px">${ic('radar')}<span>Supply Radar</span></div>
+        ${row('shopping-cart', 'Purchases')}${row('tag', 'Sales')}${row('file-text', 'Contracts')}${row('boxes', 'Inventory')}
+        ${row('users', 'Customers')}${row('layers', 'Commodities')}${row('truck', 'Logistics')}${row('warehouse', 'Assets')}${row('chart-column', 'Reports')}
+      </div>
+      <div class="foot"><div class="av">JP</div><div class="who"><span>Jordan Pike</span><small>Buyer</small></div>
+        <div class="ico"><span>${ic('settings')}</span><span>${ic('circle-help')}</span></div></div>
+    </aside>`;
+  }
+
+  const chip = st => `<span class="chip ${st.toLowerCase()}">${st}</span>`;
+  const TYPE_ICON = { Call: 'phone', Text: 'message-square', Visit: 'building-2', Email: 'mail', Other: 'list-todo' };
+
+  // ---------- Today ----------
+  // [id, type, title, prospect, stage, time box, meta, late text]
+  const CARRIED = [
+    { type: 'Call', title: 'Call about the roll-off swap', p: 'Ridgeview Contractors', st: 'Contacted', box: '1d late', late: true, was: 'was due Mon, Nov 2', meta: '18 t/mo · Steel' },
+  ];
+  const TIMED = [
+    { id: 'visit', type: 'Visit', title: 'Walk the shop and count the bins', p: PROSPECT, st: 'New', box: '10:30 AM', meta: '6 t/mo · Aluminum' },
+    { type: 'Email', title: 'Send pickup schedule', p: 'Coastal Demolition', st: 'Qualified', box: '1:00 PM', meta: '40 t/mo · Steel' },
+    { type: 'Text', title: 'Text', p: 'Pine Street Auto Repair', st: 'Contacted', box: '3:30 PM', meta: '3 t/mo · Mixed metals' },
+  ];
+  const ANYTIME = [
+    { type: 'Call', title: 'Call', p: 'Kessler Tool & Die', st: 'New', box: 'Any time', meta: '' },
+  ];
+
+  function taskRow(t) {
+    const log = t.type === 'Other' ? 'activity' : t.type.toLowerCase();
+    return `<div class="trow"><span class="cbx"></span>
+      <span class="tbox${t.late ? ' late' : ''}">${t.box}</span>
+      <div class="bd">
+        <div class="t1">${ic(TYPE_ICON[t.type])}<span>${t.title}</span></div>
+        <div class="t2"><span class="plink"${t.id === 'visit' ? ' id="visit-link"' : ''}>${t.p}</span><span>North Yard</span>${t.was ? `<small>${t.was}</small>` : ''}</div>
+        <div class="t2">${chip(t.st)}${t.meta ? `<small>${t.meta}</small>` : ''}</div>
+      </div>
+      <div class="acts"><span class="rb out">Log ${log}</span>${t.late ? '<span class="rb out ghost">Reschedule</span>' : ''}<span class="rb icon ghost">${ic('ellipsis-vertical')}</span></div>
+    </div>`;
+  }
+
+  function today() {
+    const header = `<div class="rhead"><h1>Supply Radar</h1>
+      <div class="rtabs"><span class="on">Today</span><span>Explore</span><span>Pipeline</span><span>Reports</span></div>
+      <div class="ra"><span class="rb icon">${ic('settings')}</span><span class="rb icon">${ic('refresh-cw')}</span><span class="rb">${ic('plus')}Add prospect</span></div></div>`;
+    const top = `<div class="thead"><div class="tl"><h2>Today’s priorities</h2><p>Tuesday, Nov 3 · North Yard</p></div>
+      <div class="sel"><span class="pre">Assigned to:</span><span>Me</span>${ic('chevron-down')}</div>
+      <span class="rb pri lg" id="plan-route">${ic('map-pin')}Plan route</span></div>`;
+    const strip = `<section class="tcard strip" id="sum">
+      <div><h3>Today</h3><div class="chips"><span class="gch">1 of 6 done${ic('chevron-right')}</span><span class="gch err">1 late${ic('chevron-right')}</span></div><div class="prog"><i style="width:17%"></i></div></div>
+      <div><h3>Needs attention</h3><div class="chips"><span class="gch">2 no tasks planned${ic('chevron-right')}</span><span class="gch">2 stale or close${ic('chevron-right')}</span></div></div>
+      <div><h3>This week</h3><div class="chips"><span class="gch">14 touches${ic('arrow-up')} from 9 last week${ic('chevron-right')}</span><span class="gch">Qualified 2${ic('chevron-right')}</span></div></div>
+    </section>`;
+    const glabel = (icon, l, n, err) => `<div class="glabel${err ? ' err' : ''}">${ic(icon)}<span>${l}</span><span class="cnt${err ? ' err' : ''}">${n}</span></div>`;
+    const myday = `<section class="tcard" id="myday">
+      <div class="ch"><div class="tt"><div class="r"><h4 class="lg">My Day</h4><span class="cnt">5</span></div></div>
+        <div class="toolbar"><span class="srch">${ic('search')}Search tasks or prospects</span><span class="cb"><i></i>Show done</span><span class="rb out">${ic('sliders-horizontal')}Filters</span></div></div>
+      <div>${glabel('clock', 'Carried over', 1, true)}<div class="rows">${CARRIED.map(taskRow).join('')}</div></div>
+      <div>${glabel('calendar-clock', 'Today’s schedule', 3)}<div class="nowln"><span>Now 10:12 AM</span><i></i></div><div class="rows">${TIMED.map(taskRow).join('')}</div></div>
+      <div>${glabel('sun', 'Anytime today', 1)}<div class="rows">${ANYTIME.map(taskRow).join('')}</div></div>
+    </section>`;
+    const orow = (name, detail, warn, action) => `<div class="orow"><div class="bd"><span class="plink">${name}</span><span class="${warn ? 'w' : 's'}">${detail}</span></div>${action}</div>`;
+    const plan = `<span class="rb out">${ic('plus')}Plan task</span>`;
+    const noNext = `<section class="tcard" id="nonext">
+      <div class="ch"><span class="ic" style="color:var(--a-warning-strong)">${ic('triangle-alert')}</span><div class="tt"><div class="r"><h4>No tasks planned</h4><span class="cnt">2</span></div><p>Keep each prospect moving</p></div></div>
+      <div class="rows">${orow('Summit Roofing Supply', 'Contacted', false, plan)}${orow('Oakridge HVAC', 'New', false, plan)}</div>
+    </section>`;
+    const near = `<section class="tcard" id="nearby">
+      <div class="ch"><span class="ic" style="color:var(--a-primary)">${ic('map-pin')}</span><div class="tt"><div class="r"><h4>Near your route</h4></div><p>Prospects you haven’t visited</p></div><span class="ulink">Open map</span></div>
+      <div class="rows">${orow('Millbrook Fabrication', 'New', false, '<span class="mi">0.4 mi</span>')}${orow('Eastgate Auto Salvage', 'Contacted', false, '<span class="mi">1.2 mi</span>')}${orow('Grant Street Electric', 'New', false, '<span class="mi">2.8 mi</span>')}</div>
+    </section>`;
+    const stale = `<section class="tcard" id="stale">
+      <div class="ch"><span class="ic" style="color:var(--a-warning-strong)">${ic('clock')}</span><div class="tt"><div class="r"><h4>Going stale</h4><span class="cnt">2</span></div><p>At their stage limit or within two days</p></div></div>
+      <div class="rows">${orow('Ridgeview Contractors', '13 days in Contacted · limit 14', true, plan)}${orow('Marlow Plumbing Supply', '21 days in Qualified · limit 21', true, plan)}</div>
+      <span class="ulink">View pipeline${ic('arrow-right')}</span>
+    </section>`;
+    return `<main class="main">${header}<div class="today">${top}${strip}
+      <div class="tcols"><div class="lc">${myday}</div><div class="rc">${noNext}${near}${stale}</div></div></div></main>`;
+  }
+
+  // ---------- prospect ----------
+  function stageTrack(stage) {
+    const steps = ['New', 'Contacted', 'Qualified', 'Won'];
+    const color = { New: 'var(--st-new)', Contacted: 'var(--st-contacted)', Qualified: 'var(--st-qualified)', Won: 'var(--a-success)' };
+    const cur = steps.indexOf(stage);
+    return `<ol class="trk" id="stage-track" aria-label="Stage">${steps.map((s, i) => {
+      const reached = i <= cur, isCur = i === cur;
+      const ln = i > 0 ? `<span class="ln"${reached ? ` style="background:${color[s]}"` : ''}></span>` : '';
+      return `<li>${ln}<span class="dot${reached ? ' fill' : ''}${isCur ? ' cur' : ''}"${reached ? ` style="background:${color[s]}"` : ''}>${i + 1}</span>
+        <span class="lb${isCur ? ' cur' : ''}"${reached ? ` style="color:${color[s]}"` : ''}>${i === 3 ? 'Closed' : s}</span>${isCur ? `<span class="dy">${stage === 'New' ? '5 days' : '0 days'}</span>` : ''}</li>`;
+    }).join('')}</ol>`;
+  }
+
+  function prospect(s) {
+    const stage = s.saved ? 'Contacted' : 'New';
+    const next = stage === 'New' ? 'Mark contacted' : 'Mark qualified';
+    const head = `<header class="phd"><div class="r1">
+        <span class="bk">${ic('arrow-left')}</span>
+        <div class="nm"><div class="a"><h2>${PROSPECT}</h2><span class="badge b-neutral">Business</span><span class="badge b-neutral">Machine shop</span></div>
+          <div class="meta"><span>${ic('map-pin')}Main shop, 1420 Foundry Rd</span><span>${ic('user-round')}Jordan Pike</span></div></div>
+        ${stageTrack(stage)}
+        <div style="display:flex;gap:8px;align-items:center"><span class="rb" id="checkin">${ic('map-pin')}Check in</span>
+          <span class="splitb"><span class="rb pri">${next}</span><span class="rb pri">${ic('chevron-down')}</span></span>
+          <span class="rb icon ghost">${ic('ellipsis')}</span></div>
+      </div>
+      <div class="ptabs"><span${s.saved ? '' : ' class="on"'}>Overview</span><span>Opportunities (1)</span><span>Locations (1)</span><span${s.saved ? ' class="on"' : ''}>Timeline</span></div></header>`;
+    const overview = `<div class="ovw">
+      <div class="col">
+        <section class="ocard"><div class="hd"><h3>Contacts</h3><span class="ulink">${ic('plus')}Add</span></div>
+          <div class="ctc"><b>Dana Ruiz <span class="badge b-accent">Primary Contact</span></b><small>Shop manager · (555) 014-2290</small></div></section>
+        <section class="ocard"><div class="hd"><h3>Company details</h3><span class="ulink">Edit</span></div>
+          <dl class="facts"><div><dt>Website</dt><dd>deltafab.example</dd></div><div><dt>Business type</dt><dd>Machine shop</dd></div>
+          <div><dt>Main commodity</dt><dd>Aluminum</dd></div><div><dt>Estimated volume</dt><dd>6 t/mo</dd></div></dl></section>
+      </div>
+      <div class="col">
+        <section class="ocard"><div class="hd"><h3 style="font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--a-primary-hover)">Next step</h3></div>
+          <div class="nst"><span class="ci">${ic('map-pin')}</span><div><b>Walk the shop and count the bins</b><p>Visit · 10:30 · Due Tuesday, Nov 3 · owner: you</p></div></div>
+          <div class="pbook"><small>Playbook</small><p>Visit the site. Count the bins and ask who hauls their scrap today.</p></div>
+          <div><span class="rb">Reschedule</span></div></section>
+      </div></div>`;
+    const entry = (id, tone, icon, time, title, body) => `<li class="tle"${id ? ` id="${id}"` : ''}><span class="av2 ${tone}">${ic(icon)}</span>
+      <div class="bd"><div class="mt"><span>${time}</span><span>·</span><span>Jordan Pike (Buyer)</span></div><h5>${title}</h5>${body}</div>
+      <span class="det">Details${ic('chevron-right')}</span></li>`;
+    const timeline = `<div class="tlw"><h3>Activity history · 4 entries</h3>
+      <div><span class="seg"><span class="on">All</span><span>Activities</span><span>Changes</span><span>Tasks</span></span></div>
+      <div class="tlbox"><h4 class="day">Nov 3, 2026</h4><ol>
+        ${entry('', 'info', 'calendar-check', '11/3/2026, 10:58:40 AM', 'Task planned', '')}
+        ${entry('', 'neutral', 'arrow-right-left', '11/3/2026, 10:58:39 AM', 'Stage changed', `<div class="chg">${chip('New')}<span>→</span>${chip('Contacted')}</div>`)}
+        ${entry('tl-visit', 'primary', 'message-square', '11/3/2026, 10:58:39 AM', 'Visit', '<p>Met the contact. Dana walked me through the shop. About 6 tons a month of aluminum turnings and cut-offs, picked up once a month. Open to a second quote.</p>')}
+      </ol><h4 class="day">Oct 29, 2026</h4><ol>
+        ${entry('', 'neutral', 'target', '10/29/2026, 2:14:05 PM', 'Opportunity created', '')}
+      </ol></div></div>`;
+    return `<main class="main"><div class="prs">${head}${s.saved ? timeline : overview}</div></main>`;
+  }
+
+  // ---------- check-in dialog ----------
+  function checkIn(s) {
+    const k = s.ci;
+    const choice = (l, on, id) => `<div class="choice${on ? ' on' : ''}"${id ? ` id="${id}"` : ''}><i></i>${l}</div>`;
+    const outcomes = ['Met the contact', 'Left a price card', 'Nobody there', 'Not interested'];
+    const nexts = ['Call in 1 week', 'Visit in 2 weeks', 'Pick a date', 'None'];
+    const outcome = k >= 1 ? 'Met the contact' : null;
+    const nextSel = k >= 2 ? 'Visit in 2 weeks' : 'None';
+    const notes = k >= 3
+      ? '<div class="ta">Dana walked me through the shop. About 6 tons a month of aluminum turnings and cut-offs, picked up once a month. Open to a second quote.</div>'
+      : '<div class="ta ph">Add details from your visit</div>';
+    return `<div class="scrim"><div class="dlg" role="dialog" aria-label="Check in">
+      <div class="dh"><div class="tt"><h3>Check in</h3><p>Log how the visit went and plan the next step.</p></div><span class="x">${ic('x')}</span></div>
+      <div class="db">
+        <div class="cih"><div class="a"><h2>${PROSPECT}</h2>${chip('New')}</div><span>Main shop · 1420 Foundry Rd, Lakeport, TX</span><p>Check-in started at 10:38 AM</p></div>
+        <div class="lban" id="ci-banner" role="status">${ic('map-pin-check')}<div><b>Location confirmed</b><span>0.1 mi from the pin</span></div></div>
+        <section class="visit" aria-label="Visit">
+          <div class="c">
+            <div id="ci-outcome"><h4>How did it go?</h4><p class="sub">Select one outcome.</p>
+              <div class="grid2">${outcomes.map(o => choice(o, o === outcome)).join('')}</div></div>
+            <div class="notes" id="ci-notes"><div class="lr"><label>Notes <small>Optional</small></label><span class="dict">${ic('mic')}Dictate</span></div>${notes}</div>
+          </div>
+          <div class="c">
+            <div id="ci-next"><h4>Next step</h4><div class="grid2">${nexts.map(o => choice(o, o === nextSel)).join('')}</div></div>
+            <div class="mv"><span class="cb"><i></i>Move to Contacted</span><small>Current stage: New</small></div>
+          </div>
+        </section>
+      </div>
+      <div class="df"><span class="rb">Cancel</span><span class="rb pri" id="ci-save"${outcome ? '' : ' disabled'}>Save visit</span></div>
+    </div></div>`;
+  }
+
+  function cover(kind) {
+    if (kind === 'intro') {
+      return `<div class="cover"><div class="card">
+        <div class="eyebrow">${ic('radar')}Supply Radar · Prospect Tracker</div>
+        <h2>Start the day on Today, then log the visit on site</h2>
+        <p>See what’s due, what’s late and what’s going stale, find unvisited prospects near your route, and check in at a site to log the visit and plan the next step in one go.</p>
+        <div class="cta"><button class="go" type="button" data-go="next">Get started${ic('arrow-right')}</button></div>
+      </div></div>`;
+    }
+    return `<div class="cover"><div class="card">
+      <div class="eyebrow">${ic('circle-check')}Supply Radar · Prospect Tracker</div>
+      <h2>Your day and your visits, in one place</h2>
+      <p>The Today tab gathers your tasks, deals that need a next step, deals going stale and prospects near your route. Check in at a site to confirm your location, record how it went, add notes or dictate them, and plan the next task. A first contact moves a New prospect to Contacted.</p>
+      <div class="cta"><button class="go sec" type="button" data-go="restart">${ic('rotate-ccw')}Replay</button></div>
+    </div></div>`;
+  }
+
+  function renderApp(s) {
+    const body = s.view === 'today' ? today() : prospect(s);
+    return `<div class="app">${sidebar()}${body}${s.view === 'checkin' ? checkIn(s) : ''}${s.cover ? cover(s.cover) : ''}</div>`;
+  }
+  function anchorMenus() {}
+
+  // ---------- player ----------
+  const stage = document.getElementById('stage');
+  const canvas = document.getElementById('canvas');
+  const overlay = document.getElementById('overlay');
+  const caption = document.getElementById('caption');
+  const pips = document.getElementById('pips');
+  const backBtn = document.getElementById('back');
+  const nextBtn = document.getElementById('next');
+  let step = 0;
+  const guided = STEPS.map((s, i) => (s.tip ? i : null)).filter(i => i !== null);
+
+  pips.innerHTML = STEPS.map((_, i) => `<button type="button" role="tab" aria-label="Step ${i + 1}" data-i="${i}"></button>`).join('');
+  pips.addEventListener('click', e => { const b = e.target.closest('button'); if (b) go(+b.dataset.i); });
+
+  function scale() {
+    const k = stage.clientWidth / W;
+    canvas.style.transform = `scale(${k})`;
+    document.body.classList.toggle('narrow', stage.clientWidth < 700);
+    return k;
+  }
+
+  function place() {
+    overlay.innerHTML = '';
+    const s = STEPS[step];
+    anchorMenus(s);
+    if (!s.t) return;
+    const el = canvas.querySelector(s.t);
+    if (!el) return;
+    const sr = stage.getBoundingClientRect();
+    const r = el.getBoundingClientRect();
+    const x = r.left - sr.left, y = r.top - sr.top, w = r.width, h = r.height;
+    const n = guided.indexOf(step) + 1;
+    const label = `<span class="n">Step ${n} of ${guided.length}</span>`;
+
+    const ring = document.createElement('div');
+    ring.className = 'ring';
+    Object.assign(ring.style, { left: x - 3 + 'px', top: y - 3 + 'px', width: w + 6 + 'px', height: h + 6 + 'px' });
+    const hot = document.createElement('button');
+    hot.className = 'hot';
+    hot.type = 'button';
+    hot.setAttribute('aria-label', 'Continue to next step');
+    hot.style.left = x + w / 2 + 'px';
+    hot.style.top = y + h / 2 + 'px';
+    hot.addEventListener('click', () => go(step + 1));
+    overlay.append(ring, hot);
+
+    caption.innerHTML = label + s.tip;
+    if (document.body.classList.contains('narrow')) return;
+
+    const tip = document.createElement('div');
+    tip.className = 'tip';
+    tip.innerHTML = label + s.tip;
+    overlay.append(tip);
+    const tw = tip.offsetWidth, th = tip.offsetHeight, gap = 18;
+    const SW = stage.clientWidth, SH = stage.clientHeight;
+    let tx, ty;
+    const side = s.place || 'right';
+    if (side === 'right') { tx = x + w + gap; ty = y + h / 2 - th / 2; }
+    if (side === 'left') { tx = x - tw - gap; ty = y + h / 2 - th / 2; }
+    if (side === 'bottom') { tx = x + w / 2 - tw / 2; ty = y + h + gap; }
+    if (side === 'top') { tx = x + w / 2 - tw / 2; ty = y - th - gap; }
+    if (side === 'right' && tx + tw > SW - 8) { tx = x - tw - gap; }
+    if (side === 'left' && tx < 8) { tx = x + w + gap; }
+    tx = Math.max(10, Math.min(SW - tw - 10, tx));
+    ty = Math.max(10, Math.min(SH - th - 10, ty));
+    tip.style.left = tx + 'px';
+    tip.style.top = ty + 'px';
+  }
+
+  function render() {
+    const s = STEPS[step];
+    canvas.innerHTML = renderApp(s);
+    if (window.lucide) lucide.createIcons({ attrs: { 'aria-hidden': 'true' } });
+    document.getElementById('url').textContent = 'app.respark.com' + s.url;
+    document.getElementById('progress').style.width = (step / (STEPS.length - 1)) * 100 + '%';
+    [...pips.children].forEach((b, i) => { b.className = i === step ? 'on' : i < step ? 'done' : ''; b.setAttribute('aria-selected', i === step); });
+    const n = guided.indexOf(step);
+    document.getElementById('count').textContent = s.cover === 'intro' ? 'Intro' : s.cover === 'outro' ? 'Done' : `${n + 1} / ${guided.length}`;
+    backBtn.disabled = step === 0;
+    nextBtn.disabled = step === STEPS.length - 1;
+    if (s.cover) caption.innerHTML = s.cover === 'intro'
+      ? '<span class="n">Intro</span>Start the day on the Today tab, then check in at a prospect to log the visit and plan the next step.'
+      : '<span class="n">Done</span>Today gathers your tasks, deals with no task planned, deals going stale and prospects near your route. A check-in confirms your location, records the outcome and notes, and plans the next task.';
+    scale();
+    // Measure only after entrance animations (panels sliding in, menus
+    // popping, pins dropping) finish, or the ring lands where the element
+    // was mid-animation instead of where it ends up.
+    const token = ++renderToken;
+    settle().then(() => { if (token === renderToken) place(); });
+  }
+
+  let renderToken = 0;
+  function settle() {
+    const finite = (canvas.getAnimations ? canvas.getAnimations({ subtree: true }) : [])
+      .filter(a => a.effect && a.effect.getComputedTiming().iterations !== Infinity);
+    const done = Promise.all(finite.map(a => a.finished.catch(() => {})));
+    const timeout = new Promise(r => setTimeout(r, 1200));
+    // If the timeline is throttled (background tab), snap leftovers to their
+    // end state so the measurement still matches the final layout.
+    return Promise.race([done, timeout]).then(() => {
+      finite.forEach(a => { if (a.playState !== 'finished') try { a.finish(); } catch (e) {} });
+      return new Promise(r => setTimeout(r, 30));
+    });
+  }
+
+  // Self-check used before publishing: walks every step and reports any
+  // highlight that doesn't sit on its target, targets that are missing or
+  // clipped, and tooltips that cover the thing they point at.
+  function checkStep() {
+    const s = STEPS[step];
+    if (!s.t) return { step, ok: true };
+    const el = canvas.querySelector(s.t), ring = overlay.querySelector('.ring'), tip = overlay.querySelector('.tip');
+    if (!el) return { step, ok: false, why: `target ${s.t} not found` };
+    if (!ring) return { step, ok: false, why: 'highlight not drawn' };
+    const a = el.getBoundingClientRect(), b = ring.getBoundingClientRect(), st = stage.getBoundingClientRect();
+    const off = Math.max(Math.abs(a.left - 3 - b.left), Math.abs(a.top - 3 - b.top), Math.abs(a.width + 6 - b.width), Math.abs(a.height + 6 - b.height));
+    const issues = [];
+    if (off > 2) issues.push(`highlight off by ${Math.round(off)}px`);
+    if (a.width < 4 || a.height < 4) issues.push('target has no size');
+    if (a.left < st.left - 1 || a.top < st.top - 1 || a.right > st.right + 1 || a.bottom > st.bottom + 1) issues.push('target clipped by frame');
+    if (tip) {
+      const t = tip.getBoundingClientRect();
+      const ix = Math.max(0, Math.min(a.right, t.right) - Math.max(a.left, t.left)), iy = Math.max(0, Math.min(a.bottom, t.bottom) - Math.max(a.top, t.top));
+      if (ix * iy > 0.25 * a.width * a.height) issues.push('tooltip covers target');
+    }
+    return { step, target: s.t, ok: issues.length === 0, issues };
+  }
+  window.walkthroughAudit = async () => {
+    const results = [];
+    for (let i = 0; i < STEPS.length; i++) {
+      go(i);
+      await settle();
+      await new Promise(r => setTimeout(r, 60));
+      results.push(checkStep());
+    }
+    go(0);
+    return { ok: results.every(r => r.ok), problems: results.filter(r => !r.ok), steps: results.length };
+  };
+
+  function go(i) {
+    step = Math.max(0, Math.min(STEPS.length - 1, i));
+    render();
+  }
+
+  canvas.addEventListener('click', e => {
+    const g = e.target.closest('[data-go]');
+    if (g) { go(g.dataset.go === 'restart' ? 0 : step + 1); return; }
+    const s = STEPS[step];
+    if (s.t && e.target.closest(s.t)) go(step + 1);
+  });
+  backBtn.addEventListener('click', () => go(step - 1));
+  nextBtn.addEventListener('click', () => go(step + 1));
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight') go(step + 1);
+    if (e.key === 'ArrowLeft') go(step - 1);
+  });
+  new ResizeObserver(() => { scale(); settle().then(place); }).observe(stage);
+  if (document.fonts) document.fonts.ready.then(place);
+
+  if (window.lucide) lucide.createIcons({ attrs: { 'aria-hidden': 'true' } });
+  render();
+})();
+</script>

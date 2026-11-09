@@ -1,0 +1,811 @@
+<meta charset="utf-8">
+<title>ReSpark Supply Map</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+<style>
+/* Layout: an Arcade-style player. One framed browser window holds a scaled
+   1440×820 mock of ReSpark Supply Radar (the Explore tab, shown to customers
+   as Supply Map); a pulsing hotspot + tooltip guides each step; step controls
+   sit under the frame. The app mock keeps ReSpark's light theme (it stands in
+   for a screenshot); the page around it follows the viewer's theme. */
+:root {
+  --bg: #f3f5f8;
+  --glow: rgba(0, 168, 176, 0.10);
+  --fg: #12233e;
+  --fg-muted: rgba(18, 35, 62, 0.62);
+  --frame: #ffffff;
+  --frame-bar: #eef1f5;
+  --frame-line: rgba(18, 35, 62, 0.12);
+  --ctl: #ffffff;
+  --ctl-line: rgba(18, 35, 62, 0.16);
+  --teal: #00a3a8;
+  --teal-strong: #008a8f;
+  --tip-bg: #12233e;
+  --tip-fg: #ffffff;
+
+  /* ReSpark app tokens (frontend/client/src/global.css, light mode) */
+  --a-fg: hsl(217 55% 16%);
+  --a-surface: #ffffff;
+  --a-muted: hsla(217, 55%, 16%, 0.03);
+  --a-muted-solid: #f8f9fa;
+  --a-hover: hsla(217, 55%, 16%, 0.06);
+  --a-border: hsla(217, 55%, 16%, 0.14);
+  --a-border-subtle: hsla(217, 55%, 16%, 0.08);
+  --a-text-2: hsla(217, 55%, 16%, 0.75);
+  --a-text-3: hsla(217, 55%, 16%, 0.52);
+  --a-icon-2: hsla(217, 55%, 16%, 0.42);
+  --a-primary: hsl(183 100% 33%);
+  --a-primary-hover: hsl(183 100% 27%);
+  --a-primary-subtle: hsla(183, 100%, 33%, 0.10);
+  --a-success: hsl(162 73% 37%);
+  --a-success-strong: hsl(162 73% 30%);
+  --a-error: hsl(348 81% 48%);
+  --a-error-strong: hsl(348 81% 38%);
+  --a-accent: hsl(252 89% 65%);
+  --a-accent-strong: hsl(252 60% 50%);
+  --a-accent-subtle: hsla(252, 89%, 65%, 0.10);
+  --a-dark: hsl(217 45% 14%);
+  --a-nav-selected: hsl(217 55% 16%);
+
+  --font: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0c1422; --glow: rgba(0, 201, 212, 0.10); --fg: #e8eef7; --fg-muted: rgba(232, 238, 247, 0.62);
+    --frame: #17202f; --frame-bar: #1c2738; --frame-line: rgba(232, 238, 247, 0.12);
+    --ctl: #17202f; --ctl-line: rgba(232, 238, 247, 0.18); --teal: #19c3cb; --teal-strong: #4fd6dc;
+    --tip-bg: #00a3a8; --tip-fg: #ffffff; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0c1422; --glow: rgba(0, 201, 212, 0.10); --fg: #e8eef7; --fg-muted: rgba(232, 238, 247, 0.62);
+  --frame: #17202f; --frame-bar: #1c2738; --frame-line: rgba(232, 238, 247, 0.12);
+  --ctl: #17202f; --ctl-line: rgba(232, 238, 247, 0.18); --teal: #19c3cb; --teal-strong: #4fd6dc;
+  --tip-bg: #00a3a8; --tip-fg: #ffffff; color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--fg); font-family: var(--font);
+  background-image: radial-gradient(60% 50% at 50% 38%, var(--glow), transparent 70%);
+  min-height: 100vh; padding-inline: 16px; padding-block: 28px 40px;
+}
+.wrap { max-width: 1180px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
+.head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 15px; letter-spacing: -0.01em; }
+.brand svg { width: 28px; height: 28px; color: var(--fg); }
+.head .tag { font-size: 12px; color: var(--fg-muted); font-weight: 500; }
+
+.frame { background: var(--frame); border: 1px solid var(--frame-line); border-radius: 12px; overflow: hidden;
+  box-shadow: 0 30px 60px -20px rgba(18, 35, 62, 0.28), 0 8px 18px -8px rgba(18, 35, 62, 0.18); }
+.bar { height: 38px; background: var(--frame-bar); border-bottom: 1px solid var(--frame-line); display: flex; align-items: center; gap: 12px; padding-inline: 14px; position: relative; }
+.dots { display: flex; gap: 6px; }
+.dots i { width: 10px; height: 10px; border-radius: 50%; background: var(--frame-line); display: block; }
+.url { flex: 1; max-width: 460px; margin-inline: auto; height: 24px; border-radius: 6px; background: var(--frame); border: 1px solid var(--frame-line);
+  display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 12px; color: var(--fg-muted); padding-inline: 10px; min-width: 0; overflow: hidden; white-space: nowrap; }
+.url span { overflow: hidden; text-overflow: ellipsis; }
+.url svg { width: 12px; height: 12px; flex-shrink: 0; }
+.progress { position: absolute; left: 0; bottom: -1px; height: 2px; background: var(--teal); transition: width .35s ease; }
+
+.stage { position: relative; width: 100%; aspect-ratio: 1440 / 820; max-width: 100%; overflow: hidden; background: #fff; }
+.canvas { position: absolute; left: 0; top: 0; width: 1440px; height: 820px; transform-origin: 0 0; }
+.overlay { position: absolute; inset: 0; pointer-events: none; }
+
+.ring { position: absolute; border-radius: 6px; box-shadow: 0 0 0 2px var(--a-primary), 0 0 0 6px hsla(183, 100%, 33%, 0.18); transition: all .3s ease; pointer-events: none; }
+.hot { position: absolute; width: 26px; height: 26px; margin: -13px 0 0 -13px; border-radius: 50%; pointer-events: auto; cursor: pointer;
+  background: hsla(183, 100%, 33%, 0.28); border: 0; padding: 0; transition: left .3s ease, top .3s ease; }
+.hot::before { content: ""; position: absolute; inset: 7px; border-radius: 50%; background: var(--a-primary); box-shadow: 0 0 0 2px #fff; }
+.hot::after { content: ""; position: absolute; inset: 0; border-radius: 50%; border: 2px solid var(--a-primary); animation: pulse 1.6s ease-out infinite; }
+.hot:focus-visible { outline: 3px solid var(--teal-strong); outline-offset: 3px; }
+@keyframes pulse { 0% { transform: scale(.7); opacity: .9; } 100% { transform: scale(2.1); opacity: 0; } }
+
+.tip { position: absolute; max-width: 310px; background: var(--tip-bg); color: var(--tip-fg); border-radius: 10px; padding: 12px 14px;
+  font-size: 14px; line-height: 1.45; box-shadow: 0 12px 28px -8px rgba(12, 20, 34, 0.45); pointer-events: auto; animation: tipIn .25s ease; }
+.tip b { font-weight: 600; }
+.tip code, .caption code { font-family: var(--mono); font-size: 12.5px; background: rgba(255, 255, 255, 0.16); padding: 1px 5px; border-radius: 4px; }
+.caption code { background: var(--frame-bar); }
+.tip .n, .caption .n { display: block; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; opacity: .7; margin-bottom: 4px; }
+@keyframes tipIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+.caption { display: none; background: var(--frame); border: 1px solid var(--frame-line); border-radius: 10px; padding: 12px 14px; font-size: 14px; line-height: 1.5; }
+body.narrow .caption { display: block; }
+body.narrow .tip { display: none; }
+
+.controls { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.btn { font: inherit; font-size: 13px; font-weight: 600; height: 36px; padding-inline: 14px; border-radius: 8px; border: 1px solid var(--ctl-line);
+  background: var(--ctl); color: var(--fg); cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+.btn:hover { border-color: var(--teal); }
+.btn:disabled { opacity: .4; cursor: default; border-color: var(--ctl-line); }
+.btn:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+.btn.primary { background: var(--teal); border-color: var(--teal); color: #fff; }
+.btn svg { width: 16px; height: 16px; }
+.count { font-size: 13px; color: var(--fg-muted); font-variant-numeric: tabular-nums; min-width: 48px; text-align: right; }
+.pips { display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; flex: 1; min-width: 0; }
+.pips button { width: 22px; height: 6px; border-radius: 3px; border: 0; padding: 0; background: var(--ctl-line); cursor: pointer; }
+.pips button.on { background: var(--teal); }
+.pips button.done { background: color-mix(in srgb, var(--teal) 45%, transparent); }
+.hint { font-size: 12px; color: var(--fg-muted); text-align: center; }
+kbd { font: inherit; font-size: 11px; border: 1px solid var(--ctl-line); border-radius: 4px; padding: 1px 5px; }
+
+/* ================= ReSpark app mock (fixed light theme) ================= */
+.app { width: 1440px; height: 820px; display: flex; font-family: var(--font); color: var(--a-fg); font-size: 13px; background: var(--a-surface); position: relative; overflow: hidden; }
+.app table { color: inherit; } /* pages render without a doctype, where tables don't inherit text color; keeps the app mock readable in dark mode */
+.app svg.lucide { width: 16px; height: 16px; stroke-width: 1.75; flex-shrink: 0; }
+.side { width: 236px; flex-shrink: 0; background: var(--a-muted-solid); border-right: 1px solid var(--a-border-subtle); display: flex; flex-direction: column; padding: 12px 10px; gap: 10px; }
+.side .top { display: flex; align-items: center; gap: 8px; padding: 2px 4px; }
+.side .top svg.mark { width: 28px; height: 28px; color: #12233e; }
+.yard { flex: 1; display: flex; align-items: center; justify-content: space-between; border: 1px solid var(--a-border); border-radius: 6px; height: 30px; padding-inline: 8px; background: var(--a-surface); font-weight: 500; font-size: 12.5px; }
+.yard svg.lucide { width: 14px; height: 14px; color: var(--a-icon-2); }
+.cmd { display: flex; align-items: center; gap: 8px; height: 30px; border: 1px solid var(--a-border); border-radius: 6px; padding-inline: 8px; color: var(--a-text-3); background: var(--a-surface); font-size: 12.5px; }
+.cmd kbd { margin-left: auto; font-size: 10.5px; border-color: var(--a-border); color: var(--a-text-3); }
+.nav { display: flex; flex-direction: column; gap: 1px; }
+.nrow { display: flex; align-items: center; gap: 8px; padding: 5px 8px; border-radius: 6px; font-weight: 500; color: hsla(217, 55%, 16%, 0.88); }
+.nrow .chev { margin-left: auto; width: 14px; height: 14px; color: var(--a-icon-2); }
+.nrow.sub { padding-left: 30px; font-weight: 450; font-size: 12.5px; color: var(--a-text-2); }
+.nrow.sub svg.lucide { width: 14px; height: 14px; color: var(--a-icon-2); }
+.nrow.active { background: var(--a-nav-selected); color: #fff; }
+.nrow.active svg.lucide { color: #fff; }
+.pill { margin-left: auto; font-size: 10px; font-weight: 600; color: var(--a-text-2); background: var(--a-hover); padding: 1px 6px; border-radius: 999px; }
+.nsep { height: 1px; background: var(--a-border-subtle); margin: 4px 6px; }
+.foot { margin-top: auto; display: flex; align-items: center; gap: 8px; padding: 8px 4px 0; border-top: 1px solid var(--a-border-subtle); }
+.av { width: 28px; height: 28px; border-radius: 50%; background: var(--a-primary-subtle); color: var(--a-primary-hover); display: grid; place-items: center; font-weight: 600; font-size: 11px; }
+.foot .who { display: flex; flex-direction: column; line-height: 1.25; }
+.foot .who small { color: var(--a-text-3); font-size: 11px; }
+.foot .ico { margin-left: auto; display: flex; gap: 4px; }
+.foot .ico span { width: 28px; height: 28px; border: 1px solid var(--a-border-subtle); border-radius: 6px; display: grid; place-items: center; }
+
+.main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.phead { display: flex; align-items: center; gap: 12px; padding: 14px 22px 12px; border-bottom: 1px solid var(--a-border-subtle); }
+.crumbs { font-size: 12px; color: var(--a-text-3); display: flex; align-items: center; gap: 4px; }
+.crumbs svg.lucide { width: 12px; height: 12px; }
+.phead h1 { font-size: 20px; font-weight: 600; margin: 0; letter-spacing: -0.015em; }
+.phead .left { display: flex; flex-direction: column; gap: 4px; }
+.phead .acts { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+
+.rb { font: inherit; font-size: 13px; font-weight: 500; height: 32px; padding-inline: 12px; border-radius: 6px; display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--a-border); background: var(--a-surface); color: var(--a-fg); cursor: default; white-space: nowrap; }
+.rb.pri { background: var(--a-primary); border-color: var(--a-primary); color: #fff; }
+.rb.icon { width: 32px; padding: 0; justify-content: center; }
+.badge { display: inline-flex; align-items: center; height: 20px; padding-inline: 8px; border-radius: 999px; font-size: 11.5px; font-weight: 500; white-space: nowrap; }
+.b-success { background: hsla(162, 73%, 37%, 0.14); color: var(--a-success-strong); }
+.b-accent { background: hsla(252, 89%, 65%, 0.14); color: var(--a-accent-strong); }
+.b-neutral { background: hsla(217, 55%, 16%, 0.07); color: var(--a-text-2); }
+
+
+/* Supply Radar page shell (modules/supply-radar/_components/RadarAccessPage) */
+.rhead { height: 56px; flex-shrink: 0; display: flex; align-items: center; gap: 32px; padding-inline: 16px; border-bottom: 1px solid var(--a-border-subtle); }
+.rhead h1 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.015em; }
+.tabs { display: flex; gap: 4px; align-self: stretch; }
+.tabs span { display: flex; align-items: center; padding-inline: 12px; font-size: 13.5px; font-weight: 500; color: var(--a-text-2); border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.tabs span.on { color: var(--a-primary-hover); border-bottom-color: var(--a-primary); }
+.rhead .acts { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+.rb.out-p { border-color: var(--a-primary); color: var(--a-primary-hover); }
+
+/* map (explore/ExploreMap + prospects/browse/RadarMap) */
+.mapwrap { flex: 1; min-height: 0; position: relative; overflow: hidden; background: #eef1ec; }
+.mapwrap > svg.base { position: absolute; inset: 0; width: 100%; height: 100%; }
+.pin { position: absolute; transform: translate(-50%, -100%); display: block; line-height: 0; }
+.pin svg { display: block; overflow: visible; filter: drop-shadow(0 1px 2px rgba(0,0,0,.35)); }
+.pin.sel svg { filter: drop-shadow(0 2px 4px rgba(0,0,0,.45)); }
+.pin .cnt { position: absolute; top: -6px; right: -12px; min-width: 20px; height: 20px; padding: 0 5px; box-sizing: border-box; border-radius: 10px; border: 2px solid; background: #fff; color: var(--a-fg); font-weight: 700; font-size: 11px; line-height: 16px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,.3); }
+.ptip { position: absolute; left: 50%; bottom: calc(100% + 6px); transform: translateX(-50%); background: #fff; color: var(--a-fg); font-size: 12px; font-weight: 600; line-height: 1; padding: 6px 8px; border-radius: 4px; white-space: nowrap; box-shadow: 0 1px 4px rgba(0,0,0,.3); }
+.yardpin { position: absolute; transform: translate(-50%, -50%); display: flex; align-items: center; gap: 6px; }
+.yardpin .hs { width: 30px; height: 30px; border-radius: 8px; background: var(--a-primary); color: #fff; display: grid; place-items: center; border: 2px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,.35); }
+.yardpin .hs svg.lucide { width: 16px; height: 16px; }
+.yardpin b { background: #fff; font-size: 12px; font-weight: 600; padding: 5px 8px; border-radius: 4px; box-shadow: 0 1px 4px rgba(0,0,0,.3); }
+.rtag { position: absolute; transform: translate(-50%, -100%); display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.rtag span { background: #fff; font-size: 12px; font-weight: 600; padding: 5px 8px; border-radius: 4px; box-shadow: 0 1px 4px rgba(0,0,0,.3); white-space: nowrap; }
+.rtag i.h { width: 14px; height: 14px; border-radius: 50%; background: #fff; border: 3px solid #00a5ad; box-shadow: 0 1px 3px rgba(0,0,0,.3); display: block; }
+.attrib { position: absolute; right: 0; bottom: 0; background: rgba(255,255,255,.8); font-size: 10.5px; color: var(--a-text-3); padding: 2px 6px; }
+.zoom { position: absolute; right: 16px; bottom: 26px; display: flex; flex-direction: column; border: 1px solid var(--a-border); border-radius: 6px; background: #fff; overflow: hidden; box-shadow: 0 2px 8px rgba(15,23,42,.14); }
+.zoom span { width: 30px; height: 30px; display: grid; place-items: center; }
+.zoom span + span { border-top: 1px solid var(--a-border); }
+.baselayer { position: absolute; right: 56px; bottom: 26px; }
+
+/* toolbar (explore/map-toolbar/*, ExploreMapModeBar, discovery/DiscoveryScanButton) */
+.shadow { box-shadow: 0 4px 14px rgba(15, 23, 42, 0.14), 0 1px 3px rgba(15, 23, 42, 0.08); }
+.tbar { position: absolute; left: 16px; top: 16px; display: flex; flex-direction: column; gap: 8px; z-index: 3; }
+.tbar .r1 { display: flex; gap: 8px; align-items: flex-start; }
+.tbar .r2 { display: flex; gap: 6px; align-items: center; }
+.sbox { width: 288px; height: 42px; display: flex; align-items: center; gap: 4px; background: #fff; border: 1px solid var(--a-border); border-radius: 6px; padding: 4px; }
+.sbox .q { flex: 1; display: flex; align-items: center; gap: 8px; padding-inline: 8px; color: var(--a-text-3); font-size: 13px; }
+.sbox .dv { width: 1px; height: 24px; background: var(--a-border); }
+.sbox .ib { width: 30px; height: 30px; }
+.modes { height: 42px; display: flex; align-items: center; gap: 2px; background: #fff; border: 1px solid var(--a-border); border-radius: 6px; padding-inline: 4px; }
+.modes span { height: 30px; display: inline-flex; align-items: center; gap: 6px; padding-inline: 10px; border-radius: 6px; font-size: 13px; font-weight: 500; border: 1px solid transparent; }
+.modes span.on { background: var(--a-primary-subtle); border-color: var(--a-primary); color: var(--a-primary-hover); }
+.scanb { height: 42px; display: inline-flex; align-items: center; gap: 8px; padding-inline: 14px; border-radius: 6px; background: var(--a-primary); color: #fff; font-size: 13px; font-weight: 600; }
+.chip { height: 32px; display: inline-flex; align-items: center; gap: 6px; padding-inline: 10px; border-radius: 6px; background: #fff; border: 1px solid var(--a-border); font-size: 12.5px; font-weight: 500; white-space: nowrap; }
+.chip svg.lucide { width: 14px; height: 14px; color: var(--a-icon-2); }
+.chip.on { border-color: var(--a-primary); background: hsl(183 60% 96%); color: var(--a-primary-hover); }
+.chip.on svg.lucide { color: var(--a-primary-hover); }
+.chip .bd { min-width: 18px; height: 18px; border-radius: 999px; background: var(--a-primary); color: #fff; font-size: 11px; font-weight: 600; display: grid; place-items: center; padding-inline: 5px; }
+.chip.nm { padding-left: 8px; padding-right: 4px; gap: 4px; }
+.sw2 { display: inline-flex; align-items: center; gap: 6px; }
+.sw2 i.k { width: 28px; height: 16px; border-radius: 999px; background: hsla(217, 55%, 16%, 0.18); position: relative; }
+.sw2 i.k::after { content: ""; position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.2); }
+
+/* right column (ExploreLayerToggles, results button, details panel) */
+.rcol { position: absolute; right: 16px; top: 16px; width: 380px; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; z-index: 3; bottom: 24px; pointer-events: none; }
+.rcol > * { pointer-events: auto; }
+.rcol .row { display: flex; gap: 8px; position: relative; }
+.rb.h40 { height: 40px; }
+.pop { position: absolute; background: #fff; border: 1px solid var(--a-border); border-radius: 8px; box-shadow: 0 8px 26px rgba(15, 23, 42, 0.2); z-index: 6; animation: pop .18s ease; }
+@keyframes pop { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; transform: none; } }
+.layers { top: 48px; left: 0; width: 256px; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+.lrow { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.cb { width: 16px; height: 16px; border-radius: 4px; background: var(--a-primary); display: grid; place-items: center; color: #fff; flex-shrink: 0; }
+.cb svg.lucide { width: 12px; height: 12px; stroke-width: 3; }
+.lrow .n { margin-left: auto; color: var(--a-text-3); font-variant-numeric: tabular-nums; }
+.glyph svg { display: block; filter: drop-shadow(0 1px 1px rgba(0,0,0,.25)); }
+
+.fpop { left: 0; top: 40px; width: 320px; padding: 12px; display: flex; flex-direction: column; gap: 12px; }
+.fld { display: flex; flex-direction: column; gap: 5px; }
+.fld label { font-size: 12px; font-weight: 500; color: var(--a-text-2); display: flex; align-items: baseline; gap: 6px; }
+.fld label small { font-weight: 400; color: var(--a-text-3); font-size: 11.5px; }
+.fld .in { height: 34px; border: 1px solid var(--a-border); border-radius: 6px; display: flex; align-items: center; gap: 6px; padding-inline: 10px; font-size: 13px; background: #fff; }
+.fld .in .chv { margin-left: auto; width: 14px; height: 14px; color: var(--a-icon-2); }
+.fld .in.ph { color: var(--a-text-3); }
+.fld .in.dis { background: var(--a-muted-solid); color: var(--a-text-3); }
+.tagc { display: inline-flex; align-items: center; gap: 4px; height: 22px; padding-inline: 7px; border-radius: 4px; background: var(--a-primary-subtle); color: var(--a-primary-hover); font-size: 12px; font-weight: 500; }
+.tagc svg.lucide { width: 12px; height: 12px; }
+.note { margin: 0; font-size: 12px; color: var(--a-text-3); }
+
+/* details (explore/details/DetailsShell + LeadDetails) */
+.dpanel { width: 380px; min-height: 0; flex: 1; max-height: 100%; background: #fff; border: 1px solid var(--a-border); border-radius: 10px; display: flex; flex-direction: column; overflow: hidden; animation: pop .2s ease; }
+.dpanel .hd { padding: 12px; border-bottom: 1px solid var(--a-border-subtle); display: flex; flex-direction: column; gap: 8px; }
+.dpanel .hd .tp { display: flex; align-items: center; justify-content: space-between; }
+.xs { display: inline-flex; align-items: center; gap: 4px; font-size: 12.5px; font-weight: 500; color: var(--a-text-2); height: 26px; padding-inline: 4px; }
+.dpanel h2 { margin: 0; font-size: 18px; font-weight: 600; letter-spacing: -0.01em; }
+.chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.stc { display: inline-flex; align-items: center; height: 22px; padding-inline: 8px; border-radius: 4px; font-size: 12px; font-weight: 500; background: hsla(217, 55%, 16%, 0.07); color: var(--a-text-2); border: 1px solid var(--a-border-subtle); }
+.stc.pr { background: var(--a-primary-subtle); color: var(--a-primary-hover); border-color: transparent; }
+.dpanel .bd { flex: 1; min-height: 0; overflow: hidden; padding: 12px; display: flex; flex-direction: column; gap: 14px; }
+.lbl { font-size: 12px; font-weight: 500; color: var(--a-text-3); }
+.sbar { display: flex; align-items: center; gap: 8px; }
+.sbar .tr { flex: 1; height: 6px; border-radius: 999px; background: var(--a-muted-solid); overflow: hidden; }
+.sbar .tr i { display: block; height: 100%; border-radius: 999px; background: hsl(150 60% 42%); }
+.sbar small { font-size: 12px; font-weight: 500; color: var(--a-text-3); }
+.col { display: flex; flex-direction: column; gap: 4px; }
+.col p { margin: 0; font-size: 13px; line-height: 1.45; }
+.quote { font-style: italic; color: var(--a-text-2) !important; }
+.bdg { display: inline-flex; align-items: center; height: 22px; padding-inline: 8px; border-radius: 5px; border: 1px solid var(--a-border); font-size: 12px; font-weight: 500; }
+.bdgs { display: flex; gap: 6px; flex-wrap: wrap; }
+.grp { border-top: 1px solid var(--a-border-subtle); padding-top: 12px; display: flex; flex-direction: column; gap: 10px; }
+.grp h3 { margin: 0; font-size: 13px; font-weight: 600; }
+.ci { display: flex; gap: 10px; font-size: 13px; line-height: 1.4; }
+.ci svg.lucide { color: var(--a-icon-2); margin-top: 1px; }
+.ci small { display: block; color: var(--a-text-3); font-size: 12px; }
+.ci small .lk { color: var(--a-primary-hover); }
+.ci small .lk svg.lucide { width: 11px; height: 11px; vertical-align: -1px; color: var(--a-primary-hover); }
+.dpanel .ft { padding: 12px; border-top: 1px solid var(--a-border-subtle); background: var(--a-muted-solid); display: flex; flex-wrap: wrap; gap: 8px; }
+.btnf { height: 34px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; font-size: 13px; font-weight: 600; padding-inline: 14px; white-space: nowrap; }
+.btnf.pri { background: var(--a-primary); color: #fff; }
+.btnf.out { border: 1px solid var(--a-primary); color: var(--a-primary-hover); background: #fff; }
+.btnf.neu { border: 1px solid var(--a-border); color: var(--a-fg); background: #fff; }
+.btnf.gh { color: var(--a-primary-hover); padding-inline: 8px; }
+.btnf.full { flex-basis: 100%; }
+.btnf.grow { flex: 1; }
+.btnf.sm { height: 28px; font-size: 12.5px; padding-inline: 10px; }
+
+/* add to pipeline (explore/ExploreStartDialog, ExploreStartSurface, discovery/PublicLeadDetails) */
+.spop { right: 412px; top: 40px; width: 384px; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+.spop h3 { margin: 0; font-size: 15px; font-weight: 600; }
+.spop h4 { margin: 0; font-size: 17px; font-weight: 600; }
+.addr { display: flex; gap: 8px; font-size: 13px; line-height: 1.4; }
+.addr svg.lucide { width: 18px; height: 18px; color: var(--a-icon-2); margin-top: 1px; }
+.ss2 { display: flex; gap: 16px; border-top: 1px solid var(--a-border); border-bottom: 1px solid var(--a-border); padding-block: 14px; }
+.ss2 .vd { width: 1px; background: var(--a-border); align-self: stretch; }
+.ss2 .it { flex: 1; display: flex; gap: 10px; align-items: flex-start; min-width: 0; }
+.ss2 .it > svg.lucide { width: 20px; height: 20px; color: var(--a-icon-2); margin-top: 2px; }
+.ss2 .it b { font-size: 13px; font-weight: 500; }
+.ss2 .big { font-size: 22px; font-weight: 600; }
+.ss2 .sm2 { font-size: 12px; color: var(--a-text-3); }
+.ss2 .ln { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
+.ss2 .ln svg.lucide { width: 15px; height: 15px; color: var(--a-icon-2); align-self: center; }
+.ss2 .chev { margin-left: auto; width: 16px; height: 16px; color: var(--a-icon-2); }
+.newpill { display: inline-flex; align-items: center; height: 20px; padding-inline: 8px; border-radius: 999px; background: var(--a-primary-subtle); color: var(--a-primary-hover); font-size: 11.5px; font-weight: 600; }
+.g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.fnote { margin: 0; font-size: 13px; color: var(--a-text-2); }
+.frow { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.frow .rt { display: flex; gap: 8px; }
+
+/* lasso (explore/ExploreLassoLayer, ExploreSelectionOverlay, ExploreSelectionBar) */
+.selwrap { position: absolute; left: 208px; right: 176px; bottom: 16px; display: flex; flex-direction: column; align-items: center; gap: 8px; z-index: 4; }
+.selsum { display: flex; align-items: center; gap: 12px; background: #fff; border: 1px solid var(--a-border); border-radius: 10px; padding: 8px 8px 8px 16px; font-size: 13px; font-weight: 500; animation: pop .2s ease; }
+.sdots { display: flex; align-items: center; gap: 4px; background: var(--a-muted-solid); border-radius: 999px; padding: 4px 8px; }
+.sdots i { width: 12px; height: 12px; border-radius: 50%; border: 3px solid; box-sizing: border-box; background: #fff; display: block; }
+.sdots small { font-size: 12px; color: var(--a-text-3); }
+.selbar { width: 672px; background: #fff; border: 1px solid var(--a-border); border-radius: 10px; padding: 12px; display: flex; flex-direction: column; gap: 8px; animation: pop .2s ease; }
+.selbar .top { display: flex; justify-content: space-between; gap: 8px; align-items: flex-start; }
+.selbar .top b { font-size: 13px; font-weight: 600; display: block; }
+.selbar .top small { font-size: 12px; color: var(--a-text-3); display: block; }
+.selbar .acts { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.selbar .li { display: flex; align-items: center; justify-content: space-between; font-size: 13px; padding-block: 2px; }
+
+/* intro / outro */
+.cover { position: absolute; inset: 0; background: rgba(248, 250, 252, 0.88); backdrop-filter: blur(3px); display: grid; place-items: center; z-index: 10; }
+.cover .card { width: 700px; display: flex; flex-direction: column; gap: 14px; align-items: flex-start; }
+.cover .eyebrow { font-size: 13px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--a-primary-hover); display: flex; align-items: center; gap: 8px; }
+.cover h2 { margin: 0; font-size: 40px; line-height: 1.12; letter-spacing: -0.025em; font-weight: 700; text-wrap: balance; }
+.cover p { margin: 0; font-size: 17px; line-height: 1.55; color: var(--a-text-2); max-width: 620px; }
+.cover .chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.cover .chips code { font-family: var(--mono); font-size: 14px; padding: 5px 10px; border-radius: 6px; background: var(--a-surface); border: 1px solid var(--a-border); }
+.cover .cta { display: flex; gap: 10px; margin-top: 8px; }
+.cover .go { font: inherit; font-size: 15px; font-weight: 600; height: 44px; padding-inline: 20px; border-radius: 8px; border: 0; background: var(--a-primary); color: #fff; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; text-decoration: none; }
+.cover .go.sec { background: var(--a-surface); color: var(--a-fg); border: 1px solid var(--a-border); }
+.cover .go:hover { background: var(--a-primary-hover); }
+.cover .go.sec:hover { background: var(--a-muted-solid); }
+.cover .go svg.lucide { width: 18px; height: 18px; }
+.cover .go:focus-visible { outline: 3px solid var(--a-primary); outline-offset: 2px; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+</style>
+
+<div class="wrap">
+  <div class="head">
+    <div class="brand" id="brand"></div>
+    <div class="tag">Interactive demo · Web console</div>
+  </div>
+
+  <div class="frame">
+    <div class="bar">
+      <div class="dots"><i></i><i></i><i></i></div>
+      <div class="url"><i data-lucide="lock"></i><span id="url">app.respark.com</span></div>
+      <div style="width:42px"></div>
+      <div class="progress" id="progress"></div>
+    </div>
+    <div class="stage" id="stage">
+      <div class="canvas" id="canvas"></div>
+      <div class="overlay" id="overlay"></div>
+    </div>
+  </div>
+
+  <div class="caption" id="caption" aria-live="polite"></div>
+
+  <div class="controls">
+    <button class="btn" id="back" type="button"><i data-lucide="arrow-left"></i>Back</button>
+    <div class="pips" id="pips" role="tablist" aria-label="Demo steps"></div>
+    <span class="count" id="count"></span>
+    <button class="btn primary" id="next" type="button">Next<i data-lucide="arrow-right"></i></button>
+  </div>
+  <div class="hint">Click the pulsing dot, or use <kbd>←</kbd> <kbd>→</kbd></div>
+</div>
+
+<script>
+(() => {
+  const W = 1440, H = 820;
+  const MARK = '<svg class="mark" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M152.38 13.33C171.29 13.33 186.67 28.71 186.67 47.62V152.38C186.67 171.29 171.29 186.67 152.38 186.67H47.62C28.71 186.67 13.33 171.29 13.33 152.38V47.62C13.33 28.71 28.71 13.33 47.62 13.33H152.38ZM152.38 0H47.62C21.32 0 0 21.32 0 47.62V152.38C0 178.68 21.32 200 47.62 200H152.38C178.68 200 200 178.68 200 152.38V47.62C200 21.32 178.68 0 152.38 0Z" fill="#00C9D4"/><path d="M93.39 62.1C89.98 59.66 84.7 58.7 80.99 58.69L26.11 58.74L44.28 71.71H82.53C83.21 71.71 83.79 71.96 84.24 72.29C85.21 72.98 85.5 74.27 84.5 75.67L72.84 92.1L84.25 100.24L96.2 83.46C101.27 76.35 101.05 67.54 93.42 62.1L93.4 62.08Z" fill="currentColor"/><path d="M49.21 102.91C53.53 102.91 58.53 105.26 61.64 107.48L107.62 140.38H84.65L52.58 117.49C52.03 117.05 51.38 116.94 50.8 116.94C49.57 116.94 48.56 117.84 48.56 119.62L48.53 140.38H34.11V119.16C34.11 110.16 39.55 102.91 49.19 102.91Z" fill="currentColor"/><path d="M166.27 115.45V103.76C166.27 96.91 164.14 91.42 159.86 87.3C155.58 83.18 149.91 81.1 142.82 81.1H133.49C128.74 81.1 124.57 82.06 120.95 83.97C117.32 85.88 114.54 88.56 112.55 92.02C110.56 95.49 109.58 99.5 109.58 104.01V119.65C109.58 123.94 110.56 127.7 112.55 130.98C114.54 134.26 117.3 136.82 120.92 138.62C124.55 140.39 128.72 141.3 133.46 141.3H142.32C149.41 141.3 155.11 139.5 159.47 135.92C163.83 132.34 166.02 127.59 166.02 121.67H152.85C152.85 124.15 151.9 126.15 149.99 127.68C148.08 129.18 145.57 129.95 142.46 129.95H133.49C130.3 129.95 127.76 128.99 125.85 127.14C123.94 125.26 122.99 122.77 122.99 119.66V115.46H166.27ZM122.72 105.4V104.34C122.72 100.76 123.7 97.84 125.69 95.63C127.65 93.42 130.24 92.3 133.43 92.3H142.89C145.94 92.3 148.37 93.36 150.25 95.47C152.13 97.57 153.06 100.36 153.06 103.77V105.41H122.71Z" fill="currentColor"/></svg>';
+  document.getElementById('brand').innerHTML = MARK + '<span>ReSpark</span>';
+
+  const ic = (n, extra = '') => `<i data-lucide="${n}" ${extra}></i>`;
+
+  // Sample data (illustrative, every business and recycler name is made up).
+  // A buyer at North Yard looks for scrap generators on the Supply Radar
+  // Explore map. Screens follow greenspark-aws, branch
+  // feature/supply-radar-v2-12-local-e2e, modules/supply-radar/_components/*:
+  //  - shell: RadarAccessPage (Supply Radar title, Today / Explore / Pipeline / Reports tabs,
+  //    Pipeline settings, Check access, AddProspectButton)
+  //  - map: explore/RadarExplore, ExploreMap, ExploreRadiusLayer ("Yard · N mi" handle),
+  //    layerIcons (pin shape + marks), _utils/layerColor (Not contacted / In pipeline / Customer)
+  //  - toolbar: explore/map-toolbar/ExploreMapToolbar, ExploreFilterChip, ExploreLocationFilter,
+  //    ExploreCommodityFilter (+ prospects/browse/CommodityGradeFilters, GradeFilterSelect),
+  //    ExploreRecyclerFilter (+ prospects/browse/CurrentRecyclerFilter), ExploreProspectFilterHint,
+  //    NearMeFilter, ExploreMapModeBar (Pan / Lasso), discovery/DiscoveryScanButton
+  //  - layers: explore/ExploreLayerToggles ("Show on map"), results button in ExploreMap
+  //  - lasso: explore/ExploreLassoLayer, ExploreSelectionOverlay, ExploreSelectionBar
+  //  - details: explore/details/DetailsShell, LeadDetails, shared/LeadScoreFlags,
+  //    prospects/browse/ProspectMapPanelList (ScoreBar), explore/_utils/contact (foundThroughLine)
+  //  - add to pipeline: explore/ExploreStartDialog, ExploreStartDialogFooter, ExploreStartSurface,
+  //    prospects/RadarEditorPopover, discovery/PublicLeadDetails, shared/ReceivingYardField
+  // The map is a stylized vector stand-in for the Leaflet tiles.
+  const MW = 1204, MH = 764;
+  const YARD = { x: 520, y: 430, r: 280 };
+  const LEAD = { x: 600, y: 565 };
+  const COLOR = { nc: '#465165', pl: '#d97706', cu: 'hsl(162 73% 37%)' };
+  const PIN_PATH = 'M14 32C14 32 2 21 2 13a12 12 0 0 1 24 0c0 8-12 19-12 19z';
+  const mark = l => l === 'nc' ? '<circle cx="14" cy="13" r="4" fill="none" stroke="white" stroke-width="2.4"/>'
+    : l === 'cu' ? '<rect x="9.5" y="8.5" width="9" height="9" rx="1.5" fill="white"/>' : '<circle cx="14" cy="13" r="4.4" fill="white"/>';
+  const pinSvg = (l, h, sel) => `<svg width="${(h * 28 / 32).toFixed(1)}" height="${h}" viewBox="0 0 28 32" aria-hidden="true">${sel ? `<path d="${PIN_PATH}" fill="hsl(183 100% 33%)" stroke="hsl(183 100% 33%)" stroke-width="6" stroke-linejoin="round"/>` : ''}<path d="${PIN_PATH}" fill="${COLOR[l]}" stroke="white" stroke-width="1.6" stroke-linejoin="round"/>${mark(l)}</svg>`;
+
+  // deterministic pin layout
+  let seed = 7;
+  const rnd = () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; };
+  const PINS = [];
+  while (PINS.length < 64) {
+    const near = PINS.length < 44;
+    const a = rnd() * Math.PI * 2, d = near ? Math.sqrt(rnd()) * (YARD.r - 18) : YARD.r + 30 + rnd() * 340;
+    const x = YARD.x + Math.cos(a) * d * 1.05, y = YARD.y + Math.sin(a) * d * 0.95;
+    if (x < 24 || x > MW - 24 || y < 130 || y > MH - 20) continue;
+    if (Math.hypot(x - LEAD.x, y - LEAD.y) < 46 || Math.hypot(x - YARD.x, y - YARD.y) < 50 || Math.hypot(x - YARD.x, y - (YARD.y - YARD.r)) < 50) continue;
+    if (PINS.some(p => Math.hypot(p.x - x, p.y - y) < 34)) continue;
+    const k = rnd();
+    const l = k < 0.68 ? 'nc' : k < 0.88 ? 'pl' : 'cu';
+    const c = l === 'nc' && rnd() < 0.55 ? 2 + Math.floor(rnd() * 22) : 0;
+    PINS.push({ x, y, l, c });
+  }
+  const LASSO = [[290, 205], [400, 172], [505, 214], [528, 318], [470, 405], [352, 418], [276, 350], [258, 270]];
+
+  function baseMap() {
+    let s = `<svg class="base" viewBox="0 0 ${MW} ${MH}" preserveAspectRatio="none" aria-hidden="true">
+      <rect width="${MW}" height="${MH}" fill="#eef1ec"/>
+      <path d="M0 610 C 180 570 260 660 420 640 S 700 560 820 600 S 1060 700 1204 650 L1204 690 C 1060 740 940 640 820 640 S 560 690 420 680 S 160 610 0 650Z" fill="#b9dcef"/>
+      <rect x="120" y="150" width="130" height="90" rx="18" fill="#d5ead0"/><rect x="760" y="430" width="110" height="80" rx="16" fill="#d5ead0"/>
+      <rect x="980" y="160" width="150" height="110" rx="20" fill="#d5ead0"/><rect x="330" y="480" width="80" height="60" rx="12" fill="#d5ead0"/>`;
+    for (let x = -40; x < MW + 60; x += 62) s += `<line x1="${x}" y1="0" x2="${x + 40}" y2="${MH}" stroke="#fff" stroke-width="3"/>`;
+    for (let y = 20; y < MH; y += 58) s += `<line x1="0" y1="${y}" x2="${MW}" y2="${y - 30}" stroke="#fff" stroke-width="3"/>`;
+    s += `<path d="M0 360 C 300 330 600 420 1204 300" stroke="#f3d48b" stroke-width="7" fill="none"/>
+      <path d="M380 0 C 420 260 560 520 600 764" stroke="#f3d48b" stroke-width="7" fill="none"/>
+      <circle cx="${YARD.x}" cy="${YARD.y}" r="${YARD.r + 160}" stroke="#f3d48b" stroke-width="6" fill="none"/>`;
+    const lbl = [['NORTHGATE', 820, 150], ['MILL PARK', 150, 300], ['HARBOR DISTRICT', 900, 560], ['EAST END', 1040, 380], ['RIVERSIDE', 250, 720], ['OLD TOWN', 600, 470], ['FOUNDRY ROW', 690, 240]];
+    s += lbl.map(([t, x, y]) => `<text x="${x}" y="${y}" font-size="10.5" font-weight="600" letter-spacing="1" fill="#8a93a3" font-family="Inter, sans-serif">${t}</text>`).join('');
+    s += `<circle cx="${YARD.x}" cy="${YARD.y}" r="${YARD.r}" fill="rgba(0,165,173,0.12)" stroke="#00a5ad" stroke-width="2" stroke-dasharray="6 6"/>`;
+    return s + '</svg>';
+  }
+
+  function pins(s) {
+    let h = PINS.map(p => `<span class="pin" style="left:${p.x.toFixed(0)}px;top:${p.y.toFixed(0)}px">${pinSvg(p.l, p.c ? (p.c < 10 ? 38 : 44) : 30)}${p.c ? `<span class="cnt" style="border-color:${COLOR[p.l]}">${p.c}</span>` : ''}</span>`).join('');
+    const sel = !!s.sel;
+    h += `<span class="pin${sel ? ' sel' : ''}" id="pin-lead" style="left:${LEAD.x}px;top:${LEAD.y}px">${pinSvg('nc', sel ? 40 : 30, sel)}${sel ? '<span class="ptip">Ridgeline Machine Works</span>' : ''}</span>`;
+    h += `<div class="yardpin" style="left:${YARD.x}px;top:${YARD.y}px"><span class="hs">${ic('house')}</span><b>North Yard</b></div>`;
+    h += `<div class="rtag" id="radius-tag" style="left:${YARD.x}px;top:${YARD.y - YARD.r + 7}px"><span>North Yard · 5 mi</span><i class="h"></i></div>`;
+    return h;
+  }
+
+  function lassoLayer(s) {
+    if (!s.lasso) return '';
+    const pts = LASSO.map(p => p.join(',')).join(' ');
+    return `<svg class="base" viewBox="0 0 ${MW} ${MH}" preserveAspectRatio="none" aria-hidden="true"><polygon points="${pts}" fill="rgba(0,165,173,0.16)" stroke="#00a5ad" stroke-width="2.5" stroke-dasharray="7 5"/></svg>`;
+  }
+
+  function toolbar(s) {
+    const f = !!s.filter || !!s.lasso;
+    const fpop = s.filter ? `<div class="pop fpop" id="flt-pop" role="group" aria-label="Commodity">
+        <div class="fld"><label>Commodity</label><div class="in"><span class="tagc">Aluminum${ic('x')}</span>${ic('chevron-down', 'class="chv"')}</div></div>
+        <div class="fld"><label>Grade</label><div class="in ph">All grades${ic('chevron-down', 'class="chv"')}</div></div>
+        <p class="note">Filters apply to Prospects only</p></div>` : '';
+    return `<div class="tbar">
+      <div class="r1">
+        <div class="sbox shadow"><span class="q">${ic('search')}Search businesses</span><span class="dv"></span><span class="ib">${ic('sliders-horizontal')}</span></div>
+        <div class="modes shadow" role="group" aria-label="Draw mode"><span class="${s.lasso ? '' : 'on'}">${ic('hand')}Pan</span><span class="${s.lasso ? 'on' : ''}" id="mode-lasso">${ic('lasso')}Lasso</span></div>
+        <span class="scanb shadow" id="scan">${ic('radar')}Scan this area</span>
+      </div>
+      <div class="r2">
+        <span class="chip nm shadow"><span class="sw2"><i class="k"></i>Near me</span><span class="ib" style="width:24px;height:24px">${ic('chevron-down')}</span></span>
+        <span class="chip shadow">${ic('map-pin')}North Yard · 5 mi${ic('chevron-down')}</span>
+        <span style="position:relative;display:inline-flex"><span class="chip shadow${f ? ' on' : ''}" id="chip-commodity">Commodity${f ? '<span class="bd">1</span>' : ''}${ic('chevron-down')}</span>${fpop}</span>
+        <span class="chip shadow${f ? ' on' : ''}" id="chip-recycler">${f ? 'Bayline Metals' : 'Current recycler'}${ic('chevron-down')}</span>
+        <span class="chip shadow">${ic('filter')}More filters${ic('chevron-down')}</span>
+      </div>
+    </div>`;
+  }
+
+  function layersPop() {
+    const row = (l, t, n) => `<div class="lrow"><span class="cb">${ic('check')}</span><span class="glyph">${pinSvg(l, 16)}</span><span>${t}</span><span class="n">${n}</span></div>`;
+    return `<div class="pop layers" id="layer-pop" role="group" aria-label="Map layers">${row('nc', 'Not contacted', 542)}${row('pl', 'In pipeline', 28)}${row('cu', 'Customer', 8)}</div>`;
+  }
+
+  function details() {
+    return `<section class="dpanel" aria-label="Ridgeline Machine Works details">
+      <div class="hd"><div class="tp"><span class="xs">${ic('chevron-left')}Back to 578 results</span><span class="xs">${ic('x')}</span></div>
+        <h2>Ridgeline Machine Works</h2>
+        <div class="chips"><span class="stc">Not contacted</span><span class="stc pr">Machine shop</span></div></div>
+      <div class="bd">
+        <div class="col" id="d-score">
+          <span class="lbl">AI score</span>
+          <div class="sbar"><span class="tr"><i style="width:91%"></i></span><small>91%</small></div>
+          <p>Estimated scrap supply relevance, from 0% to 100%. Higher scores indicate greater potential.</p>
+          <p class="quote" style="margin-top:6px">“CNC shop running steel, stainless and aluminum parts for oilfield equipment, with cut-offs and turnings every week.”</p>
+          <span class="lbl" style="margin-top:8px">Scrap types (AI)</span>
+          <div class="bdgs"><span class="bdg">Steel</span><span class="bdg">Stainless steel</span><span class="bdg">Aluminum</span></div>
+        </div>
+        <div class="grp"><h3>Contact</h3>
+          <div class="ci">${ic('map-pin')}<span>4120 Foundry Rd, Millbrook, TX, 77020<small>2.8 mi from the yard · <span class="lk">Directions ${ic('external-link')}</span></small></span></div>
+          <div class="ci">${ic('phone')}<span>(555) 201-4477</span></div>
+          <div class="ci">${ic('globe')}<span>No website</span></div>
+        </div>
+        <p class="note">Found through public business listings · scanned 3 days ago</p>
+      </div>
+      <div class="ft"><span class="btnf pri full" id="d-create">Create Opportunity</span><span class="btnf out grow">Match to existing Customer</span><span class="btnf neu">Dismiss</span></div>
+    </section>`;
+  }
+
+  function startPop() {
+    return `<div class="pop spop" id="start-pop" aria-label="Ridgeline Machine Works">
+      <h3>Ridgeline Machine Works</h3>
+      <div class="addr">${ic('map-pin')}<span>4120 Foundry Rd<br>Millbrook, TX 77020, US</span></div>
+      <div class="ss2">
+        <div class="it" id="sp-score">${ic('chart-no-axes-column-increasing')}<div class="col"><div class="ln"><b>Supply relevance</b><span><span class="big">91</span>/100</span>${ic('info')}</div><span class="sm2">Estimated scrap potential.</span></div></div>
+        <span class="vd"></span>
+        <div class="it">${ic('file-text')}<div class="col"><b>Source details</b><span class="sm2">Source, dates and more</span></div>${ic('chevron-down', 'class="chev"')}</div>
+      </div>
+      <div id="sp-form" style="display:flex;flex-direction:column;gap:14px">
+        <div style="display:flex;align-items:center;gap:8px"><h4>Add to pipeline</h4><span class="newpill">New</span></div>
+        <div class="g2">
+          <div class="fld"><label>Receiving yard</label><div class="in">North Yard${ic('chevron-down', 'class="chv"')}</div></div>
+          <div class="fld"><label>Owner</label><div class="in">Me${ic('chevron-down', 'class="chv"')}</div></div>
+        </div>
+        <div class="fld"><label>Commodity <small>Optional</small></label><div class="in"><span class="tagc">Aluminum${ic('x')}</span>${ic('chevron-down', 'class="chv"')}</div></div>
+        <div class="fld"><label>First step <small>Optional</small></label><div class="in">Visit in 1 week${ic('chevron-down', 'class="chv"')}</div></div>
+      </div>
+      <p class="fnote">Creates a New Opportunity and opens the Prospect.</p>
+      <div class="frow"><span class="btnf gh" style="margin-left:-8px">Dismiss for North Yard</span><span class="rt"><span class="btnf neu">Cancel</span><span class="btnf pri" id="sp-save">Save</span></span></div>
+    </div>`;
+  }
+
+  function selection(s) {
+    if (!s.lasso) return '';
+    const dots = [COLOR.pl, COLOR.pl, '#b45309', COLOR.pl, COLOR.nc, COLOR.nc].map(c => `<i style="border-color:${c}"></i>`).join('');
+    const lead = n => `<div class="li"><span>${n}</span><span class="btnf out sm">Start</span></div>`;
+    return `<div class="selwrap">
+      <div class="selbar shadow" id="sel-bar" role="region" aria-label="Lasso selection">
+        <div class="top"><div><b>37 selected</b><small>6 in pipeline, 31 not contacted. The actions apply to the pipeline ones.</small></div>
+          <div class="acts"><span class="btnf out sm">Add to route</span><span class="btnf out sm">Assign owner</span><span class="btnf out sm">Plan task</span><span class="btnf out sm">Change stage</span><span class="btnf gh sm">Clear</span></div></div>
+        ${lead('Granite Ridge Welding')}${lead('Copperline Electric')}${lead('Halvorsen Tool &amp; Die')}${lead('Brightwater Plumbing Supply')}
+      </div>
+      <div class="selsum shadow" role="group" aria-label="Lasso selection summary">37 businesses selected<span class="sdots">${dots}<small>+31</small></span><span class="btnf gh sm">Clear</span><span class="btnf pri sm">Review selection</span></div>
+    </div>`;
+  }
+
+  // ---------- steps ----------
+  const U = '/app/supply-radar/explore';
+  const STEPS = [
+    { cover: 'intro', url: U },
+    { t: '#tab-explore', place: 'bottom', url: U,
+      tip: 'Supply Map lives in the <b>Explore</b> tab of Supply Radar. It opens on a map of the businesses around your yard.' },
+    { t: '#radius-tag', place: 'right', url: U,
+      tip: 'The ring shows how far out you are looking. Drag its handle to change the radius, or pick a distance from the <b>North Yard · 5 mi</b> filter.' },
+    { layers: true, t: '#layer-pop', place: 'left', url: U,
+      tip: '<b>Show on map</b> turns each layer on or off: businesses you haven’t contacted yet, prospects <b>In pipeline</b>, and your current <b>Customer</b> locations.' },
+    { filter: true, t: '#flt-pop', place: 'right', url: U,
+      tip: 'Narrow your prospects with <b>Commodity</b> and <b>Current recycler</b>, for example everyone selling aluminum to Bayline Metals. These filters apply to prospects only.' },
+    { lasso: true, t: '#sel-bar', place: 'top', url: U,
+      tip: 'Switch to <b>Lasso</b> and draw around an area to select it. Bulk actions like <b>Assign owner</b> and <b>Change stage</b> apply to pipeline prospects, and each new business gets a <b>Start</b> button.' },
+    { t: '#scan', place: 'bottom', url: U,
+      tip: '<b>Scan this area</b> searches the part of the map you are viewing for businesses, so new scrap sources show up as pins.' },
+    { t: '#pin-lead', place: 'right', url: U,
+      tip: 'Click a pin to open the business. This one is a machine shop 2.8 miles from the yard.' },
+    { sel: true, t: '#d-score', place: 'left', url: U + '?selected=lead',
+      tip: 'The <b>AI score</b> rates how likely the business is to produce scrap. The quote is the evidence behind it, and <b>Scrap types (AI)</b> lists what it probably generates.' },
+    { sel: true, t: '#d-create', place: 'left', url: U + '?selected=lead',
+      tip: 'Click <b>Create Opportunity</b> to add it to your pipeline. You can also match it to an existing customer, or dismiss it.' },
+    { sel: true, start: true, t: '#sp-score', place: 'left', url: U + '?selected=lead',
+      tip: 'The form shows the <b>Supply relevance</b> score, here 91/100. Open <b>Source details</b> to see where the listing came from and when it was updated.' },
+    { sel: true, start: true, t: '#sp-form', place: 'left', url: U + '?selected=lead',
+      tip: 'Under <b>Add to pipeline</b>, pick the <b>Receiving yard</b> and <b>Owner</b>. <b>Commodity</b> and <b>First step</b> are optional, and <b>Visit in 1 week</b> plans the first task for you.' },
+    { sel: true, start: true, t: '#sp-save', place: 'left', url: U + '?selected=lead',
+      tip: 'Click <b>Save</b>. Supply Radar creates a <b>New</b> opportunity and opens the prospect, ready for the first visit.' },
+    { cover: 'outro', url: U },
+  ];
+
+  // ---------- chrome ----------
+  function sidebar() {
+    const row = (i, l, extra = '', cls = '') => `<div class="nrow${cls}">${ic(i)}<span>${l}</span>${extra || ic('chevron-right', 'class="chev"')}</div>`;
+    return `<aside class="side">
+      <div class="top">${MARK}<div class="yard"><span>North Yard</span>${ic('chevrons-up-down')}</div></div>
+      <div class="nav">
+        ${row('inbox', 'Inbox', '<span class="pill">4</span>')}
+        ${row('messages-square', 'ScrapChat', ' ')}
+        <div class="cmd" style="margin:2px 0">${ic('search')}<span>Search &amp; actions</span><kbd>⌘K</kbd></div>
+        <div class="nsep"></div>
+        ${row('radar', 'Supply Radar', ic('chevron-down', 'class="chev"'))}
+        <div class="nrow sub active">${ic('circle')}<span>Supply Radar</span></div>
+        ${row('shopping-cart', 'Purchases')}${row('tag', 'Sales')}${row('file-text', 'Contracts')}${row('boxes', 'Inventory')}
+        ${row('users', 'Customers')}${row('layers', 'Commodities')}${row('truck', 'Logistics')}${row('warehouse', 'Assets')}${row('chart-column', 'Reports')}${row('landmark', 'Ledger')}
+      </div>
+      <div class="foot"><div class="av">JP</div><div class="who"><span>Jordan Pike</span><small>Buyer</small></div>
+        <div class="ico"><span>${ic('settings')}</span><span>${ic('circle-help')}</span></div></div>
+    </aside>`;
+  }
+
+  function page(s) {
+    return `<main class="main">
+      <div class="rhead"><h1>Supply Radar</h1>
+        <div class="tabs"><span>Today</span><span class="on" id="tab-explore">Explore</span><span>Pipeline</span><span>Reports</span></div>
+        <div class="acts"><span class="rb icon">${ic('settings')}</span><span class="rb icon">${ic('refresh-cw')}</span><span class="rb out-p">${ic('plus')}Add prospect</span></div></div>
+      <div class="mapwrap" aria-label="Explore">
+        ${baseMap()}${lassoLayer(s)}${pins(s)}
+        <span class="rb baselayer shadow">${ic('layers')}Layers</span>
+        <div class="zoom shadow"><span>${ic('plus')}</span><span>${ic('minus')}</span></div>
+        <span class="attrib">Map data</span>
+        ${toolbar(s)}
+        <div class="rcol">
+          <div class="row"><span class="rb h40 shadow">Show on map${ic(s.layers ? 'chevron-up' : 'chevron-down')}</span><span class="rb h40 shadow">${ic('list')}View results (578)</span>${s.layers ? layersPop() : ''}</div>
+          ${s.sel ? details() : ''}
+        </div>
+        ${s.start ? startPop() : ''}
+        ${selection(s)}
+      </div>
+    </main>`;
+  }
+
+  function cover(kind) {
+    if (kind === 'intro') {
+      return `<div class="cover"><div class="card">
+        <div class="eyebrow">${ic('radar')}Supply Radar · Supply Map</div>
+        <h2>Find the scrap sources around your yard</h2>
+        <p>Supply Map puts the businesses near your yard on one map, scores how likely each one is to produce scrap, and lets you add the best ones straight to your pipeline.</p>
+        <div class="cta"><button class="go" type="button" data-go="next">Get started${ic('arrow-right')}</button></div>
+      </div></div>`;
+    }
+    return `<div class="cover"><div class="card">
+      <div class="eyebrow">${ic('circle-check')}Supply Radar · Supply Map</div>
+      <h2>From a pin on the map to a new opportunity</h2>
+      <p>Set your radius and layers, filter your prospects, lasso an area or scan for new businesses, then check the AI score and the evidence behind it. Save the business as a New opportunity with a receiving yard, an owner and a first step.</p>
+      <div class="cta"><button class="go sec" type="button" data-go="restart">${ic('rotate-ccw')}Replay</button></div>
+    </div></div>`;
+  }
+
+  function renderApp(s) {
+    return `<div class="app">${sidebar()}${page(s)}${s.cover ? cover(s.cover) : ''}</div>`;
+  }
+  function anchorMenus() {}
+
+
+  // ---------- player ----------
+  const stage = document.getElementById('stage');
+  const canvas = document.getElementById('canvas');
+  const overlay = document.getElementById('overlay');
+  const caption = document.getElementById('caption');
+  const pips = document.getElementById('pips');
+  const backBtn = document.getElementById('back');
+  const nextBtn = document.getElementById('next');
+  let step = 0;
+  const guided = STEPS.map((s, i) => (s.tip ? i : null)).filter(i => i !== null);
+
+  pips.innerHTML = STEPS.map((_, i) => `<button type="button" role="tab" aria-label="Step ${i + 1}" data-i="${i}"></button>`).join('');
+  pips.addEventListener('click', e => { const b = e.target.closest('button'); if (b) go(+b.dataset.i); });
+
+  function scale() {
+    const k = stage.clientWidth / W;
+    canvas.style.transform = `scale(${k})`;
+    document.body.classList.toggle('narrow', stage.clientWidth < 700);
+    return k;
+  }
+
+  function place() {
+    overlay.innerHTML = '';
+    const s = STEPS[step];
+    anchorMenus(s);
+    if (!s.t) return;
+    const el = canvas.querySelector(s.t);
+    if (!el) return;
+    const sr = stage.getBoundingClientRect();
+    const r = el.getBoundingClientRect();
+    const x = r.left - sr.left, y = r.top - sr.top, w = r.width, h = r.height;
+    const n = guided.indexOf(step) + 1;
+    const label = `<span class="n">Step ${n} of ${guided.length}</span>`;
+
+    const ring = document.createElement('div');
+    ring.className = 'ring';
+    Object.assign(ring.style, { left: x - 3 + 'px', top: y - 3 + 'px', width: w + 6 + 'px', height: h + 6 + 'px' });
+    const hot = document.createElement('button');
+    hot.className = 'hot';
+    hot.type = 'button';
+    hot.setAttribute('aria-label', 'Continue to next step');
+    hot.style.left = x + w / 2 + 'px';
+    hot.style.top = y + h / 2 + 'px';
+    hot.addEventListener('click', () => go(step + 1));
+    overlay.append(ring, hot);
+
+    caption.innerHTML = label + s.tip;
+    if (document.body.classList.contains('narrow')) return;
+
+    const tip = document.createElement('div');
+    tip.className = 'tip';
+    tip.innerHTML = label + s.tip;
+    overlay.append(tip);
+    const tw = tip.offsetWidth, th = tip.offsetHeight, gap = 18;
+    const SW = stage.clientWidth, SH = stage.clientHeight;
+    let tx, ty;
+    const side = s.place || 'right';
+    if (side === 'right') { tx = x + w + gap; ty = y + h / 2 - th / 2; }
+    if (side === 'left') { tx = x - tw - gap; ty = y + h / 2 - th / 2; }
+    if (side === 'bottom') { tx = x + w / 2 - tw / 2; ty = y + h + gap; }
+    if (side === 'top') { tx = x + w / 2 - tw / 2; ty = y - th - gap; }
+    if (side === 'right' && tx + tw > SW - 8) { tx = x - tw - gap; }
+    if (side === 'left' && tx < 8) { tx = x + w + gap; }
+    tx = Math.max(10, Math.min(SW - tw - 10, tx));
+    ty = Math.max(10, Math.min(SH - th - 10, ty));
+    tip.style.left = tx + 'px';
+    tip.style.top = ty + 'px';
+  }
+
+  function render() {
+    const s = STEPS[step];
+    canvas.innerHTML = renderApp(s);
+    if (window.lucide) lucide.createIcons({ attrs: { 'aria-hidden': 'true' } });
+    document.getElementById('url').textContent = 'app.respark.com' + s.url;
+    document.getElementById('progress').style.width = (step / (STEPS.length - 1)) * 100 + '%';
+    [...pips.children].forEach((b, i) => { b.className = i === step ? 'on' : i < step ? 'done' : ''; b.setAttribute('aria-selected', i === step); });
+    const n = guided.indexOf(step);
+    document.getElementById('count').textContent = s.cover === 'intro' ? 'Intro' : s.cover === 'outro' ? 'Done' : `${n + 1} / ${guided.length}`;
+    backBtn.disabled = step === 0;
+    nextBtn.disabled = step === STEPS.length - 1;
+    if (s.cover) caption.innerHTML = s.cover === 'intro'
+      ? '<span class="n">Intro</span>Supply Map puts the businesses near your yard on one map, scores how likely each one is to produce scrap, and lets you add the best ones to your pipeline.'
+      : '<span class="n">Done</span>Set your radius and layers, filter prospects, lasso an area or scan for new businesses, check the AI score and its evidence, then save the business as a New opportunity.';
+    scale();
+    // Measure only after entrance animations (panels sliding in, menus
+    // popping, pins dropping) finish, or the ring lands where the element
+    // was mid-animation instead of where it ends up.
+    const token = ++renderToken;
+    settle().then(() => { if (token === renderToken) place(); });
+  }
+
+  let renderToken = 0;
+  function settle() {
+    const finite = (canvas.getAnimations ? canvas.getAnimations({ subtree: true }) : [])
+      .filter(a => a.effect && a.effect.getComputedTiming().iterations !== Infinity);
+    const done = Promise.all(finite.map(a => a.finished.catch(() => {})));
+    const timeout = new Promise(r => setTimeout(r, 1200));
+    // If the timeline is throttled (background tab), snap leftovers to their
+    // end state so the measurement still matches the final layout.
+    return Promise.race([done, timeout]).then(() => {
+      finite.forEach(a => { if (a.playState !== 'finished') try { a.finish(); } catch (e) {} });
+      return new Promise(r => setTimeout(r, 30));
+    });
+  }
+
+  // Self-check used before publishing: walks every step and reports any
+  // highlight that doesn't sit on its target, targets that are missing or
+  // clipped, and tooltips that cover the thing they point at.
+  function checkStep() {
+    const s = STEPS[step];
+    if (!s.t) return { step, ok: true };
+    const el = canvas.querySelector(s.t), ring = overlay.querySelector('.ring'), tip = overlay.querySelector('.tip');
+    if (!el) return { step, ok: false, why: `target ${s.t} not found` };
+    if (!ring) return { step, ok: false, why: 'highlight not drawn' };
+    const a = el.getBoundingClientRect(), b = ring.getBoundingClientRect(), st = stage.getBoundingClientRect();
+    const off = Math.max(Math.abs(a.left - 3 - b.left), Math.abs(a.top - 3 - b.top), Math.abs(a.width + 6 - b.width), Math.abs(a.height + 6 - b.height));
+    const issues = [];
+    if (off > 2) issues.push(`highlight off by ${Math.round(off)}px`);
+    if (a.width < 4 || a.height < 4) issues.push('target has no size');
+    if (a.left < st.left - 1 || a.top < st.top - 1 || a.right > st.right + 1 || a.bottom > st.bottom + 1) issues.push('target clipped by frame');
+    if (tip) {
+      const t = tip.getBoundingClientRect();
+      const ix = Math.max(0, Math.min(a.right, t.right) - Math.max(a.left, t.left)), iy = Math.max(0, Math.min(a.bottom, t.bottom) - Math.max(a.top, t.top));
+      if (ix * iy > 0.25 * a.width * a.height) issues.push('tooltip covers target');
+    }
+    return { step, target: s.t, ok: issues.length === 0, issues };
+  }
+  window.walkthroughAudit = async () => {
+    const results = [];
+    for (let i = 0; i < STEPS.length; i++) {
+      go(i);
+      await settle();
+      await new Promise(r => setTimeout(r, 60));
+      results.push(checkStep());
+    }
+    go(0);
+    return { ok: results.every(r => r.ok), problems: results.filter(r => !r.ok), steps: results.length };
+  };
+
+  function go(i) {
+    step = Math.max(0, Math.min(STEPS.length - 1, i));
+    render();
+  }
+
+  canvas.addEventListener('click', e => {
+    const g = e.target.closest('[data-go]');
+    if (g) { go(g.dataset.go === 'restart' ? 0 : step + 1); return; }
+    const s = STEPS[step];
+    if (s.t && e.target.closest(s.t)) go(step + 1);
+  });
+  backBtn.addEventListener('click', () => go(step - 1));
+  nextBtn.addEventListener('click', () => go(step + 1));
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight') go(step + 1);
+    if (e.key === 'ArrowLeft') go(step - 1);
+  });
+  new ResizeObserver(() => { scale(); settle().then(place); }).observe(stage);
+  if (document.fonts) document.fonts.ready.then(place);
+
+  if (window.lucide) lucide.createIcons({ attrs: { 'aria-hidden': 'true' } });
+  render();
+})();
+</script>

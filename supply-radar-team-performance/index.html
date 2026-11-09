@@ -1,0 +1,861 @@
+<meta charset="utf-8">
+<title>ReSpark Team Performance</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+<style>
+/* Layout: an Arcade-style player. One framed browser window holds a scaled
+   1440×820 mock of ReSpark Supply Radar (the Reports tab and Pipeline settings)
+   for Team Performance; a pulsing hotspot + tooltip guides each step; step controls sit
+   under the frame. The app mock keeps ReSpark's light theme (it stands in
+   for a screenshot); the page around it follows the viewer's theme. */
+:root {
+  --bg: #f3f5f8;
+  --glow: rgba(0, 168, 176, 0.10);
+  --fg: #12233e;
+  --fg-muted: rgba(18, 35, 62, 0.62);
+  --frame: #ffffff;
+  --frame-bar: #eef1f5;
+  --frame-line: rgba(18, 35, 62, 0.12);
+  --ctl: #ffffff;
+  --ctl-line: rgba(18, 35, 62, 0.16);
+  --teal: #00a3a8;
+  --teal-strong: #008a8f;
+  --tip-bg: #12233e;
+  --tip-fg: #ffffff;
+
+  /* ReSpark app tokens (frontend/client/src/global.css, light mode) */
+  --a-fg: hsl(217 55% 16%);
+  --a-surface: #ffffff;
+  --a-muted: hsla(217, 55%, 16%, 0.03);
+  --a-muted-solid: #f8f9fa;
+  --a-hover: hsla(217, 55%, 16%, 0.06);
+  --a-border: hsla(217, 55%, 16%, 0.14);
+  --a-border-subtle: hsla(217, 55%, 16%, 0.08);
+  --a-text-2: hsla(217, 55%, 16%, 0.75);
+  --a-text-3: hsla(217, 55%, 16%, 0.52);
+  --a-icon-2: hsla(217, 55%, 16%, 0.42);
+  --a-primary: hsl(183 100% 33%);
+  --a-primary-hover: hsl(183 100% 27%);
+  --a-primary-subtle: hsla(183, 100%, 33%, 0.10);
+  --a-warning-strong: hsl(32 95% 34%);
+  --a-success: hsl(162 73% 37%);
+  --a-success-strong: hsl(162 73% 30%);
+  --a-error: hsl(348 81% 48%);
+  --a-error-strong: hsl(348 81% 38%);
+  --a-accent: hsl(252 89% 65%);
+  --a-accent-strong: hsl(252 60% 50%);
+  --a-accent-subtle: hsla(252, 89%, 65%, 0.10);
+  --a-dark: hsl(217 45% 14%);
+  --a-nav-selected: hsl(217 55% 16%);
+
+  --font: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0c1422; --glow: rgba(0, 201, 212, 0.10); --fg: #e8eef7; --fg-muted: rgba(232, 238, 247, 0.62);
+    --frame: #17202f; --frame-bar: #1c2738; --frame-line: rgba(232, 238, 247, 0.12);
+    --ctl: #17202f; --ctl-line: rgba(232, 238, 247, 0.18); --teal: #19c3cb; --teal-strong: #4fd6dc;
+    --tip-bg: #00a3a8; --tip-fg: #ffffff; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0c1422; --glow: rgba(0, 201, 212, 0.10); --fg: #e8eef7; --fg-muted: rgba(232, 238, 247, 0.62);
+  --frame: #17202f; --frame-bar: #1c2738; --frame-line: rgba(232, 238, 247, 0.12);
+  --ctl: #17202f; --ctl-line: rgba(232, 238, 247, 0.18); --teal: #19c3cb; --teal-strong: #4fd6dc;
+  --tip-bg: #00a3a8; --tip-fg: #ffffff; color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--fg); font-family: var(--font);
+  background-image: radial-gradient(60% 50% at 50% 38%, var(--glow), transparent 70%);
+  min-height: 100vh; padding-inline: 16px; padding-block: 28px 40px;
+}
+.wrap { max-width: 1180px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
+.head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 15px; letter-spacing: -0.01em; }
+.brand svg { width: 28px; height: 28px; color: var(--fg); }
+.head .tag { font-size: 12px; color: var(--fg-muted); font-weight: 500; }
+
+.frame { background: var(--frame); border: 1px solid var(--frame-line); border-radius: 12px; overflow: hidden;
+  box-shadow: 0 30px 60px -20px rgba(18, 35, 62, 0.28), 0 8px 18px -8px rgba(18, 35, 62, 0.18); }
+.bar { height: 38px; background: var(--frame-bar); border-bottom: 1px solid var(--frame-line); display: flex; align-items: center; gap: 12px; padding-inline: 14px; position: relative; }
+.dots { display: flex; gap: 6px; }
+.dots i { width: 10px; height: 10px; border-radius: 50%; background: var(--frame-line); display: block; }
+.url { flex: 1; max-width: 460px; margin-inline: auto; height: 24px; border-radius: 6px; background: var(--frame); border: 1px solid var(--frame-line);
+  display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 12px; color: var(--fg-muted); padding-inline: 10px; min-width: 0; overflow: hidden; white-space: nowrap; }
+.url span { overflow: hidden; text-overflow: ellipsis; }
+.url svg { width: 12px; height: 12px; flex-shrink: 0; }
+.progress { position: absolute; left: 0; bottom: -1px; height: 2px; background: var(--teal); transition: width .35s ease; }
+
+.stage { position: relative; width: 100%; aspect-ratio: 1440 / 820; max-width: 100%; overflow: hidden; background: #fff; }
+.canvas { position: absolute; left: 0; top: 0; width: 1440px; height: 820px; transform-origin: 0 0; }
+.overlay { position: absolute; inset: 0; pointer-events: none; }
+
+.ring { position: absolute; border-radius: 6px; box-shadow: 0 0 0 2px var(--a-primary), 0 0 0 6px hsla(183, 100%, 33%, 0.18); transition: all .3s ease; pointer-events: none; }
+.hot { position: absolute; width: 26px; height: 26px; margin: -13px 0 0 -13px; border-radius: 50%; pointer-events: auto; cursor: pointer;
+  background: hsla(183, 100%, 33%, 0.28); border: 0; padding: 0; transition: left .3s ease, top .3s ease; }
+.hot::before { content: ""; position: absolute; inset: 7px; border-radius: 50%; background: var(--a-primary); box-shadow: 0 0 0 2px #fff; }
+.hot::after { content: ""; position: absolute; inset: 0; border-radius: 50%; border: 2px solid var(--a-primary); animation: pulse 1.6s ease-out infinite; }
+.hot:focus-visible { outline: 3px solid var(--teal-strong); outline-offset: 3px; }
+@keyframes pulse { 0% { transform: scale(.7); opacity: .9; } 100% { transform: scale(2.1); opacity: 0; } }
+
+.tip { position: absolute; max-width: 310px; background: var(--tip-bg); color: var(--tip-fg); border-radius: 10px; padding: 12px 14px;
+  font-size: 14px; line-height: 1.45; box-shadow: 0 12px 28px -8px rgba(12, 20, 34, 0.45); pointer-events: auto; animation: tipIn .25s ease; }
+.tip b { font-weight: 600; }
+.tip code, .caption code { font-family: var(--mono); font-size: 12.5px; background: rgba(255, 255, 255, 0.16); padding: 1px 5px; border-radius: 4px; }
+.caption code { background: var(--frame-bar); }
+.tip .n, .caption .n { display: block; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; opacity: .7; margin-bottom: 4px; }
+@keyframes tipIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+.caption { display: none; background: var(--frame); border: 1px solid var(--frame-line); border-radius: 10px; padding: 12px 14px; font-size: 14px; line-height: 1.5; }
+body.narrow .caption { display: block; }
+body.narrow .tip { display: none; }
+
+.controls { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.btn { font: inherit; font-size: 13px; font-weight: 600; height: 36px; padding-inline: 14px; border-radius: 8px; border: 1px solid var(--ctl-line);
+  background: var(--ctl); color: var(--fg); cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+.btn:hover { border-color: var(--teal); }
+.btn:disabled { opacity: .4; cursor: default; border-color: var(--ctl-line); }
+.btn:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+.btn.primary { background: var(--teal); border-color: var(--teal); color: #fff; }
+.btn svg { width: 16px; height: 16px; }
+.count { font-size: 13px; color: var(--fg-muted); font-variant-numeric: tabular-nums; min-width: 48px; text-align: right; }
+.pips { display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; flex: 1; min-width: 0; }
+.pips button { width: 22px; height: 6px; border-radius: 3px; border: 0; padding: 0; background: var(--ctl-line); cursor: pointer; }
+.pips button.on { background: var(--teal); }
+.pips button.done { background: color-mix(in srgb, var(--teal) 45%, transparent); }
+.hint { font-size: 12px; color: var(--fg-muted); text-align: center; }
+kbd { font: inherit; font-size: 11px; border: 1px solid var(--ctl-line); border-radius: 4px; padding: 1px 5px; }
+
+/* ================= ReSpark app mock (fixed light theme) ================= */
+.app { width: 1440px; height: 820px; display: flex; font-family: var(--font); color: var(--a-fg); font-size: 13px; background: var(--a-surface); position: relative; overflow: hidden; }
+.app table { color: inherit; } /* pages render without a doctype, where tables don't inherit text color; keeps the app mock readable in dark mode */
+.app svg.lucide, .sapp svg.lucide { width: 16px; height: 16px; stroke-width: 1.75; flex-shrink: 0; }
+.side { width: 236px; flex-shrink: 0; background: var(--a-muted-solid); border-right: 1px solid var(--a-border-subtle); display: flex; flex-direction: column; padding: 12px 10px; gap: 10px; }
+.side .top { display: flex; align-items: center; gap: 8px; padding: 2px 4px; }
+.side .top svg.mark { width: 28px; height: 28px; color: #12233e; }
+.yard { flex: 1; display: flex; align-items: center; justify-content: space-between; border: 1px solid var(--a-border); border-radius: 6px; height: 30px; padding-inline: 8px; background: var(--a-surface); font-weight: 500; font-size: 12.5px; }
+.yard svg.lucide { width: 14px; height: 14px; color: var(--a-icon-2); }
+.cmd { display: flex; align-items: center; gap: 8px; height: 30px; border: 1px solid var(--a-border); border-radius: 6px; padding-inline: 8px; color: var(--a-text-3); background: var(--a-surface); font-size: 12.5px; }
+.cmd kbd { margin-left: auto; font-size: 10.5px; border-color: var(--a-border); color: var(--a-text-3); }
+.nav { display: flex; flex-direction: column; gap: 1px; }
+.nrow { display: flex; align-items: center; gap: 8px; padding: 5px 8px; border-radius: 6px; font-weight: 500; color: hsla(217, 55%, 16%, 0.88); }
+.nrow .chev { margin-left: auto; width: 14px; height: 14px; color: var(--a-icon-2); }
+.nrow.sub { padding-left: 30px; font-weight: 450; font-size: 12.5px; color: var(--a-text-2); }
+.nrow.sub svg.lucide { width: 14px; height: 14px; color: var(--a-icon-2); }
+.nrow.active { background: var(--a-nav-selected); color: #fff; }
+.nrow.active svg.lucide { color: #fff; }
+.pill { margin-left: auto; font-size: 10px; font-weight: 600; color: var(--a-text-2); background: var(--a-hover); padding: 1px 6px; border-radius: 999px; }
+.nsep { height: 1px; background: var(--a-border-subtle); margin: 4px 6px; }
+.foot { margin-top: auto; display: flex; align-items: center; gap: 8px; padding: 8px 4px 0; border-top: 1px solid var(--a-border-subtle); }
+.av { width: 28px; height: 28px; border-radius: 50%; background: var(--a-primary-subtle); color: var(--a-primary-hover); display: grid; place-items: center; font-weight: 600; font-size: 11px; }
+.foot .who { display: flex; flex-direction: column; line-height: 1.25; }
+.foot .who small { color: var(--a-text-3); font-size: 11px; }
+.foot .ico { margin-left: auto; display: flex; gap: 4px; }
+.foot .ico span { width: 28px; height: 28px; border: 1px solid var(--a-border-subtle); border-radius: 6px; display: grid; place-items: center; }
+
+.main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.phead { display: flex; align-items: center; gap: 12px; padding: 14px 22px 12px; border-bottom: 1px solid var(--a-border-subtle); }
+.crumbs { font-size: 12px; color: var(--a-text-3); display: flex; align-items: center; gap: 4px; }
+.crumbs svg.lucide { width: 12px; height: 12px; }
+.phead h1 { font-size: 20px; font-weight: 600; margin: 0; letter-spacing: -0.015em; }
+.phead .left { display: flex; flex-direction: column; gap: 4px; }
+.phead .acts { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+
+.rb { font: inherit; font-size: 13px; font-weight: 500; height: 32px; padding-inline: 12px; border-radius: 6px; display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--a-border); background: var(--a-surface); color: var(--a-fg); cursor: default; white-space: nowrap; }
+.rb.pri { background: var(--a-primary); border-color: var(--a-primary); color: #fff; }
+.rb.icon { width: 32px; padding: 0; justify-content: center; }
+.badge { display: inline-flex; align-items: center; height: 20px; padding-inline: 8px; border-radius: 999px; font-size: 11.5px; font-weight: 500; white-space: nowrap; }
+.b-success { background: hsla(162, 73%, 37%, 0.14); color: var(--a-success-strong); }
+.b-accent { background: hsla(252, 89%, 65%, 0.14); color: var(--a-accent-strong); }
+.b-neutral { background: hsla(217, 55%, 16%, 0.07); color: var(--a-text-2); }
+
+
+.nrow.grp { color: var(--a-fg); }
+.nrow.grp .chev { transform: rotate(90deg); }
+
+/* Supply Radar header (RadarAccessPage: AppFrame.Header + RadarNav) */
+.rhead { height: 56px; flex-shrink: 0; display: flex; align-items: center; gap: 32px; padding-inline: 20px; border-bottom: 1px solid var(--a-border-subtle); }
+.rhead h1 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.015em; }
+.rnav { display: flex; height: 56px; gap: 4px; }
+.rnav span { display: flex; align-items: center; padding-inline: 10px; font-size: 13.5px; font-weight: 500; color: var(--a-text-2); border-bottom: 2px solid transparent; }
+.rnav span.on { color: var(--a-primary-hover); border-bottom-color: var(--a-primary); }
+.rhead .ra { margin-left: auto; display: flex; gap: 8px; }
+.rb.icon { width: 32px; padding: 0; justify-content: center; }
+
+/* Reports page (reports/PipelineReportPage) */
+.rcontent { flex: 1; min-height: 0; display: flex; flex-direction: column; padding-inline: 20px; }
+.phd { display: flex; align-items: flex-end; gap: 16px; padding-top: 12px; }
+.phd .tl { flex: 1; display: flex; flex-direction: column; gap: 3px; }
+.phd h2 { margin: 0; font-size: 21px; font-weight: 700; letter-spacing: -0.015em; }
+.phd p { margin: 0; font-size: 13.5px; color: var(--a-text-2); }
+.rtabs { display: flex; border-bottom: 1px solid var(--a-border-subtle); margin-top: 10px; }
+.rtabs span { height: 36px; display: flex; align-items: center; padding-inline: 16px; font-size: 13.5px; font-weight: 500; color: var(--a-text-2); border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.rtabs span.on { color: var(--a-primary-hover); border-bottom-color: var(--a-primary); }
+.scroll { flex: 1; min-height: 0; overflow: hidden; position: relative; }
+.sc { display: flex; flex-direction: column; gap: 12px; padding: 12px 0 16px; }
+
+.card { border: 1px solid var(--a-border); border-radius: 12px; background: var(--a-surface); padding: 13px 16px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.ctl { display: flex; align-items: center; gap: 8px; }
+.ctl h3 { margin: 0; font-size: 15.5px; font-weight: 600; }
+.ctl svg.lucide { width: 14px; height: 14px; color: var(--a-icon-2); }
+.ctl .act { margin-left: auto; font-size: 12.5px; color: var(--a-text-2); display: flex; align-items: baseline; gap: 6px; }
+.ctl .act b { font-size: 18px; color: var(--a-fg); font-variant-numeric: tabular-nums; }
+.g2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; align-items: start; }
+.g2.st { align-items: stretch; }
+.g2.wide { grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); }
+.g2.o1 { grid-template-columns: 5fr 4fr; align-items: stretch; }
+.foot-n { margin: 0; font-size: 11.5px; color: var(--a-text-3); }
+.rl { display: inline-flex; align-items: center; gap: 4px; color: var(--a-primary-hover); font-weight: 500; font-size: 12.5px; white-space: nowrap; }
+.rl svg.lucide { width: 13px; height: 13px; }
+u.sc-n { text-decoration: underline; text-decoration-color: hsla(217, 55%, 16%, 0.35); text-underline-offset: 3px; }
+
+/* filters (ReportFilters, PeriodPicker) */
+.filters { flex-direction: row; align-items: flex-end; gap: 14px; padding: 11px 16px; }
+.fl { display: flex; flex-direction: column; gap: 4px; }
+.fl small { font-size: 11.5px; font-weight: 500; color: var(--a-text-2); }
+.sel { height: 32px; border: 1px solid var(--a-border); border-radius: 6px; display: flex; align-items: center; gap: 6px; padding-inline: 10px; font-size: 12.5px; background: var(--a-surface); white-space: nowrap; }
+.sel svg.lucide { width: 14px; height: 14px; color: var(--a-icon-2); }
+.sel .cv { margin-left: auto; }
+.yards { font-size: 11.5px; color: var(--a-text-2); height: 32px; display: flex; align-items: center; }
+.period { margin-left: auto; display: flex; align-items: center; gap: 10px; padding-left: 14px; border-left: 1px solid var(--a-border); font-size: 13px; font-weight: 500; }
+
+/* KPI cards (ReportKpiCards) */
+.kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.kpi { border: 1px solid var(--a-border); border-radius: 12px; padding: 12px 16px; display: flex; flex-direction: column; gap: 2px; }
+.kpi .kl { display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 500; }
+.kpi .kl svg.lucide { width: 18px; height: 18px; }
+.kpi .kv { padding-left: 28px; font-size: 28px; line-height: 1.2; font-weight: 700; font-variant-numeric: tabular-nums; }
+.kpi .kf { padding-left: 28px; font-size: 11.5px; color: var(--a-text-2); display: flex; flex-direction: column; gap: 3px; }
+.t-pri { color: var(--a-primary); }
+.t-err { color: var(--a-error); }
+.t-warn { color: var(--a-warning-strong); }
+.t-ok { color: var(--a-success); }
+.t-neu { color: var(--a-text-2); }
+
+/* Needs attention (NeedsAttentionBar) */
+.attn { display: flex; align-items: center; gap: 12px; border: 1px solid hsla(32, 95%, 44%, 0.4); background: hsla(32, 95%, 44%, 0.10); border-radius: 12px; padding: 8px 16px; }
+.attn svg.lucide { color: var(--a-warning-strong); width: 18px; height: 18px; }
+.attn h4 { margin: 0; font-size: 14px; font-weight: 600; color: var(--a-warning-strong); }
+.chip { border: 1px solid hsla(32, 95%, 44%, 0.4); background: hsla(32, 95%, 44%, 0.15); color: var(--a-warning-strong); border-radius: 6px; padding: 1px 8px; font-size: 12.5px; font-weight: 500; text-decoration: underline; text-underline-offset: 2px; }
+.attn .rl { margin-left: auto; }
+
+/* Open pipeline + Pursued volume */
+.bars { display: flex; flex-direction: column; gap: 12px; padding-top: 4px; }
+.br { display: flex; align-items: center; gap: 14px; font-size: 13px; }
+.br .bl { width: 96px; display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.dot { width: 11px; height: 11px; border-radius: 50%; flex-shrink: 0; display: inline-block; }
+.track { flex: 1; height: 9px; border-radius: 999px; background: var(--a-muted-solid); overflow: hidden; }
+.track i { display: block; height: 100%; border-radius: 999px; }
+.br .bn { width: 30px; text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; }
+.vol { display: grid; grid-template-columns: 1fr minmax(0, 1.2fr); align-items: center; gap: 16px; }
+.vol .big { display: flex; flex-direction: column; gap: 3px; }
+.vol .big small { font-size: 12.5px; color: var(--a-text-2); }
+.vol .big b { font-size: 28px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.vol .list { border-left: 1px solid var(--a-border-subtle); padding-left: 16px; }
+.vol .list div { display: flex; justify-content: space-between; padding: 7px 0; font-size: 13px; }
+.vol .list div + div { border-top: 1px solid var(--a-border-subtle); }
+.vol .list span { color: var(--a-text-2); }
+.vol .list b { font-weight: 600; font-variant-numeric: tabular-nums; }
+
+/* card tabs, segmented, search */
+.ctabs { display: flex; align-items: flex-end; gap: 10px; }
+.ctabs .tl2 { display: flex; }
+.ctabs .tl2 span { height: 32px; display: flex; align-items: center; padding-inline: 12px; font-size: 13px; font-weight: 500; color: var(--a-text-2); border-bottom: 2px solid transparent; }
+.ctabs .tl2 span.on { color: var(--a-primary-hover); border-bottom-color: var(--a-primary); }
+.ctabs .rt { margin-left: auto; display: flex; gap: 8px; align-items: center; margin-bottom: 3px; }
+.srch { height: 30px; width: 190px; border: 1px solid var(--a-border); border-radius: 6px; display: flex; align-items: center; gap: 6px; padding-inline: 9px; font-size: 12px; color: var(--a-text-3); }
+.srch svg.lucide { width: 13px; height: 13px; }
+.seg { display: inline-flex; gap: 4px; }
+.seg span { height: 26px; display: inline-flex; align-items: center; padding-inline: 9px; border: 1px solid var(--a-border); border-radius: 6px; font-size: 12px; font-weight: 500; }
+.seg span.on { border-color: var(--a-primary); color: var(--a-primary-hover); background: var(--a-primary-subtle); }
+
+/* ReportTable */
+table.rt { width: 100%; border-collapse: separate; border-spacing: 0; font-variant-numeric: tabular-nums; font-size: 12.5px; }
+.rt th { background: var(--a-muted-solid); font-size: 11.5px; font-weight: 500; color: var(--a-text-2); padding: 7px 4px; text-align: center; white-space: nowrap; }
+.rt th:first-child { text-align: left; padding-left: 8px; border-radius: 6px 0 0 6px; }
+.rt th:last-child { border-radius: 0 6px 6px 0; }
+.rt td { padding: 6px 4px; text-align: center; color: var(--a-text-2); border-bottom: 1px solid var(--a-border-subtle); white-space: nowrap; }
+.rt tr:last-child td { border-bottom: 0; }
+.rt td:first-child { text-align: left; padding-left: 8px; color: var(--a-fg); font-weight: 500; }
+.rt td.s { color: var(--a-fg); font-weight: 600; }
+.rt .rl1 { display: inline-flex; align-items: center; gap: 6px; }
+.rt .rl1 svg.lucide { width: 13px; height: 13px; color: var(--a-icon-2); }
+.cc { display: inline-flex; justify-content: center; min-width: 30px; height: 20px; align-items: center; border-radius: 5px; font-size: 11.5px; font-weight: 600; }
+.cc.warning { background: hsla(32, 95%, 44%, 0.16); color: var(--a-warning-strong); }
+.cc.error { background: hsla(348, 81%, 48%, 0.12); color: var(--a-error-strong); }
+.cc.success { background: hsla(162, 73%, 37%, 0.14); color: var(--a-success-strong); }
+.fold { border: 1px solid var(--a-border-subtle); border-radius: 8px; padding: 7px 12px; font-size: 13px; font-weight: 500; display: flex; flex-direction: column; gap: 8px; }
+.fold .fh { display: flex; align-items: center; gap: 6px; }
+.fold .fh svg.lucide { width: 14px; height: 14px; color: var(--a-icon-2); }
+.fold.muted { background: var(--a-muted-solid); }
+.ovd { display: flex; align-items: center; gap: 10px; border: 1px solid hsla(32, 95%, 44%, 0.4); background: hsla(32, 95%, 44%, 0.10); border-radius: 8px; padding: 7px 12px; font-size: 13px; font-weight: 500; color: var(--a-warning-strong); }
+.ovd svg.lucide { width: 16px; height: 16px; }
+.ovd .rl { margin-left: auto; }
+
+/* Outcome stats (OutcomeStat) */
+.ost { display: grid; grid-template-columns: auto 1fr; align-items: center; column-gap: 10px; row-gap: 2px; }
+.ost svg.lucide { width: 18px; height: 18px; }
+.ost b { font-size: 17px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1; }
+.ost small { font-size: 11.5px; color: var(--a-text-2); }
+.ost.inl { grid-template-columns: auto auto 1fr; }
+.ost.stk .ic { grid-row: span 2; }
+.ost.hero small { grid-column: span 2; }
+.ost.hero b { font-size: 20px; }
+.outr { display: grid; grid-template-columns: auto 1fr; align-items: center; }
+.outr .h { padding-right: 28px; border-right: 1px solid var(--a-border-subtle); }
+.outr .rows { padding-left: 28px; display: grid; grid-template-columns: 1fr 1fr; column-gap: 24px; row-gap: 8px; }
+.cr4 { display: grid; grid-template-columns: repeat(4, 1fr); column-gap: 16px; }
+.notes { display: flex; align-items: center; gap: 10px; border-top: 1px solid var(--a-border-subtle); padding-top: 7px; font-size: 11.5px; color: var(--a-text-2); white-space: nowrap; }
+.notes b { color: var(--a-fg); }
+.compact { gap: 8px; padding-block: 10px; }
+
+/* Lost reasons, Competitive outcomes */
+.lr { display: flex; align-items: center; gap: 12px; font-size: 13px; }
+.lr .ln { width: 150px; flex-shrink: 0; }
+.lr .track i { background: hsla(348, 81%, 48%, 0.7); }
+.lr .lv { width: 40px; text-align: right; font-variant-numeric: tabular-nums; }
+.inl3 { display: flex; align-items: baseline; gap: 8px; font-size: 13px; }
+.inl3 span { color: var(--a-text-2); }
+.inl3 b { font-variant-numeric: tabular-nums; }
+.ltc { display: flex; flex-direction: column; gap: 8px; }
+.ltc .hd { display: flex; justify-content: space-between; align-items: baseline; }
+.ltc .hd h4 { margin: 0; font-size: 13px; font-weight: 600; }
+.ltc .hd span, .ltc .ch { font-size: 11.5px; color: var(--a-text-2); }
+.ltc .row, .ltc .ch { display: flex; align-items: center; gap: 12px; }
+.ltc .row .nm { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
+.ltc .row .track { height: 6px; }
+.ltc .row .track i { background: hsla(348, 81%, 48%, 0.7); }
+.ltc .ch .nm { flex: 1; }
+.w16 { width: 64px; text-align: right; flex-shrink: 0; font-variant-numeric: tabular-nums; }
+.w10 { width: 40px; text-align: right; flex-shrink: 0; font-variant-numeric: tabular-nums; }
+.ltc .row .w16, .ltc .row .w10 { font-size: 11.5px; color: var(--a-text-2); }
+.ltc .row .w10.s { font-size: 13px; color: var(--a-fg); font-weight: 600; }
+.gap { display: flex; justify-content: space-between; padding: 7px 0; font-size: 13px; }
+.gap + .gap { border-top: 1px solid var(--a-border-subtle); }
+.gap b { font-variant-numeric: tabular-nums; }
+.pr { display: flex; justify-content: space-between; font-size: 13px; font-weight: 400; }
+.pr b { font-variant-numeric: tabular-nums; }
+
+/* Settings shell (SettingsMenuLayout + ContentLayout) and Pipeline settings */
+.sapp { width: 1440px; height: 820px; position: relative; overflow: hidden; font-family: var(--font); color: var(--a-fg); font-size: 13px; display: flex; flex-direction: column; background: var(--a-surface); }
+.stop { height: 50px; flex-shrink: 0; display: flex; align-items: center; gap: 14px; padding-inline: 20px; border-bottom: 1px solid var(--a-border-subtle); }
+.stop .x svg.lucide { width: 18px; height: 18px; }
+.stop .t { font-size: 13.5px; }
+.stop .rs { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+.stop .rs svg.lucide { color: var(--a-text-2); }
+.sbody { flex: 1; min-height: 0; display: flex; }
+.smenu { width: 210px; flex-shrink: 0; background: var(--a-muted-solid); border-right: 1px solid var(--a-border-subtle); padding: 14px 12px; display: flex; flex-direction: column; gap: 2px; }
+.smenu .sh { font-size: 10.5px; font-weight: 600; letter-spacing: .06em; color: var(--a-text-3); padding: 8px 8px 4px; }
+.smenu .si { display: flex; align-items: center; gap: 10px; padding: 6px 8px; border-radius: 6px; font-size: 13px; }
+.smenu .si svg.lucide { width: 15px; height: 15px; color: var(--a-text-2); }
+.smenu .si.on { background: var(--a-primary-subtle); font-weight: 600; }
+.smain { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.smain .ttl { height: 46px; flex-shrink: 0; display: flex; align-items: center; padding-inline: 22px; border-bottom: 1px solid var(--a-border-subtle); font-size: 13.5px; font-weight: 600; }
+.sinner { max-width: 1080px; padding: 6px 16px 0; display: flex; flex-direction: column; gap: 14px; }
+.utabs { display: flex; gap: 20px; border-bottom: 1px solid var(--a-border-subtle); }
+.utabs span { height: 34px; display: flex; align-items: center; font-size: 13px; color: var(--a-text-2); border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.utabs span.on { color: var(--a-fg); font-weight: 600; border-bottom-color: var(--a-fg); }
+.sinner h2 { margin: 0; font-size: 21px; font-weight: 600; }
+.sinner .sub { margin: 3px 0 0; font-size: 13.5px; color: var(--a-text-2); }
+.ibanner { display: flex; align-items: center; gap: 10px; border: 1px solid var(--a-border); background: var(--a-muted-solid); border-radius: 8px; padding: 9px 14px; font-size: 12.5px; }
+.ibanner svg.lucide { width: 15px; height: 15px; color: var(--a-text-2); }
+.stages { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.spc { border: 1px solid var(--a-border); border-radius: 12px; padding: 14px 16px; display: flex; flex-direction: column; gap: 11px; }
+.spc .sh2 { display: flex; align-items: center; gap: 12px; padding-bottom: 11px; border-bottom: 1px solid var(--a-border-subtle); }
+.spc .num { width: 38px; height: 38px; border-radius: 6px; background: var(--a-primary-subtle); color: var(--a-primary); display: grid; place-items: center; font-size: 17px; font-weight: 600; }
+.spc h3 { margin: 0; font-size: 15.5px; font-weight: 600; }
+.spc .pp { font-size: 12.5px; color: var(--a-text-2); }
+.spc .ln2 { display: flex; align-items: center; justify-content: space-between; font-size: 12.5px; }
+.spc .ln2 > b { font-weight: 600; }
+.tgl { display: inline-flex; align-items: center; gap: 8px; }
+.tgl i { width: 30px; height: 17px; border-radius: 999px; background: var(--a-primary); position: relative; }
+.tgl i::after { content: ""; position: absolute; top: 2px; left: 15px; width: 13px; height: 13px; border-radius: 50%; background: #fff; }
+.tgl span { width: 52px; }
+.days { display: inline-flex; height: 30px; border: 1px solid var(--a-border); border-radius: 6px; overflow: hidden; font-size: 12.5px; }
+.days span { width: 70px; display: flex; align-items: center; padding-inline: 9px; font-variant-numeric: tabular-nums; }
+.days em { font-style: normal; display: flex; align-items: center; padding-inline: 10px; background: var(--a-muted-solid); border-left: 1px solid var(--a-border); color: var(--a-text-2); }
+.pbn { display: flex; flex-direction: column; gap: 4px; }
+.pbn label { font-size: 12.5px; font-weight: 600; }
+.pbn label span { font-weight: 400; color: var(--a-text-2); }
+.pbn .d { font-size: 11px; color: var(--a-text-2); line-height: 1.35; }
+.pbn .ta { min-height: 58px; border: 1px solid var(--a-border); border-radius: 6px; padding: 7px 9px; font-size: 12.5px; line-height: 1.45; }
+.pbn .ta.ed { border-color: var(--a-primary); box-shadow: 0 0 0 3px hsla(183, 100%, 33%, 0.15); }
+.pbn .cnt { align-self: flex-end; font-size: 11px; color: var(--a-text-2); font-variant-numeric: tabular-nums; }
+.sfoot { display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--a-border); padding-top: 12px; font-size: 12.5px; color: var(--a-text-2); }
+.sfoot .bb { display: flex; gap: 10px; }
+.rb.lg { height: 36px; padding-inline: 14px; }
+
+/* intro / outro */
+.cover { position: absolute; inset: 0; background: rgba(248, 250, 252, 0.88); backdrop-filter: blur(3px); display: grid; place-items: center; z-index: 10; }
+.cover .card2 { width: 700px; display: flex; flex-direction: column; gap: 14px; align-items: flex-start; }
+.cover .eyebrow { font-size: 13px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--a-primary-hover); display: flex; align-items: center; gap: 8px; }
+.cover h2 { margin: 0; font-size: 40px; line-height: 1.12; letter-spacing: -0.025em; font-weight: 700; text-wrap: balance; }
+.cover p { margin: 0; font-size: 17px; line-height: 1.55; color: var(--a-text-2); max-width: 620px; }
+.cover .chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.cover .chips code { font-family: var(--mono); font-size: 14px; padding: 5px 10px; border-radius: 6px; background: var(--a-surface); border: 1px solid var(--a-border); }
+.cover .cta { display: flex; gap: 10px; margin-top: 8px; }
+.cover .go { font: inherit; font-size: 15px; font-weight: 600; height: 44px; padding-inline: 20px; border-radius: 8px; border: 0; background: var(--a-primary); color: #fff; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; text-decoration: none; }
+.cover .go.sec { background: var(--a-surface); color: var(--a-fg); border: 1px solid var(--a-border); }
+.cover .go:hover { background: var(--a-primary-hover); }
+.cover .go.sec:hover { background: var(--a-muted-solid); }
+.cover .go svg.lucide { width: 18px; height: 18px; }
+.cover .go:focus-visible { outline: 3px solid var(--a-primary); outline-offset: 2px; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+</style>
+
+<div class="wrap">
+  <div class="head">
+    <div class="brand" id="brand"></div>
+    <div class="tag">Interactive demo · Web console</div>
+  </div>
+
+  <div class="frame">
+    <div class="bar">
+      <div class="dots"><i></i><i></i><i></i></div>
+      <div class="url"><i data-lucide="lock"></i><span id="url">app.respark.com</span></div>
+      <div style="width:42px"></div>
+      <div class="progress" id="progress"></div>
+    </div>
+    <div class="stage" id="stage">
+      <div class="canvas" id="canvas"></div>
+      <div class="overlay" id="overlay"></div>
+    </div>
+  </div>
+
+  <div class="caption" id="caption" aria-live="polite"></div>
+
+  <div class="controls">
+    <button class="btn" id="back" type="button"><i data-lucide="arrow-left"></i>Back</button>
+    <div class="pips" id="pips" role="tablist" aria-label="Demo steps"></div>
+    <span class="count" id="count"></span>
+    <button class="btn primary" id="next" type="button">Next<i data-lucide="arrow-right"></i></button>
+  </div>
+  <div class="hint">Click the pulsing dot, or use <kbd>←</kbd> <kbd>→</kbd></div>
+</div>
+
+<script>
+(() => {
+  const W = 1440, H = 820;
+  const MARK = '<svg class="mark" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M152.38 13.33C171.29 13.33 186.67 28.71 186.67 47.62V152.38C186.67 171.29 171.29 186.67 152.38 186.67H47.62C28.71 186.67 13.33 171.29 13.33 152.38V47.62C13.33 28.71 28.71 13.33 47.62 13.33H152.38ZM152.38 0H47.62C21.32 0 0 21.32 0 47.62V152.38C0 178.68 21.32 200 47.62 200H152.38C178.68 200 200 178.68 200 152.38V47.62C200 21.32 178.68 0 152.38 0Z" fill="#00C9D4"/><path d="M93.39 62.1C89.98 59.66 84.7 58.7 80.99 58.69L26.11 58.74L44.28 71.71H82.53C83.21 71.71 83.79 71.96 84.24 72.29C85.21 72.98 85.5 74.27 84.5 75.67L72.84 92.1L84.25 100.24L96.2 83.46C101.27 76.35 101.05 67.54 93.42 62.1L93.4 62.08Z" fill="currentColor"/><path d="M49.21 102.91C53.53 102.91 58.53 105.26 61.64 107.48L107.62 140.38H84.65L52.58 117.49C52.03 117.05 51.38 116.94 50.8 116.94C49.57 116.94 48.56 117.84 48.56 119.62L48.53 140.38H34.11V119.16C34.11 110.16 39.55 102.91 49.19 102.91Z" fill="currentColor"/><path d="M166.27 115.45V103.76C166.27 96.91 164.14 91.42 159.86 87.3C155.58 83.18 149.91 81.1 142.82 81.1H133.49C128.74 81.1 124.57 82.06 120.95 83.97C117.32 85.88 114.54 88.56 112.55 92.02C110.56 95.49 109.58 99.5 109.58 104.01V119.65C109.58 123.94 110.56 127.7 112.55 130.98C114.54 134.26 117.3 136.82 120.92 138.62C124.55 140.39 128.72 141.3 133.46 141.3H142.32C149.41 141.3 155.11 139.5 159.47 135.92C163.83 132.34 166.02 127.59 166.02 121.67H152.85C152.85 124.15 151.9 126.15 149.99 127.68C148.08 129.18 145.57 129.95 142.46 129.95H133.49C130.3 129.95 127.76 128.99 125.85 127.14C123.94 125.26 122.99 122.77 122.99 119.66V115.46H166.27ZM122.72 105.4V104.34C122.72 100.76 123.7 97.84 125.69 95.63C127.65 93.42 130.24 92.3 133.43 92.3H142.89C145.94 92.3 148.37 93.36 150.25 95.47C152.13 97.57 153.06 100.36 153.06 103.77V105.41H122.71Z" fill="currentColor"/></svg>';
+  document.getElementById('brand').innerHTML = MARK + '<span>ReSpark</span>';
+
+  const ic = (n, extra = '') => `<i data-lucide="${n}" ${extra}></i>`;
+
+  // Sample data (illustrative): three receiving yards, four buyers, two competing
+  // recyclers. Everything on screen follows greenspark-aws, branch
+  // feature/supply-radar-v2-12-local-e2e, modules/supply-radar/_components:
+  //  - shell: RadarAccessPage (header, RadarNav tabs, Pipeline settings gear)
+  //  - page: reports/PipelineReportPage, ReportTabControls (Export report), ReportFilters, PeriodPicker
+  //  - Pipeline tab: reports/pipeline-tab/PipelineReportView, ReportKpiCards, NeedsAttentionBar,
+  //    OpenPipelineCard, PipelineVolumeCard, PipelineBreakdownCards, FollowUpsCard, ReportTable, reportStages
+  //  - Outreach & results tab: reports/OutcomeReportsView, outcomes-tab/OutreachSection,
+  //    ResultsSection (Closed results, Results breakdown, Lost reasons), CompetitiveOutcomes, LostToCompetitors
+  //  - settings: settings/RadarPipelineSettingsPage, StagePolicyEditorRow (route /app/settings/supply-radar)
+  //  - stage colors: _utils/stageColor PIPELINE_STAGE_BAR_COLOR; loss reasons: _utils/report-scope LOSS_REASONS
+  // The Pipeline board shows no weighted volume on this branch, so it is left out.
+  const STAGES = [
+    { k: 'new', l: 'New', c: '#64748b' },
+    { k: 'contacted', l: 'Contacted', c: '#d97706' },
+    { k: 'qualified', l: 'Qualified', c: '#15803d' },
+  ];
+  const OPEN = { new: 12, contacted: 17, qualified: 9, total: 38, unassigned: 3, needsOwner: 1 };
+  const TONS = { total: 684, new: 212, contacted: 341, qualified: 131 };
+  const FU = { overdue: 7, dueToday: 5, total: 29 };
+  // [commodity, new, contacted, qualified, t/mo]
+  const PIPE_COM = [
+    ['Aluminum Extrusion', 1, 2, 1, 38], ['Ferrous', 3, 4, 2, 186], ['Insulated Copper Wire', 2, 3, 2, 44],
+    ['Lead Acid Batteries', 1, 1, 0, 12], ['Mixed Copper', 2, 3, 1, 27], ['Shred Steel', 2, 3, 2, 312],
+    ['Stainless Steel', 1, 1, 1, 21], ['Unallocated', 1, 2, 0, 44],
+  ];
+  // [buyer, today, overdue, pending]
+  const FU_BUY = [['Renee Castillo', 2, 1, 7], ['Marcus Hale', 0, 3, 6], ['Dana Whitfield', 2, 1, 8], ['Theo Brandt', 1, 2, 8]];
+  const OUT = { total: 64, reached: 31, noAnswer: 9, leftMessage: 8, none: 16 };
+  // [commodity, calls, texts, emails, visits]
+  const OUT_COM = [
+    ['Aluminum Extrusion', 3, 1, 1, 2], ['Ferrous', 6, 2, 1, 4], ['Insulated Copper Wire', 4, 1, 0, 3],
+    ['Mixed Copper', 5, 1, 1, 2], ['Shred Steel', 7, 2, 0, 5], ['Stainless Steel', 2, 0, 1, 1], ['Unallocated', 6, 1, 1, 1],
+  ];
+  const CLOSED = { won: 14, lost: 22, total: 36, wonTons: 236, linked: 6, suppliers: 5 };
+  // [commodity, won, lost, won t/mo]
+  const RES_COM = [
+    ['Aluminum Extrusion', 1, 3, 18], ['Ferrous', 4, 5, 88], ['Insulated Copper Wire', 3, 1, 41], ['Mixed Copper', 2, 3, 22],
+    ['Shred Steel', 2, 6, 52], ['Stainless Steel', 0, 2, 0], ['Unallocated', 2, 2, 15],
+  ];
+  const LOSS = [['Sells to competitor', 8], ['Price', 6], ['Distance or logistics', 3], ['No response', 2], ['Too little material', 1], ['Not now', 1], ['Other', 1]];
+  // [recycler, deals lost to, lost t/mo]
+  const LOST_TO = [['Bayline Metals', 5, 96], ['Eastside Scrap Co.', 4, 61]];
+  const COMP = { winsAgainst: 5, lossesTo: 9, unknownWinner: 4, notRecorded: 9 };
+  const PRICE = [['Competitor paid higher', 7], ['Similar', 3], ['Competitor paid lower', 1], ['Unknown', 2], ['Price not recorded', 9]];
+  const POLICY = [
+    { s: 'New', n: 1, p: 'First contact', d: 5, note: 'Call within a day. Confirm the materials, rough monthly volume and the best contact.' },
+    { s: 'Contacted', n: 2, p: 'Follow up', d: 10, note: 'Visit the site, count the containers and ask who hauls their scrap today.' },
+    { s: 'Qualified', n: 3, p: 'Next steps', d: 21, note: 'Send a written offer and agree on the pickup schedule before you close.' },
+  ];
+  const OVERLAP = 'Groups can overlap: one opportunity can include several commodities, so the rows can add up to more than the total.';
+
+  // ---------- steps ----------
+  const U_PIPE = '/app/supply-radar/reports', U_OUT = '/app/supply-radar/reports?tab=outcomes', U_SET = '/app/settings/supply-radar';
+  const STEPS = [
+    { cover: 'intro', view: 'pipeline', url: U_PIPE },
+    { view: 'pipeline', t: '#tab-reports', place: 'bottom', url: U_PIPE,
+      tip: 'Open <b>Reports</b> in Supply Radar. The <b>Pipeline</b> tab covers every yard you manage, and you can narrow it by receiving yard, commodity or buyer.' },
+    { view: 'pipeline', t: '#kpis', place: 'bottom', url: U_PIPE,
+      tip: 'The top row counts <b>Open opportunities</b> by stage, plus <b>Overdue follow-ups</b>, <b>Due today</b> and all <b>Pending follow-ups</b>. The links open the records behind each number.' },
+    { view: 'pipeline', t: '#attn', place: 'bottom', url: U_PIPE,
+      tip: '<b>Needs attention</b> flags opportunities with no owner, or with an owner who is no longer active. <b>Review opportunities</b> opens that list.' },
+    { view: 'pipeline', t: '#pipe-row', place: 'top', url: U_PIPE,
+      tip: '<b>Open pipeline</b> counts opportunities in New, Contacted and Qualified. <b>Pursued volume</b> adds up the tons per month they are going after, by stage.' },
+    { view: 'pipeline', scrollTo: '#lower', t: '#breakdown', place: 'right', url: U_PIPE,
+      tip: '<b>Pipeline breakdown</b> splits the open pipeline by commodity with its volume, or by buyer or category. Open a commodity to see it by grade.' },
+    { view: 'pipeline', scrollTo: '#lower', t: '#followups', place: 'left', url: U_PIPE,
+      tip: '<b>Follow-ups</b> lists each buyer’s tasks due today, overdue and pending, so you can see who is falling behind.' },
+    { view: 'outcomes', t: '#outreach', place: 'bottom', url: U_OUT,
+      tip: '<b>Outreach &amp; results</b> covers a <b>Period</b> you pick. <b>Outreach</b> counts calls, texts, emails and visits, and whether buyers reached someone, got no answer or left a message.' },
+    { view: 'outcomes', t: '#closed', place: 'bottom', url: U_OUT,
+      tip: '<b>Closed results</b> shows opportunities won and lost, the <b>Win rate</b>, and the tons per month you won.' },
+    { view: 'outcomes', scrollTo: '#row3', t: '#lost', place: 'right', url: U_OUT,
+      tip: '<b>Lost reasons</b> ranks why opportunities were lost, from <b>Sells to competitor</b> to <b>Price</b> or <b>Distance or logistics</b>.' },
+    { view: 'outcomes', scrollTo: '#row3', t: '#competitive', place: 'left', url: U_OUT,
+      tip: '<b>Competitive outcomes</b> shows which recyclers won your lost deals, and whether they paid higher, similar or lower, as your buyers saw it.' },
+    { view: 'outcomes', t: '#export', place: 'left', url: U_OUT,
+      tip: '<b>Export report</b> downloads the tab you are on as a CSV, with your filters applied.' },
+    { view: 'settings', t: '#stages', place: 'bottom', url: U_SET,
+      tip: 'Managers set the pace in <b>Pipeline settings</b>, from the gear next to the tabs. Each stage has a <b>Stale rule</b> that flags opportunities after a number of days.' },
+    { view: 'settings', edit: true, t: '#note-qualified', place: 'left', url: U_SET,
+      tip: 'Add a <b>Playbook note</b> to each stage. It appears on the prospect page and in the next task prompt. Click <b>Save changes</b> to apply.' },
+    { cover: 'outro', view: 'settings', url: U_SET },
+  ];
+
+  // ---------- chrome ----------
+  function sidebar() {
+    const row = (i, l, extra = '', cls = '') => `<div class="nrow${cls}">${ic(i)}<span>${l}</span>${extra || ic('chevron-right', 'class="chev"')}</div>`;
+    return `<aside class="side">
+      <div class="top">${MARK}<div class="yard"><span>North Yard</span>${ic('chevrons-up-down')}</div></div>
+      <div class="nav">
+        ${row('inbox', 'Inbox', '<span class="pill">4</span>')}
+        ${row('messages-square', 'ScrapChat', ' ')}
+        <div class="cmd" style="margin:2px 0">${ic('search')}<span>Search &amp; actions</span><kbd>⌘K</kbd></div>
+        <div class="nsep"></div>
+        ${row('radar', 'Supply Radar', '', ' grp')}
+        <div class="nrow sub active">${ic('circle')}<span>Supply Radar</span></div>
+        ${row('shopping-cart', 'Purchases')}${row('tag', 'Sales')}${row('file-text', 'Contracts')}${row('boxes', 'Inventory')}
+        ${row('users', 'Customers')}${row('layers', 'Commodities')}${row('truck', 'Logistics')}${row('warehouse', 'Assets')}${row('chart-column', 'Reports')}${row('landmark', 'Ledger')}
+      </div>
+      <div class="foot"><div class="av">JP</div><div class="who"><span>Jordan Pike</span><small>General Manager</small></div>
+        <div class="ico"><span>${ic('settings')}</span><span>${ic('circle-help')}</span></div></div>
+    </aside>`;
+  }
+
+  const info = () => ic('info');
+  const rl = (t) => `<span class="rl">${t}${ic('arrow-right')}</span>`;
+  const n = v => `<u class="sc-n">${v}</u>`;
+  const chip = (v, tone) => v ? `<span class="cc ${tone}">${v}</span>` : `${v}`;
+  const card = (title, body, { id = '', act = '', cls = '' } = {}) =>
+    `<section class="card ${cls}"${id ? ` id="${id}"` : ''}><div class="ctl"><h3>${title}</h3>${info()}${act ? `<span class="act">${act}</span>` : ''}</div>${body}</section>`;
+  const table = (head, rows) => `<table class="rt"><thead><tr>${head.map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>${rows.map(r => `<tr>${r.map(c => typeof c === 'object' ? `<td class="${c.cls}">${c.v}</td>` : `<td>${c}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+  const ctabs = (tabs, right = '') => `<div class="ctabs"><div class="tl2">${tabs.map((t, i) => `<span class="${i === 0 ? 'on' : ''}">${t}</span>`).join('')}</div>${right ? `<div class="rt">${right}</div>` : ''}</div>`;
+  const search = () => `<span class="srch">${ic('search')}Search commodities</span>`;
+
+  function filters(withPeriod) {
+    const f = (l, v, w) => `<div class="fl"><small>${l}</small><div class="sel" style="width:${w}px"><span>${v}</span>${ic('chevron-down', 'class="cv"')}</div></div>`;
+    return `<section class="card filters" id="filters">${f('Receiving yards', 'All yards (3)', 168)}${f('Commodity', 'All commodities', 168)}${f('Buyer', 'All buyers', 150)}
+      <div class="sel" style="font-weight:500">${ic('list-filter')}More filters${ic('chevron-down')}</div>
+      <span class="yards">North Yard, South Yard and Port Yard</span>
+      ${withPeriod ? `<div class="period">Period<div class="sel" style="width:170px">${ic('calendar')}<span>Last 30 days</span>${ic('chevron-down', 'class="cv"')}</div></div>` : ''}</section>`;
+  }
+
+  function pipelineTab() {
+    const kpi = (l, v, i, tone, foot) => `<section class="kpi"><div class="kl"><span class="${tone}">${ic(i)}</span>${l}</div><div class="kv ${tone === 't-pri' || tone === 't-neu' ? '' : tone}">${v}</div><div class="kf">${foot}</div></section>`;
+    const kpis = `<div class="kpis" id="kpis">
+      ${kpi('Open opportunities', OPEN.total, 'file-text', 't-pri', `<span>${OPEN.new} new · ${OPEN.contacted} contacted · ${OPEN.qualified} qualified</span>${rl('View open opportunities')}`)}
+      ${kpi('Overdue follow-ups', FU.overdue, 'clock', 't-err', rl('Review overdue'))}
+      ${kpi('Due today', FU.dueToday, 'calendar', 't-warn', rl('View due today'))}
+      ${kpi('Pending follow-ups', FU.total, 'clipboard-list', 't-neu', '<span>Includes overdue and due today</span>')}</div>`;
+    const attn = `<section class="attn" id="attn">${ic('triangle-alert')}<h4>Needs attention</h4><span class="chip">${OPEN.unassigned} unassigned</span><span class="chip">${OPEN.needsOwner} needs owner</span>${rl('Review opportunities')}</section>`;
+    const max = Math.max(...STAGES.map(s => OPEN[s.k]));
+    const bars = `<div class="bars">${STAGES.map(s => `<div class="br"><span class="bl"><i class="dot" style="background:${s.c}"></i>${s.l}</span><span class="track"><i style="width:${Math.round(OPEN[s.k] / max * 80)}%;background:${s.c}"></i></span><span class="bn">${n(OPEN[s.k])}</span></div>`).join('')}</div>`;
+    const open = card('Open pipeline', bars, { act: `Total: ${OPEN.total} opportunities` });
+    const vol = card('Pursued volume', `<div class="vol"><div class="big"><small>Potential volume</small><b>${n(TONS.total + ' t/mo')}</b></div>
+      <div class="list">${STAGES.map(s => `<div><span>${s.l}</span><b>${TONS[s.k]} t/mo</b></div>`).join('')}</div></div>`);
+    const brows = PIPE_COM.map(([c, a, b, q, t]) => [`<span class="rl1">${c === 'Unallocated' ? '' : ic('chevron-right')}${c}</span>`, n(a), n(b), n(q), { cls: 's', v: n(a + b + q) }, t]);
+    const breakdown = card('Pipeline breakdown', `${ctabs(['By commodity', 'By buyer', 'By category'], search())}
+      ${table(['Commodity', 'New', 'Contacted', 'Qualified', 'Total', 't/mo'], brows)}
+      <p class="foot-n">${OVERLAP}</p>
+      <div class="fold muted"><div class="fh">${ic('chevron-right')}Assignment details</div></div>`, { id: 'breakdown' });
+    const frows = FU_BUY.map(([b, t, o, p]) => [b, chip(t, 'warning'), chip(o, 'error'), { cls: 's', v: p }]);
+    const follow = card('Follow-ups', `${ctabs(['By buyer', 'By commodity'])}
+      ${table(['Buyer', 'Today', 'Overdue', 'Pending'], frows)}
+      <div class="ovd">${ic('triangle-alert')}${FU.overdue} overdue follow-ups${rl('Review follow-ups')}</div>
+      <p class="foot-n">Counts include overdue and due today.</p>${rl('View all follow-ups')}`, { id: 'followups' });
+    return `${filters(false)}${kpis}${attn}<div class="g2 st" id="pipe-row">${open}${vol}</div><div class="g2 wide" id="lower">${breakdown}${follow}</div>`;
+  }
+
+  function outcomesTab() {
+    const st = (l, v, i, tone, cls = '') => `<section class="ost ${cls}">${i ? `<span class="ic ${tone}">${ic(i)}</span>` : ''}<b>${v}</b><small>${l}</small></section>`;
+    const outreach = card('Outreach', `<div class="outr"><div class="h">${st('Total outreach', n(OUT.total), 'phone', 't-neu', 'hero')}</div>
+      <div class="rows">${st('Reached', n(OUT.reached), 'users', 't-ok', 'inl')}${st('No answer', n(OUT.noAnswer), 'ban', 't-warn', 'inl')}
+      ${st('Left message', n(OUT.leftMessage), 'message-square', 't-neu', 'inl')}${st('No outcome recorded', n(OUT.none), 'file-text', 't-warn', 'inl')}</div></div>`, { id: 'outreach', cls: 'compact' });
+    const rate = Math.round(CLOSED.won / CLOSED.total * 100) + '%';
+    const closed = card('Closed results', `<div class="cr4">${st('Won', n(CLOSED.won), 'trophy', 't-ok', 'stk')}${st('Lost', n(CLOSED.lost), 'circle-x', 't-err', 'stk')}
+      ${st('Closed', n(CLOSED.total), 'file-text', 't-neu', 'stk')}${st('Win rate', rate, 'chart-column', 't-pri', 'stk')}</div>
+      <div class="notes"><span><b>${CLOSED.wonTons} t/mo</b> won volume</span>•<span><b>${CLOSED.linked}</b> wins linked to a customer</span>•<span><b>${CLOSED.suppliers}</b> unique linked suppliers</span></div>`, { id: 'closed', cls: 'compact' });
+    const orows = OUT_COM.map(([c, a, b, e, v]) => [c, n(a), b ? n(b) : 0, e ? n(e) : 0, n(v), { cls: 's', v: n(a + b + e + v) }]);
+    const obd = card('Outreach breakdown', `${ctabs(['By commodity', 'By buyer'], `<span class="seg"><span class="on">Channels</span><span>Outcomes</span></span>${search()}`)}
+      ${table(['Commodity', 'Calls', 'Texts', 'Emails', 'Visits', 'Total'], orows)}<p class="foot-n">Select a count to view records.</p>`, { id: 'outreach-bd' });
+    const rrows = RES_COM.map(([c, w, l, t]) => [`<span class="rl1">${c === 'Unallocated' ? '' : ic('chevron-right')}${c}</span>`, chip(w, 'success'), chip(l, 'error'), { cls: 's', v: n(w + l) }, t]);
+    const rbd = card('Results breakdown', `${ctabs(['By commodity', 'By buyer'], search())}
+      ${table(['Commodity', 'Won', 'Lost', 'Closed', 'Won t/mo'], rrows)}<p class="foot-n">Select a count to view records.</p>`);
+    const lmax = Math.max(...LOSS.map(r => r[1]));
+    const lost = card('Lost reasons', `${LOSS.map(([r, c]) => `<div class="lr"><span class="ln">${r}</span><span class="track"><i style="width:${Math.round(c / lmax * 100)}%"></i></span><span class="lv">${n(c)}</span></div>`).join('')}
+      ${rl('View lost opportunities')}`, { id: 'lost', act: `Total <b>${CLOSED.lost}</b>` });
+    const named = COMP.lossesTo, lt = Math.max(...LOST_TO.map(r => r[1]));
+    const comp = card('Competitive outcomes', `<div class="inl3"><span>Wins against</span><b>${n(COMP.winsAgainst)}</b><span>·</span><span>Losses to</span><b>${n(COMP.lossesTo)}</b><span>·</span><span>Win rate</span><b>${Math.round(COMP.winsAgainst / (COMP.winsAgainst + COMP.lossesTo) * 100)}%</b></div>
+      <div class="ltc"><div class="hd"><h4>Lost to competitors</h4><span>${named} of ${CLOSED.lost} losses name a winner</span></div>
+        <div class="ch"><span class="nm">Recycler</span><span class="w16">Lost t/mo</span><span class="w10">Share</span><span class="w10">Deals</span></div>
+        ${LOST_TO.map(([r, d, t]) => `<div class="row"><span class="nm">${r}<span class="track"><i style="width:${Math.round(d / lt * 100)}%"></i></span></span><span class="w16">${t}</span><span class="w10">${Math.round(d / named * 100)}%</span><span class="w10 s">${n(d)}</span></div>`).join('')}
+        ${rl('View deals lost to competitors')}</div>
+      <div><div class="gap"><span>Unknown winner</span><b>${n(COMP.unknownWinner)}</b></div><div class="gap"><span>Winner not recorded</span><b>${n(COMP.notRecorded)}</b></div></div>
+      <div class="fold"><div class="fh">${ic('chevron-right')}Wins and losses by recycler</div></div>
+      <div class="fold"><div class="fh">${ic('chevron-right')}Current recycler at closure</div></div>
+      <div class="fold" id="price"><div class="fh">${ic('chevron-down')}Price comparison</div>${PRICE.map(([l, v]) => `<div class="pr"><span>${l}</span><b>${n(v)}</b></div>`).join('')}</div>
+      <p class="foot-n">${n(13)} of ${n(CLOSED.lost)} losses include a price comparison. The buyer saw the price; it is not verified.</p>`, { id: 'competitive' });
+    return `${filters(true)}<div class="g2 o1">${outreach}${closed}</div><div class="g2">${obd}${rbd}</div><div class="g2" id="row3">${lost}${comp}</div>`;
+  }
+
+  function radar(s) {
+    const out = s.view === 'outcomes';
+    const sub = out ? 'Outreach and results across the yards you manage.' : 'Pipeline, volume and follow-ups across the yards you manage.';
+    return `<div class="app">${sidebar()}<main class="main">
+      <div class="rhead"><h1>Supply Radar</h1><div class="rnav"><span>Today</span><span>Explore</span><span>Pipeline</span><span class="on" id="tab-reports">Reports</span></div>
+        <div class="ra"><span class="rb icon" id="gear" title="Pipeline settings">${ic('settings')}</span><span class="rb icon" title="Check access">${ic('refresh-cw')}</span></div></div>
+      <div class="rcontent">
+        <div class="phd"><div class="tl"><h2>Reports</h2><p>${sub}</p></div><span class="rb" id="export">${ic('download')}Export report</span></div>
+        <div class="rtabs"><span class="${out ? '' : 'on'}">Pipeline</span><span class="${out ? 'on' : ''}" id="tab-outcomes">Outreach &amp; results</span></div>
+        <div class="scroll" id="scroll"><div class="sc">${out ? outcomesTab() : pipelineTab()}</div></div>
+      </div></main>${s.cover ? cover(s.cover) : ''}</div>`;
+  }
+
+  function settings(s) {
+    const mi = (i, l, on) => `<div class="si${on ? ' on' : ''}">${ic(i)}${l}</div>`;
+    const stage = p => `<section class="spc" id="stage-${p.s.toLowerCase()}">
+        <div class="sh2"><span class="num">${p.n}</span><div><h3>${p.s}</h3><span class="pp">${p.p}</span></div></div>
+        <div class="ln2"><b>Stale rule</b><span class="tgl"><i></i><span>Enabled</span></span></div>
+        <div class="ln2"><span>Flag as stale after</span><span class="days"><span>${p.d}</span><em>days</em></span></div>
+        <div class="pbn"><label>Playbook note <span>(optional)</span></label><span class="d">Notes appear on the prospect page and in the next task prompt.</span>
+          <div class="ta${s.edit && p.s === 'Qualified' ? ' ed' : ''}"${p.s === 'Qualified' ? ' id="note-qualified"' : ''}>${p.note}</div><span class="cnt">${p.note.length} / 500</span></div>
+      </section>`;
+    return `<div class="sapp"><div class="stop"><span class="x">${ic('x')}</span><span class="t">Settings</span>
+        <div class="rs"><span class="sel" style="width:170px"><span>North Yard</span>${ic('chevron-down', 'class="cv"')}</span>${ic('settings')}${ic('message-square')}${ic('circle-help')}<span class="av">JP</span></div></div>
+      <div class="sbody"><nav class="smenu">
+          <div class="sh">ADMIN</div>${mi('layout-dashboard', 'Overview')}${mi('user-cog', 'Roles &amp; Permissions')}${mi('building', 'Departments')}${mi('file-text', 'Documents')}
+          <div class="sh">NOTIFICATIONS</div>${mi('shield', 'Policies')}
+          <div class="sh">PRODUCT</div>${mi('shopping-cart', 'Purchases')}${mi('tag', 'Sales')}${mi('file-text', 'Contracts')}${mi('boxes', 'Inventory')}${mi('truck', 'Dispatch')}${mi('monitor', 'Hardware')}${mi('radar', 'Supply Radar', true)}
+        </nav>
+        <div class="smain"><div class="ttl">Supply Radar settings</div>
+          <div class="sinner">
+            <div class="utabs"><span class="on">Pipeline</span><span>Recyclers</span></div>
+            <div><h2>Pipeline settings</h2><p class="sub">Set stage time limits and guidance for the next step.</p></div>
+            <div class="ibanner">${ic('info')}Stale rules flag opportunities that exceed the stage time limit. Turning a rule off keeps its note.</div>
+            <div class="stages" id="stages">${POLICY.map(stage).join('')}</div>
+            <p class="foot-n" style="margin-top:-4px">Playbook notes can contain up to 500 characters.</p>
+            <div class="sfoot"><span>Changes apply after saving.</span><div class="bb"><span class="rb lg">Discard changes</span><span class="rb pri lg" id="save">Save changes</span></div></div>
+          </div></div></div>
+      ${s.cover ? cover(s.cover) : ''}</div>`;
+  }
+
+  function cover(kind) {
+    if (kind === 'intro') {
+      return `<div class="cover"><div class="card2">
+        <div class="eyebrow">${ic('chart-column')}Supply Radar · Team Performance</div>
+        <h2>Team Performance</h2>
+        <p>See how your buyers are working the pipeline: open opportunities, follow-ups that slipped, outreach, wins and losses, and who you lose deals to. Then set the rules each stage should follow.</p>
+        <div class="cta"><button class="go" type="button" data-go="next">Get started${ic('arrow-right')}</button></div>
+      </div></div>`;
+    }
+    return `<div class="cover"><div class="card2">
+      <div class="eyebrow">${ic('circle-check')}Team Performance</div>
+      <h2>Know where the pipeline stands, and set the pace</h2>
+      <p>Reports shows open opportunities, pursued volume and follow-ups for every yard you manage, then outreach, closed results, lost reasons and competitors for the period you pick. Export either tab as a CSV, and use Pipeline settings to set stale rules and a playbook note for each stage.</p>
+      <div class="cta"><button class="go sec" type="button" data-go="restart">${ic('rotate-ccw')}Replay</button></div>
+    </div></div>`;
+  }
+
+  function anchorMenus() {}
+  function renderApp(s) {
+    return s.view === 'settings' ? settings(s) : radar(s);
+  }
+
+  // ---------- player ----------
+  const stage = document.getElementById('stage');
+  const canvas = document.getElementById('canvas');
+  const overlay = document.getElementById('overlay');
+  const caption = document.getElementById('caption');
+  const pips = document.getElementById('pips');
+  const backBtn = document.getElementById('back');
+  const nextBtn = document.getElementById('next');
+  let step = 0;
+  const guided = STEPS.map((s, i) => (s.tip ? i : null)).filter(i => i !== null);
+
+  pips.innerHTML = STEPS.map((_, i) => `<button type="button" role="tab" aria-label="Step ${i + 1}" data-i="${i}"></button>`).join('');
+  pips.addEventListener('click', e => { const b = e.target.closest('button'); if (b) go(+b.dataset.i); });
+
+  function scale() {
+    const k = stage.clientWidth / W;
+    canvas.style.transform = `scale(${k})`;
+    document.body.classList.toggle('narrow', stage.clientWidth < 700);
+    return k;
+  }
+
+  function place() {
+    overlay.innerHTML = '';
+    const s = STEPS[step];
+    anchorMenus(s);
+    if (!s.t) return;
+    const el = canvas.querySelector(s.t);
+    if (!el) return;
+    const sr = stage.getBoundingClientRect();
+    const r = el.getBoundingClientRect();
+    const x = r.left - sr.left, y = r.top - sr.top, w = r.width, h = r.height;
+    const n = guided.indexOf(step) + 1;
+    const label = `<span class="n">Step ${n} of ${guided.length}</span>`;
+
+    const ring = document.createElement('div');
+    ring.className = 'ring';
+    Object.assign(ring.style, { left: x - 3 + 'px', top: y - 3 + 'px', width: w + 6 + 'px', height: h + 6 + 'px' });
+    const hot = document.createElement('button');
+    hot.className = 'hot';
+    hot.type = 'button';
+    hot.setAttribute('aria-label', 'Continue to next step');
+    hot.style.left = x + w / 2 + 'px';
+    hot.style.top = y + h / 2 + 'px';
+    hot.addEventListener('click', () => go(step + 1));
+    overlay.append(ring, hot);
+
+    caption.innerHTML = label + s.tip;
+    if (document.body.classList.contains('narrow')) return;
+
+    const tip = document.createElement('div');
+    tip.className = 'tip';
+    tip.innerHTML = label + s.tip;
+    overlay.append(tip);
+    const tw = tip.offsetWidth, th = tip.offsetHeight, gap = 18;
+    const SW = stage.clientWidth, SH = stage.clientHeight;
+    let tx, ty;
+    const side = s.place || 'right';
+    if (side === 'right') { tx = x + w + gap; ty = y + h / 2 - th / 2; }
+    if (side === 'left') { tx = x - tw - gap; ty = y + h / 2 - th / 2; }
+    if (side === 'bottom') { tx = x + w / 2 - tw / 2; ty = y + h + gap; }
+    if (side === 'top') { tx = x + w / 2 - tw / 2; ty = y - th - gap; }
+    if (side === 'right' && tx + tw > SW - 8) { tx = x - tw - gap; }
+    if (side === 'left' && tx < 8) { tx = x + w + gap; }
+    tx = Math.max(10, Math.min(SW - tw - 10, tx));
+    ty = Math.max(10, Math.min(SH - th - 10, ty));
+    tip.style.left = tx + 'px';
+    tip.style.top = ty + 'px';
+  }
+
+  function render() {
+    const s = STEPS[step];
+    canvas.innerHTML = renderApp(s);
+    // Reports scrolls under its sticky title and tabs; jump to the step's section.
+    const sc = canvas.querySelector('#scroll');
+    if (sc) sc.scrollTop = s.scrollTo ? canvas.querySelector(s.scrollTo).offsetTop - 12 : 0;
+    if (window.lucide) lucide.createIcons({ attrs: { 'aria-hidden': 'true' } });
+    document.getElementById('url').textContent = 'app.respark.com' + s.url;
+    document.getElementById('progress').style.width = (step / (STEPS.length - 1)) * 100 + '%';
+    [...pips.children].forEach((b, i) => { b.className = i === step ? 'on' : i < step ? 'done' : ''; b.setAttribute('aria-selected', i === step); });
+    const n = guided.indexOf(step);
+    document.getElementById('count').textContent = s.cover === 'intro' ? 'Intro' : s.cover === 'outro' ? 'Done' : `${n + 1} / ${guided.length}`;
+    backBtn.disabled = step === 0;
+    nextBtn.disabled = step === STEPS.length - 1;
+    if (s.cover) caption.innerHTML = s.cover === 'intro'
+      ? '<span class="n">Intro</span>See how your buyers are working the pipeline: open opportunities, follow-ups that slipped, outreach, wins and losses, and who you lose deals to. Then set the rules each stage should follow.'
+      : '<span class="n">Done</span>Reports covers the open pipeline, volume and follow-ups, then outreach, closed results, lost reasons and competitors for a period you pick. Export either tab as a CSV, and set stale rules and playbook notes in Pipeline settings.';
+    scale();
+    // Measure only after entrance animations (panels sliding in, menus
+    // popping, pins dropping) finish, or the ring lands where the element
+    // was mid-animation instead of where it ends up.
+    const token = ++renderToken;
+    settle().then(() => { if (token === renderToken) place(); });
+  }
+
+  let renderToken = 0;
+  function settle() {
+    const finite = (canvas.getAnimations ? canvas.getAnimations({ subtree: true }) : [])
+      .filter(a => a.effect && a.effect.getComputedTiming().iterations !== Infinity);
+    const done = Promise.all(finite.map(a => a.finished.catch(() => {})));
+    const timeout = new Promise(r => setTimeout(r, 1200));
+    // If the timeline is throttled (background tab), snap leftovers to their
+    // end state so the measurement still matches the final layout.
+    return Promise.race([done, timeout]).then(() => {
+      finite.forEach(a => { if (a.playState !== 'finished') try { a.finish(); } catch (e) {} });
+      return new Promise(r => setTimeout(r, 30));
+    });
+  }
+
+  // Self-check used before publishing: walks every step and reports any
+  // highlight that doesn't sit on its target, targets that are missing or
+  // clipped, and tooltips that cover the thing they point at.
+  function checkStep() {
+    const s = STEPS[step];
+    if (!s.t) return { step, ok: true };
+    const el = canvas.querySelector(s.t), ring = overlay.querySelector('.ring'), tip = overlay.querySelector('.tip');
+    if (!el) return { step, ok: false, why: `target ${s.t} not found` };
+    if (!ring) return { step, ok: false, why: 'highlight not drawn' };
+    const a = el.getBoundingClientRect(), b = ring.getBoundingClientRect(), st = stage.getBoundingClientRect();
+    const off = Math.max(Math.abs(a.left - 3 - b.left), Math.abs(a.top - 3 - b.top), Math.abs(a.width + 6 - b.width), Math.abs(a.height + 6 - b.height));
+    const issues = [];
+    if (off > 2) issues.push(`highlight off by ${Math.round(off)}px`);
+    if (a.width < 4 || a.height < 4) issues.push('target has no size');
+    if (a.left < st.left - 1 || a.top < st.top - 1 || a.right > st.right + 1 || a.bottom > st.bottom + 1) issues.push('target clipped by frame');
+    if (tip) {
+      const t = tip.getBoundingClientRect();
+      const ix = Math.max(0, Math.min(a.right, t.right) - Math.max(a.left, t.left)), iy = Math.max(0, Math.min(a.bottom, t.bottom) - Math.max(a.top, t.top));
+      if (ix * iy > 0.25 * a.width * a.height) issues.push('tooltip covers target');
+    }
+    return { step, target: s.t, ok: issues.length === 0, issues };
+  }
+  window.walkthroughAudit = async () => {
+    const results = [];
+    for (let i = 0; i < STEPS.length; i++) {
+      go(i);
+      await settle();
+      await new Promise(r => setTimeout(r, 60));
+      results.push(checkStep());
+    }
+    go(0);
+    return { ok: results.every(r => r.ok), problems: results.filter(r => !r.ok), steps: results.length };
+  };
+
+  function go(i) {
+    step = Math.max(0, Math.min(STEPS.length - 1, i));
+    render();
+  }
+
+  canvas.addEventListener('click', e => {
+    const g = e.target.closest('[data-go]');
+    if (g) { go(g.dataset.go === 'restart' ? 0 : step + 1); return; }
+    const s = STEPS[step];
+    if (s.t && e.target.closest(s.t)) go(step + 1);
+  });
+  backBtn.addEventListener('click', () => go(step - 1));
+  nextBtn.addEventListener('click', () => go(step + 1));
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight') go(step + 1);
+    if (e.key === 'ArrowLeft') go(step - 1);
+  });
+  new ResizeObserver(() => { scale(); settle().then(place); }).observe(stage);
+  if (document.fonts) document.fonts.ready.then(place);
+
+  if (window.lucide) lucide.createIcons({ attrs: { 'aria-hidden': 'true' } });
+  render();
+})();
+</script>
