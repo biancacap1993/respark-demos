@@ -328,6 +328,10 @@ td { padding: 0 12px; height: 44px; border-bottom: 1px solid var(--a-border-subt
 .ltab th { height: 34px; white-space: nowrap; font-size: 12px; color: var(--a-text-2); background: var(--a-muted-solid); padding: 0 10px; }
 .ltab td { height: 38px; padding: 0 10px; }
 .ltab td.num, .ltab th.num { text-align: right; }
+.ltab.wip { font-size: 12px; }
+.ltab.wip th { white-space: normal; line-height: 1.2; height: 40px; }
+.ltab.wip td { padding: 0 8px; }
+.ltab.wip th { padding: 0 8px; }
 .ltab tr.bal td { background: hsla(217, 55%, 16%, 0.035); height: 46px; }
 .ltab tr.bal b { display: block; font-weight: 600; }
 .ltab tr.bal small { display: block; font-size: 11.5px; color: var(--a-text-3); }
@@ -405,11 +409,12 @@ td { padding: 0 12px; height: 44px; border-bottom: 1px solid var(--a-border-subt
 
   // Sample data (illustrative). Aluminum materials at North Yard. Old Sheet's
   // WIP is below zero, and the Inventory Ledger explains it.
-  // Everything on screen follows greenspark-aws (Oct 16, 2026):
+  // Everything on screen follows greenspark-aws (67fa887605, Nov 9, 2026):
   //  - commodity page: inventory/overview/InventoryCommodityMaterialContainer.tsx,
   //    grid/inventoryOverviewColumns.tsx, CommodityMaterialGrid.tsx
   //  - column manager: primitives/respark-grid/render/ResparkGridMenus.tsx
-  //  - ledger drawer: overview/material-activity-blade/* (title "Inventory Ledger")
+  //  - ledger drawer: overview/material-activity-blade/* (title "Inventory Ledger");
+  //    the WIP tab adds Cost/um and three running WIP columns (useActivityGridColumns.tsx)
   // Number formats follow utils/helpers.tsx parseNumberObject: weights "48,220 lbs",
   // costs "$" + 4 decimals (negatives come out as "$-5,978.0000").
   const fmt = (v, d) => v.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
@@ -419,7 +424,7 @@ td { padding: 0 12px; height: 44px; border-bottom: 1px solid var(--a-border-subt
   const MATS = [
     ['ubc', 'Aluminum Cans (UBC)', 'AL-UBC', 18400, 9568, 48220, 21600, 64800, 0.52],
     ['6063', '6063 Extrusion', 'AL-6063', 8200, 8692, 22480, 9840, 31200, 1.06],
-    ['osh', 'Old Sheet', 'AL-OSH', 6800, 4148, -2360, 0, 18400, 0.61],
+    ['osh', 'Old Sheet', 'AL-OSH', 6800, 4148, -2360, 0, 18400, 0.6481],
     ['cst', 'Cast Aluminum', 'AL-CST', 0, null, 39310, 12200, 0, 0.66],
     ['sid', 'Painted Siding', 'AL-SID', 4100, null, 14870, 4100, 8600, 0.78],
     ['whl', 'Clean Aluminum Wheels', 'AL-WHL', 9000, 9180, 9630, 6040, 12480, 1.02],
@@ -430,20 +435,34 @@ td { padding: 0 12px; height: 44px; border-bottom: 1px solid var(--a-border-subt
 
   // Ledger rows for Old Sheet. Opening + rows = closing. Ticket labels use the
   // code's prefixes (IBT, OBT, Regrade, Tag).
-  const WIP_COST = 0.61, FG_COST = 0.66;
-  const WIP = { open: 4180, rows: [
-    { d: '09/03/2026 8:42 AM', tk: 'IBT 48211', mv: 'Inbound', c: 'in', w: 6240, cu: 'Coastal Demolition' },
+    const WIP = { open: 4180, rows: [
+    { d: '09/03/2026 8:42 AM', tk: 'IBT 48211', mv: 'Inbound', c: 'in', w: 6240, uc: 0.64, cu: 'Coastal Demolition' },
     { d: '09/09/2026 2:15 PM', tk: 'OBT 48407', mv: 'Outbound', c: 'out', w: -9800, cu: 'Delta Aluminum Mill' },
-    { d: '09/12/2026 10:05 AM', tk: 'Regrade 311', mv: 'Regrade', c: 'rg', w: 1120, no: 'From Painted Siding' },
-    { d: '09/18/2026 9:30 AM', tk: 'IBT 48690', mv: 'Inbound', c: 'in', w: 3410, cu: 'Ridgeview Contractors' },
+    { d: '09/12/2026 10:05 AM', tk: 'Regrade 311', mv: 'Regrade', c: 'rg', w: 1120, uc: 0.55, no: 'From Painted Siding' },
+    { d: '09/18/2026 9:30 AM', tk: 'IBT 48690', mv: 'Inbound', c: 'in', w: 3410, uc: 0.68, run: 'run-avg', cu: 'Ridgeview Contractors' },
     { d: '09/24/2026 3:48 PM', tk: 'OBT 48903', mv: 'Outbound', c: 'out', w: -8600, cu: 'Delta Aluminum Mill', id: 'tk-out' },
-    { d: '10/06/2026 11:20 AM', tk: 'IBT 49188', mv: 'Inbound', c: 'in', w: 2940, cu: 'Coastal Demolition', oct: true },
+    { d: '10/06/2026 11:20 AM', tk: 'IBT 49188', mv: 'Inbound', c: 'in', w: 2940, uc: 0.645, cu: 'Coastal Demolition', oct: true },
     { d: '10/13/2026 1:56 PM', tk: 'OBT 49342', mv: 'Outbound', c: 'out', w: -1850, cu: 'Harbor Export Co.', oct: true },
   ] };
   const FG = { open: 15600, rows: [
     { d: '09/05/2026 7:55 AM', tk: 'Tag 8841', mv: 'FG Produced', c: 'nt', w: 12400 },
     { d: '09/20/2026 4:10 PM', tk: 'Tag 8790', mv: 'FG Shipped', c: 'nt', w: -9600, cu: 'Delta Aluminum Mill' },
   ] };
+  // Each row's cost, and the WIP balance after it (the running columns are WIP only).
+  // Running values cover all history, so a date range doesn't change them.
+  // Inbound and regrade rows come in at their own cost; outbound rows leave at the running average.
+  const runLedger = (L, c0) => {
+    let bal = L.open, run = L.open * c0;
+    L.openCost = run;
+    L.rows.forEach(r => {
+      const avg = bal ? run / bal : 0;
+      r.cost = r.w * (r.uc != null ? r.uc : avg);
+      bal += r.w; run += r.cost;
+      Object.assign(r, { rb: bal, rc: run, ra: bal ? run / bal : 0 });
+    });
+  };
+  runLedger(WIP, 0.61);
+  runLedger(FG, 0.66);
 
   // ---------- steps ----------
   const URL_ = '/app/inventory/commodities/14';
@@ -461,6 +480,8 @@ td { padding: 0 12px; height: 44px; border-bottom: 1px solid var(--a-border-subt
       tip: 'The ledger opens newest first. The <b>Opening Balance</b>, everything before the start date, is at the bottom, and the <b>Closing Balance</b> is at the top.' },
     { cols: true, q: 'AL-OSH', drawer: 'ledger', side: 'wip', to: true, t: '#tk-out', place: 'bottom', url: URL_,
       tip: 'Each row shows the date, ticket, movement, weight, cost, customer and notes. Click a ticket to open its source document in a new tab.' },
+    { cols: true, q: 'AL-OSH', drawer: 'ledger', side: 'wip', to: true, t: '#run-avg', place: 'bottom', url: URL_,
+      tip: 'On <b>WIP</b>, <b>Running WIP Balance</b>, <b>Running WIP Cost</b> and <b>Running WIP Avg Cost/um</b> show the balance after each transaction, so you can see how the average cost moved. <b>Cost/um</b> is that row’s own cost.' },
     { cols: true, q: 'AL-OSH', drawer: 'ledger', side: 'wip', to: false, t: '#close-row', place: 'bottom', url: URL_,
       tip: 'Clear the <b>To</b> date. The <b>Closing Balance</b> now reads <b>Today</b> and matches Old Sheet’s WIP on the commodity page.' },
     { cols: true, q: 'AL-OSH', drawer: 'ledger', side: 'fg', to: false, t: '#seg', place: 'bottom', url: URL_,
@@ -523,11 +544,15 @@ td { padding: 0 12px; height: 44px; border-bottom: 1px solid var(--a-border-subt
     if (!s.drawer) return '';
     const prev = STEPS[step - 1];
     const still = prev && prev.drawer && prev.drawer === s.drawer ? ' still' : '';
-    const L = s.side === 'fg' ? FG : WIP, cost = s.side === 'fg' ? FG_COST : WIP_COST;
+    const wipTab = s.side !== 'fg', L = wipTab ? WIP : FG;
     const rows = L.rows.filter(r => !(s.to && r.oct));
-    const close = L.open + rows.reduce((a, r) => a + r.w, 0);
+    const last = rows[rows.length - 1];
+    const close = last ? last.rb : L.open, closeCost = last ? last.rc : L.openCost;
+    const runCells = r => wipTab ? `<td class="num">${C_(r.cost / r.w)}</td><td class="num">${W_(r.rb)}</td><td class="num">${C_(r.rc)}</td><td class="num">${r.run ? `<span id="${r.run}">${C_(r.ra)}</span>` : C_(r.ra)}</td>` : '';
+    const runBlank = wipTab ? '<td></td><td></td><td></td><td></td>' : '';
+    const runHead = wipTab ? '<th class="num" style="width:7%">Cost/um</th><th class="num" style="width:9%">Running WIP Balance</th><th class="num" style="width:9%">Running WIP Cost</th><th class="num" style="width:10%">Running WIP Avg Cost/um</th>' : '';
     const lines = rows.slice().reverse().map(r => `<tr><td>${r.d}</td><td><span class="tlink"${r.id ? ` id="${r.id}"` : ''}>${r.tk}${ic('external-link')}</span></td><td><span class="mv ${r.c}">${r.mv}</span></td>
-        <td class="num">${W_(r.w)}</td><td class="num">${C_(r.w * cost)}</td><td>${r.cu || ''}</td><td class="muted">${r.no || ''}</td></tr>`).join('');
+        <td class="num">${W_(r.w)}</td><td class="num">${C_(r.cost)}</td>${runCells(r)}<td>${r.cu || ''}</td><td class="muted">${r.no || ''}</td></tr>`).join('');
     const seg = ['WIP', 'FG', 'All'].map((l, i) => `<span${(s.side === 'fg' ? 1 : 0) === i ? ' class="on"' : ''}>${l}</span>`).join('');
     const dateBtn = s.to ? 'Sep 1 – Sep 30' : '&gt;= Sep 1';
     const pop = s.datepop ? `<div class="datepop" id="datepop"><div class="row2"><div class="in2">09/01/2026</div><div class="in2">09/30/2026</div></div>
@@ -541,10 +566,10 @@ td { padding: 0 12px; height: 44px; border-bottom: 1px solid var(--a-border-subt
           <span class="fbtn on">${ic('calendar')}Date: ${dateBtn}</span>${pop}
           <span class="fbtn">${ic('list-filter')}Movement</span>
         </div>
-        <table class="ltab"><thead><tr><th style="width:13%">Date</th><th style="width:13%">Ticket</th><th style="width:13%">Movement</th><th class="num" style="width:12%">Weight</th><th class="num" style="width:13%">Cost</th><th style="width:17%">Customer</th><th>Notes</th></tr></thead>
-          <tbody><tr class="bal close" id="close-row"><td colspan="3"><b>Closing Balance</b><small>${s.to ? 'Through Sep 30, 2026' : 'Today'}</small></td><td class="num">${W_(close)}</td><td class="num">${C_(close * cost)}</td><td></td><td></td></tr>
+        <table class="ltab${wipTab ? ' wip' : ''}"><thead><tr>${wipTab ? '<th style="width:12%">Date</th><th style="width:9%">Ticket</th><th style="width:8%">Movement</th><th class="num" style="width:8%">Weight</th><th class="num" style="width:9%">Cost</th>' : '<th style="width:13%">Date</th><th style="width:13%">Ticket</th><th style="width:13%">Movement</th><th class="num" style="width:12%">Weight</th><th class="num" style="width:13%">Cost</th>'}${runHead}<th style="width:${wipTab ? 11 : 17}%">Customer</th><th>Notes</th></tr></thead>
+          <tbody><tr class="bal close" id="close-row"><td colspan="3"><b>Closing Balance</b><small>${s.to ? 'Through Sep 30, 2026' : 'Today'}</small></td><td class="num">${W_(close)}</td><td class="num">${C_(closeCost)}</td>${runBlank}<td></td><td></td></tr>
           ${lines}
-          <tr class="bal" id="open-row"><td colspan="3"><b>Opening Balance</b><small>Before Sep 1, 2026</small></td><td class="num">${W_(L.open)}</td><td class="num">${C_(L.open * cost)}</td><td></td><td></td></tr></tbody></table>
+          <tr class="bal" id="open-row"><td colspan="3"><b>Opening Balance</b><small>Before Sep 1, 2026</small></td><td class="num">${W_(L.open)}</td><td class="num">${C_(L.openCost)}</td>${runBlank}<td></td><td></td></tr></tbody></table>
         <div class="mtot">${ic('chevron-right')}Total Weight by Movement</div>
       </div></div>`;
   }
@@ -552,16 +577,16 @@ td { padding: 0 12px; height: 44px; border-bottom: 1px solid var(--a-border-subt
   function cover(kind) {
     if (kind === 'intro') {
       return `<div class="cover"><div class="card">
-        <div class="eyebrow">${ic('boxes')}Inventory · Rolling out</div>
-        <h2>Inventory Management</h2>
-        <p>Click a material on the Inventory Overview to see every transaction behind its balance for the yard, from opening balance to closing balance, with each row linked to its source ticket.</p>
+        <div class="eyebrow">${ic('boxes')}Inventory · Now live for everyone</div>
+        <h2>See exactly what’s behind any inventory balance</h2>
+        <p>Click a material on the Inventory Overview and a panel opens with every transaction behind that balance for one yard, so you can explain an unexpected number without pulling a separate report.</p>
         <div class="cta"><button class="go" type="button" data-go="next">Get started${ic('arrow-right')}</button></div>
       </div></div>`;
     }
     return `<div class="cover"><div class="card">
       <div class="eyebrow">${ic('circle-check')}Inventory Management</div>
       <h2>Explain any balance without running a report</h2>
-      <p>Open a material’s Inventory Ledger for one yard, read from the Opening Balance to a Closing Balance that ties to the commodity page, and open the ticket behind any line. Material Code is searchable and can be turned on as a column, and pending loads show Expected Cost. This is rolling out now, so it isn’t on for every account yet.</p>
+      <p>Open a material’s Inventory Ledger for one yard, read from the Opening Balance to a Closing Balance that ties to the commodity page, follow the running WIP balance and average cost row by row, and open the ticket behind any line. Material Code is searchable and can be turned on as a column, and pending loads show Expected Cost. The ledger covers one yard at a time.</p>
       <div class="cta"><button class="go sec" type="button" data-go="restart">${ic('rotate-ccw')}Replay</button></div>
     </div></div>`;
   }
