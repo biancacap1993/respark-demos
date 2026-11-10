@@ -327,6 +327,9 @@ td { padding: 0 12px; height: 44px; border-bottom: 1px solid var(--a-border-subt
 .hline svg.lucide { color: hsl(32 90% 45%); width: 18px; height: 18px; }
 .hline b { font-weight: 500; font-size: 13.5px; }
 .hline small { font-size: 12px; color: var(--a-text-3); }
+.hline .hamt { margin-left: auto; padding-right: 56px; font-size: 14px; font-variant-numeric: tabular-nums; }
+.pst { display: flex; flex-direction: column; gap: 2px; font-size: 14px; min-width: 96px; }
+.pst small { font-size: 11.5px; color: var(--a-text-3); }
 .mtip { position: absolute; left: 26px; top: 24px; z-index: 4; background: hsla(217, 30%, 30%, 0.92); color: #fff; font-size: 11.5px; line-height: 1.4; border-radius: 4px; padding: 5px 8px; max-width: 340px; animation: pop .18s ease; }
 #held { display: flex; flex-direction: column; gap: 14px; }
 #pays, #rec { display: flex; flex-direction: column; gap: 16px; }
@@ -464,13 +467,13 @@ td { padding: 0 12px; height: 44px; border-bottom: 1px solid var(--a-border-subt
     { view: 'tk', t: '#btn-pay', place: 'bottom', url: TK,
       tip: 'Click <b>PAY</b> to open the payment screen.' },
     { view: 'pay', t: '#held', place: 'right', url: PAYURL,
-      tip: 'Held material is listed first under <b>Payment Methods</b>, with its <b>Hold through</b> date. Held items with the same date are grouped as <b>MULTIPLE</b>. Held material can’t be paid until its hold ends.' },
+      tip: 'Held material is listed first under <b>Payment Methods</b>, with its <b>Hold through</b> date. Held items with the same date are grouped as <b>MULTIPLE</b>. Held material has no <b>Pay From</b> and can’t be paid until its hold ends.' },
     { view: 'pay', t: '#pays', place: 'right', url: PAYURL,
       tip: 'The <b>Amount</b> fills in with what you can pay now. To split it, click <b>ADD NEW PAYMENT TYPE</b> and pick another <b>Pay From</b> method. Fees and promotions for those methods are already counted.' },
     { view: 'pay', t: '#btn-paynow', place: 'bottom', url: PAYURL,
       tip: 'Click <b>PAY THIS TICKET</b> to pay the unheld part. You don’t need to build a separate bill first.' },
     { view: 'pay', paid: 'partial', t: '#status', place: 'bottom', url: PAYURL,
-      tip: 'The ticket now shows <b>Partial</b>. Your payments are listed under <b>Payment Methods</b>, and the copper stays unpaid until its hold ends.' },
+      tip: 'The ticket now shows <b>Partial</b>. Your payments are listed under <b>Payment Methods</b> with their <b>Payment Status</b>, and the copper stays unpaid until its hold ends.' },
     { view: 'pay', paid: 'partial', t: '#void-cash', place: 'right', url: PAYURL,
       tip: 'Need to undo one payment? Click the red bin on that payment to void just that one. <b>VOID PAYMENTS</b> at the top voids them all.' },
     { view: 'pay', paid: 'partial', modal: true, t: '#void-dlg', place: 'right', url: PAYURL,
@@ -534,13 +537,15 @@ td { padding: 0 12px; height: 44px; border-bottom: 1px solid var(--a-border-subt
       : btn('Receipt', 'printer') + btn('Settlement', 'printer') + btn('Pay this ticket', 'dollar-sign', 'con', 'btn-paynow');
     const status = paid ? '<span class="chip" id="status">Partial</span>' : '<span class="chip" id="status">Price Complete</span>';
     const sel = (v, wide) => `<div class="mf sel${wide ? ' w2' : ''}"><label>Pay From</label><span>${v}</span>${ic('chevron-down')}</div>`;
-    const heldBlock = `<div id="held"><div class="hline">${ic('timer')}<b>MULTIPLE</b><small>Hold through 10/22</small>
-        ${s.holdTip ? `<div class="mtip">${HELD.map(m => `${m.mat} ${money(m.v)}`).join(', ')}</div>` : ''}</div>
-      <div class="prow">${sel('Check', true)}<span class="plain">${money(heldAmt)}</span></div></div>`;
+    // With holds enforced, a held row has no Pay From: its amount sits at the end of the hold line
+    // (PaymentWarning.jsx, RES-8203).
+    const heldBlock = `<div id="held"><div class="hline">${ic('timer')}<b>MULTIPLE</b><small>Hold through 10/22</small><span class="hamt">${money(heldAmt)}</span>
+        ${s.holdTip ? `<div class="mtip">${HELD.map(m => `${m.mat} ${money(m.v)}`).join(', ')}</div>` : ''}</div></div>`;
     const edit = (m, v) => `<div class="prow">${sel(m)}<div class="mf amt"><label>Amount</label><span class="d">$</span><span>${v}</span></div><span class="ib">${ic('trash-2')}</span></div>`;
-    const hist = (m, v, id) => `<div class="prow"><div class="hist"><small>Pay Method</small><span>${m}</span></div><div class="mf amt ro"><label>Amount</label><span>${v}</span></div><span class="ib red"${id ? ` id="${id}"` : ''}>${ic('trash-2')}</span></div>`;
+    // Recorded payments show a Payment Status (paymentStatusLabel.ts, RES-8207).
+    const hist = (m, v, st, id) => `<div class="prow"><div class="hist"><small>Pay Method</small><span>${m}</span></div><div class="mf amt ro"><label>Amount</label><span>${v}</span></div><div class="pst"><small>Payment Status</small><span>${st}</span></div><span class="ib red"${id ? ` id="${id}"` : ''}>${ic('trash-2')}</span></div>`;
     const rows = paid
-      ? `<div id="rec">${hist('Check', '$4,000.00')}${voided ? '' : hist('Cash', '$553.16', 'void-cash')}</div>`
+      ? `<div id="rec">${hist('Check', '$4,000.00', 'Not printed')}${voided ? '' : hist('Cash', '$553.16', 'Paid', 'void-cash')}</div>`
       : `<div id="pays">${edit('Check', '4,000.00')}${edit('Cash', '553.16')}
           <div class="addrow"><span class="tb">${ic('plus')}ADD NEW PAYMENT TYPE</span><span>$0.00 balance remaining</span></div></div>`;
     const cf = (l, v) => `<div class="cfl"><small>${l}</small><span>${v}</span></div>`;
@@ -573,7 +578,7 @@ td { padding: 0 12px; height: 44px; border-bottom: 1px solid var(--a-border-subt
   function cover(kind) {
     if (kind === 'intro') {
       return `<div class="cover"><div class="card">
-        <div class="eyebrow">${ic('wallet')}ReSpark Purchases · Rolling out</div>
+        <div class="eyebrow">${ic('wallet')}ReSpark Purchases · Now live for everyone</div>
         <h2>Partially Pay Inbound Tickets + Payment Holds</h2>
         <p>Pay the part of an inbound ticket you can pay today. Held material, like copper on a payment hold, stays unpaid until its hold ends, and the payment screen shows what’s paid and what’s still held.</p>
         <div class="cta"><button class="go" type="button" data-go="next">Get started${ic('arrow-right')}</button></div>
