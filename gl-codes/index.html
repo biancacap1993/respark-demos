@@ -1,0 +1,971 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ReSpark GL Codes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+<style>
+/* Layout: an Arcade-style player. One framed browser window holds a scaled
+   1440×820 mock of ReSpark (Settings → Accounting → GL Codes with its Import
+   GL Codes dialog, a material's Accounting Set Up step and Overview, and Code
+   Mappings); a pulsing hotspot + tooltip guides each step; step controls
+   sit under the frame. The app mock keeps ReSpark's light theme (it stands in
+   for a screenshot); the page around it follows the viewer's theme. */
+:root {
+  --bg: #f3f5f8;
+  --glow: rgba(0, 168, 176, 0.10);
+  --fg: #12233e;
+  --fg-muted: rgba(18, 35, 62, 0.62);
+  --frame: #ffffff;
+  --frame-bar: #eef1f5;
+  --frame-line: rgba(18, 35, 62, 0.12);
+  --ctl: #ffffff;
+  --ctl-line: rgba(18, 35, 62, 0.16);
+  --teal: #00a3a8;
+  --teal-strong: #008a8f;
+  --tip-bg: #12233e;
+  --tip-fg: #ffffff;
+
+  /* ReSpark app tokens (frontend/client/src/global.css, light mode) */
+  --a-fg: hsl(217 55% 16%);
+  --a-surface: #ffffff;
+  --a-muted: hsla(217, 55%, 16%, 0.03);
+  --a-muted-solid: #f8f9fa;
+  --a-hover: hsla(217, 55%, 16%, 0.06);
+  --a-border: hsla(217, 55%, 16%, 0.14);
+  --a-border-subtle: hsla(217, 55%, 16%, 0.08);
+  --a-text-2: hsla(217, 55%, 16%, 0.75);
+  --a-text-3: hsla(217, 55%, 16%, 0.52);
+  --a-icon-2: hsla(217, 55%, 16%, 0.42);
+  --a-primary: hsl(183 100% 33%);
+  --a-primary-hover: hsl(183 100% 27%);
+  --a-primary-subtle: hsla(183, 100%, 33%, 0.10);
+  --a-success: hsl(162 73% 37%);
+  --a-success-strong: hsl(162 73% 30%);
+  --a-error: hsl(348 81% 48%);
+  --a-error-strong: hsl(348 81% 38%);
+  --a-accent: hsl(252 89% 65%);
+  --a-accent-strong: hsl(252 60% 50%);
+  --a-accent-subtle: hsla(252, 89%, 65%, 0.10);
+  --a-dark: hsl(217 45% 14%);
+  --a-nav-selected: hsl(217 55% 16%);
+
+  --font: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0c1422; --glow: rgba(0, 201, 212, 0.10); --fg: #e8eef7; --fg-muted: rgba(232, 238, 247, 0.62);
+    --frame: #17202f; --frame-bar: #1c2738; --frame-line: rgba(232, 238, 247, 0.12);
+    --ctl: #17202f; --ctl-line: rgba(232, 238, 247, 0.18); --teal: #19c3cb; --teal-strong: #4fd6dc;
+    --tip-bg: #00a3a8; --tip-fg: #ffffff; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0c1422; --glow: rgba(0, 201, 212, 0.10); --fg: #e8eef7; --fg-muted: rgba(232, 238, 247, 0.62);
+  --frame: #17202f; --frame-bar: #1c2738; --frame-line: rgba(232, 238, 247, 0.12);
+  --ctl: #17202f; --ctl-line: rgba(232, 238, 247, 0.18); --teal: #19c3cb; --teal-strong: #4fd6dc;
+  --tip-bg: #00a3a8; --tip-fg: #ffffff; color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--fg); font-family: var(--font);
+  background-image: radial-gradient(60% 50% at 50% 38%, var(--glow), transparent 70%);
+  min-height: 100vh; padding-inline: 16px; padding-block: 28px 40px;
+}
+.wrap { max-width: 1180px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
+.head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 15px; letter-spacing: -0.01em; }
+.brand svg { width: 28px; height: 28px; color: var(--fg); }
+.head .tag { font-size: 12px; color: var(--fg-muted); font-weight: 500; }
+
+.frame { background: var(--frame); border: 1px solid var(--frame-line); border-radius: 12px; overflow: hidden;
+  box-shadow: 0 30px 60px -20px rgba(18, 35, 62, 0.28), 0 8px 18px -8px rgba(18, 35, 62, 0.18); }
+.bar { height: 38px; background: var(--frame-bar); border-bottom: 1px solid var(--frame-line); display: flex; align-items: center; gap: 12px; padding-inline: 14px; position: relative; }
+.dots { display: flex; gap: 6px; }
+.dots i { width: 10px; height: 10px; border-radius: 50%; background: var(--frame-line); display: block; }
+.url { flex: 1; max-width: 460px; margin-inline: auto; height: 24px; border-radius: 6px; background: var(--frame); border: 1px solid var(--frame-line);
+  display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 12px; color: var(--fg-muted); padding-inline: 10px; min-width: 0; overflow: hidden; white-space: nowrap; }
+.url span { overflow: hidden; text-overflow: ellipsis; }
+.url svg { width: 12px; height: 12px; flex-shrink: 0; }
+.progress { position: absolute; left: 0; bottom: -1px; height: 2px; background: var(--teal); transition: width .35s ease; }
+
+.stage { position: relative; width: 100%; aspect-ratio: 1440 / 820; max-width: 100%; overflow: hidden; background: #fff; }
+.canvas { position: absolute; left: 0; top: 0; width: 1440px; height: 820px; transform-origin: 0 0; }
+.overlay { position: absolute; inset: 0; pointer-events: none; }
+
+.ring { position: absolute; border-radius: 6px; box-shadow: 0 0 0 2px var(--a-primary), 0 0 0 6px hsla(183, 100%, 33%, 0.18); transition: all .3s ease; pointer-events: none; }
+.hot { position: absolute; width: 26px; height: 26px; margin: -13px 0 0 -13px; border-radius: 50%; pointer-events: auto; cursor: pointer;
+  background: hsla(183, 100%, 33%, 0.28); border: 0; padding: 0; transition: left .3s ease, top .3s ease; }
+.hot::before { content: ""; position: absolute; inset: 7px; border-radius: 50%; background: var(--a-primary); box-shadow: 0 0 0 2px #fff; }
+.hot::after { content: ""; position: absolute; inset: 0; border-radius: 50%; border: 2px solid var(--a-primary); animation: pulse 1.6s ease-out infinite; }
+.hot:focus-visible { outline: 3px solid var(--teal-strong); outline-offset: 3px; }
+@keyframes pulse { 0% { transform: scale(.7); opacity: .9; } 100% { transform: scale(2.1); opacity: 0; } }
+
+.tip { position: absolute; max-width: 310px; background: var(--tip-bg); color: var(--tip-fg); border-radius: 10px; padding: 12px 14px;
+  font-size: 14px; line-height: 1.45; box-shadow: 0 12px 28px -8px rgba(12, 20, 34, 0.45); pointer-events: auto; animation: tipIn .25s ease; }
+.tip b { font-weight: 600; }
+.tip code, .caption code { font-family: var(--mono); font-size: 12.5px; background: rgba(255, 255, 255, 0.16); padding: 1px 5px; border-radius: 4px; }
+.caption code { background: var(--frame-bar); }
+.tip .n, .caption .n { display: block; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; opacity: .7; margin-bottom: 4px; }
+@keyframes tipIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+.caption { display: none; background: var(--frame); border: 1px solid var(--frame-line); border-radius: 10px; padding: 12px 14px; font-size: 14px; line-height: 1.5; }
+body.narrow .caption { display: block; }
+body.narrow .tip { display: none; }
+
+.controls { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.btn { font: inherit; font-size: 13px; font-weight: 600; height: 36px; padding-inline: 14px; border-radius: 8px; border: 1px solid var(--ctl-line);
+  background: var(--ctl); color: var(--fg); cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+.btn:hover { border-color: var(--teal); }
+.btn:disabled { opacity: .4; cursor: default; border-color: var(--ctl-line); }
+.btn:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+.btn.primary { background: var(--teal); border-color: var(--teal); color: #fff; }
+.btn svg { width: 16px; height: 16px; }
+.count { font-size: 13px; color: var(--fg-muted); font-variant-numeric: tabular-nums; min-width: 48px; text-align: right; }
+.pips { display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; flex: 1; min-width: 0; }
+.pips button { width: 22px; height: 6px; border-radius: 3px; border: 0; padding: 0; background: var(--ctl-line); cursor: pointer; }
+.pips button.on { background: var(--teal); }
+.pips button.done { background: color-mix(in srgb, var(--teal) 45%, transparent); }
+.hint { font-size: 12px; color: var(--fg-muted); text-align: center; }
+kbd { font: inherit; font-size: 11px; border: 1px solid var(--ctl-line); border-radius: 4px; padding: 1px 5px; }
+
+/* ================= ReSpark app mock (fixed light theme) ================= */
+.app { width: 1440px; height: 820px; display: flex; font-family: var(--font); color: var(--a-fg); font-size: 13px; background: var(--a-surface); position: relative; overflow: hidden; }
+.app table { color: inherit; } /* pages render without a doctype, where tables don't inherit text color; keeps the app mock readable in dark mode */
+.app svg.lucide { width: 16px; height: 16px; stroke-width: 1.75; flex-shrink: 0; }
+.side { width: 236px; flex-shrink: 0; background: var(--a-muted-solid); border-right: 1px solid var(--a-border-subtle); display: flex; flex-direction: column; padding: 12px 10px; gap: 10px; }
+.side .top { display: flex; align-items: center; gap: 8px; padding: 2px 4px; }
+.side .top svg.mark { width: 28px; height: 28px; color: #12233e; }
+.yard { flex: 1; display: flex; align-items: center; justify-content: space-between; border: 1px solid var(--a-border); border-radius: 6px; height: 30px; padding-inline: 8px; background: var(--a-surface); font-weight: 500; font-size: 12.5px; }
+.yard svg.lucide { width: 14px; height: 14px; color: var(--a-icon-2); }
+.cmd { display: flex; align-items: center; gap: 8px; height: 30px; border: 1px solid var(--a-border); border-radius: 6px; padding-inline: 8px; color: var(--a-text-3); background: var(--a-surface); font-size: 12.5px; }
+.cmd kbd { margin-left: auto; font-size: 10.5px; border-color: var(--a-border); color: var(--a-text-3); }
+.nav { display: flex; flex-direction: column; gap: 1px; }
+.nrow { display: flex; align-items: center; gap: 8px; padding: 5px 8px; border-radius: 6px; font-weight: 500; color: hsla(217, 55%, 16%, 0.88); }
+.nrow .chev { margin-left: auto; width: 14px; height: 14px; color: var(--a-icon-2); }
+.nrow.sub { padding-left: 30px; font-weight: 450; font-size: 12.5px; color: var(--a-text-2); }
+.nrow.sub svg.lucide { width: 14px; height: 14px; color: var(--a-icon-2); }
+.nrow.active { background: var(--a-nav-selected); color: #fff; }
+.nrow.active svg.lucide { color: #fff; }
+.pill { margin-left: auto; font-size: 10px; font-weight: 600; color: var(--a-text-2); background: var(--a-hover); padding: 1px 6px; border-radius: 999px; }
+.nsep { height: 1px; background: var(--a-border-subtle); margin: 4px 6px; }
+.foot { margin-top: auto; display: flex; align-items: center; gap: 8px; padding: 8px 4px 0; border-top: 1px solid var(--a-border-subtle); }
+.av { width: 28px; height: 28px; border-radius: 50%; background: var(--a-primary-subtle); color: var(--a-primary-hover); display: grid; place-items: center; font-weight: 600; font-size: 11px; }
+.foot .who { display: flex; flex-direction: column; line-height: 1.25; }
+.foot .who small { color: var(--a-text-3); font-size: 11px; }
+.foot .ico { margin-left: auto; display: flex; gap: 4px; }
+.foot .ico span { width: 28px; height: 28px; border: 1px solid var(--a-border-subtle); border-radius: 6px; display: grid; place-items: center; }
+
+.main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.phead { display: flex; align-items: center; gap: 12px; padding: 14px 22px 12px; border-bottom: 1px solid var(--a-border-subtle); }
+.crumbs { font-size: 12px; color: var(--a-text-3); display: flex; align-items: center; gap: 4px; }
+.crumbs svg.lucide { width: 12px; height: 12px; }
+.phead h1 { font-size: 20px; font-weight: 600; margin: 0; letter-spacing: -0.015em; }
+.phead .left { display: flex; flex-direction: column; gap: 4px; }
+.phead .acts { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+
+.rb { font: inherit; font-size: 13px; font-weight: 500; height: 32px; padding-inline: 12px; border-radius: 6px; display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--a-border); background: var(--a-surface); color: var(--a-fg); cursor: default; white-space: nowrap; }
+.rb.pri { background: var(--a-primary); border-color: var(--a-primary); color: #fff; }
+.rb.icon { width: 32px; padding: 0; justify-content: center; }
+.badge { display: inline-flex; align-items: center; height: 20px; padding-inline: 8px; border-radius: 999px; font-size: 11.5px; font-weight: 500; white-space: nowrap; }
+.b-success { background: hsla(162, 73%, 37%, 0.14); color: var(--a-success-strong); }
+.b-accent { background: hsla(252, 89%, 65%, 0.14); color: var(--a-accent-strong); }
+.b-neutral { background: hsla(217, 55%, 16%, 0.07); color: var(--a-text-2); }
+
+/* inventory pages */
+.muted { color: var(--a-text-3); }
+.link { color: var(--a-primary-hover); font-weight: 500; }
+/* list-page header (ContentLayout, depth <= 2): title + actions on one row */
+.lhead { display: flex; align-items: center; gap: 12px; padding: 18px 24px 6px; }
+.lhead h1, .thead h1 { font-size: 20px; font-weight: 600; margin: 0; letter-spacing: -0.015em; }
+.lhead .acts, .thead .acts { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+/* deeper pages: back arrow + breadcrumbs, then title row, divider */
+.thead { display: flex; flex-direction: column; gap: 8px; padding: 18px 24px 12px; border-bottom: 1px solid var(--a-border-subtle); }
+.thead .crumbs { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--a-text-3); }
+.thead .crumbs svg.lucide { width: 18px; height: 18px; color: var(--a-fg); }
+.thead .crumbs .leaf { color: var(--a-fg); }
+.thead .trow { display: flex; align-items: center; gap: 12px; }
+.ntabs { display: flex; gap: 22px; padding: 0 24px; border-bottom: 1px solid var(--a-border-subtle); }
+.ntabs span { font-size: 13px; font-weight: 500; color: var(--a-text-2); padding: 11px 0 10px; border-bottom: 2px solid transparent; }
+.ntabs span.on { color: var(--a-primary-hover); border-bottom-color: var(--a-primary); }
+.ibody { flex: 1; min-height: 0; padding: 0 24px 20px; display: flex; flex-direction: column; position: relative; }
+.ibody.tabbed { padding-top: 4px; }
+
+/* InventorySummaryBar */
+.sbar { display: flex; border: 1px solid var(--a-border-subtle); border-radius: 6px; margin: 12px 0 8px; }
+.sbar > div { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 10px 16px; text-align: center; }
+.sbar > i { width: 1px; height: 27px; align-self: center; background: var(--a-border-subtle); }
+.sbar small { font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--a-text-2); opacity: .85; }
+.sbar b { font-size: 18px; font-weight: 600; letter-spacing: -.01em; line-height: 1.2; }
+.sbar span { font-size: 12px; color: var(--a-text-2); opacity: .8; }
+
+/* ResparkGrid */
+.gtb { display: flex; align-items: center; gap: 8px; margin: 4px 0 12px; }
+.inp { height: 36px; border: 1px solid var(--a-border); border-radius: 6px; display: flex; align-items: center; gap: 6px; padding-inline: 10px; color: var(--a-text-3); font-size: 13px; background: var(--a-surface); white-space: nowrap; overflow: hidden; }
+.inp svg.lucide { width: 16px; height: 16px; color: var(--a-text-2); }
+.inp.sel { color: var(--a-fg); justify-content: space-between; }
+.inp.sel svg.lucide { width: 14px; height: 14px; color: var(--a-icon-2); }
+.segt { display: inline-flex; border: 1px solid var(--a-border-subtle); border-radius: 8px; padding: 2px; gap: 2px; height: 36px; }
+.segt span { display: inline-flex; align-items: center; padding-inline: 12px; border-radius: 6px; font-size: 12.5px; font-weight: 600; color: var(--a-text-2); }
+.segt span.on { background: var(--a-surface); color: var(--a-fg); box-shadow: 0 1px 3px rgba(15, 23, 42, 0.14); }
+.segt.inv span.on { background: var(--a-dark); color: #fff; box-shadow: none; }
+.tcard { border: 1px solid var(--a-border-subtle); border-radius: 8px; overflow: hidden; flex: 1; min-height: 0; position: relative; }
+table { width: 100%; border-collapse: separate; border-spacing: 0; font-variant-numeric: tabular-nums; table-layout: fixed; }
+th { text-align: left; font-weight: 500; font-size: 12px; padding: 0 10px; height: 38px; background: var(--a-muted-solid); border-bottom: 1px solid var(--a-border-subtle); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--a-text-2); }
+td { padding: 0 10px; height: 46px; border-bottom: 1px solid var(--a-border-subtle); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 12.5px; }
+td.num, th.num { text-align: right; }
+td.c, th.c { padding: 0; text-align: center; }
+tr.new td { background: hsla(183, 100%, 33%, 0.07); }
+.stk { display: flex; flex-direction: column; line-height: 1.3; }
+.stk small { font-size: 11.5px; color: var(--a-text-3); overflow: hidden; text-overflow: ellipsis; }
+.cb { width: 15px; height: 15px; border-radius: 4px; border: 1.5px solid var(--a-border); display: inline-block; vertical-align: middle; }
+.kb { color: var(--a-icon-2); display: inline-grid; place-items: center; }
+.chip { display: inline-flex; align-items: center; height: 22px; padding-inline: 8px; border-radius: 6px; border: 1px solid; font-size: 12px; font-weight: 500; white-space: nowrap; }
+.c-success { background: hsla(162, 73%, 37%, 0.10); border-color: hsla(162, 73%, 37%, 0.30); color: var(--a-success-strong); }
+.c-neutral { background: hsla(217, 55%, 16%, 0.08); border-color: var(--a-border); color: var(--a-text-2); }
+.c-error { background: hsla(348, 81%, 48%, 0.08); border-color: hsla(348, 81%, 48%, 0.28); color: var(--a-error-strong); }
+.c-info { background: hsla(212, 90%, 50%, 0.08); border-color: hsla(212, 90%, 50%, 0.28); color: hsl(212 80% 40%); }
+
+/* Drawer primitive: floats 30px in from the edges over a dimmed backdrop */
+.scrim { position: absolute; inset: 0; background: rgba(15, 23, 42, 0.30); z-index: 5; animation: fade .2s ease; }
+.drawer { position: absolute; top: 30px; right: 30px; bottom: 30px; background: var(--a-surface); border: 1px solid var(--a-border); border-radius: 8px; box-shadow: -12px 12px 40px rgba(15, 23, 42, 0.22); display: flex; flex-direction: column; z-index: 6; overflow: hidden; animation: slide .25s ease; }
+.drawer.still, .scrim.still { animation: none; }
+@keyframes slide { from { transform: translateX(30px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+.drawer .dh { display: flex; flex-direction: column; gap: 12px; padding: 16px 20px 12px; border-bottom: 1px solid var(--a-border-subtle); }
+.drawer .dt { display: flex; align-items: center; gap: 10px; }
+.drawer .dt h3 { margin: 0; flex: 1; min-width: 0; font-size: 16px; font-weight: 600; line-height: 24px; }
+.drawer .dt .x, .drawer .dt .bk { color: var(--a-text-2); display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 6px; }
+.drawer .dt .bk svg.lucide { width: 18px; height: 18px; }
+.drawer .db { flex: 1; min-height: 0; padding: 20px; display: flex; flex-direction: column; gap: 20px; position: relative; overflow: hidden; }
+.drawer .db.end { justify-content: flex-end; }
+.drawer .db > * { flex-shrink: 0; }
+.drawer .df { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 20px; border-top: 1px solid var(--a-border-subtle); background: hsla(217, 55%, 16%, 0.02); }
+.fsec { display: flex; flex-direction: column; gap: 12px; }
+.fsec > h4, .h4 { margin: 0; font-size: 14px; font-weight: 600; }
+.fld { display: flex; flex-direction: column; gap: 4px; position: relative; }
+.fld label { font-size: 12px; font-weight: 500; }
+.fld label .req { color: var(--a-error); margin-left: 2px; }
+.fld .desc { font-size: 12px; color: var(--a-text-2); }
+.fld .in { height: 36px; border: 1px solid var(--a-border); border-radius: 6px; display: flex; align-items: center; gap: 6px; padding-inline: 10px; font-size: 13px; font-variant-numeric: tabular-nums; background: var(--a-surface); }
+.fld .in.ph { color: var(--a-text-3); }
+.fld .in.r { justify-content: flex-end; }
+.fld .in.open { border-color: var(--a-primary); box-shadow: 0 0 0 3px hsla(183, 100%, 33%, 0.15); }
+.fld .in.dis { background: var(--a-muted-solid); color: var(--a-text-2); }
+.fld .in .u { color: var(--a-text-3); }
+.fld .in > svg.lucide { margin-left: auto; width: 14px; height: 14px; color: var(--a-icon-2); }
+.fld .ta { height: 60px; border: 1px solid var(--a-border); border-radius: 6px; padding: 8px 10px; font-size: 13px; color: var(--a-text-3); }
+.g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.g3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+.dd { position: absolute; left: 0; right: 0; top: 62px; background: var(--a-surface); border: 1px solid var(--a-border); border-radius: 8px; box-shadow: 0 6px 22px rgba(15, 23, 42, 0.16); padding: 4px; z-index: 5; animation: pop .18s ease; }
+.dd .o { display: flex; align-items: center; gap: 10px; padding: 7px 9px; border-radius: 5px; }
+.dd .o .tx { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.dd .o .tx small { font-size: 12px; color: var(--a-text-3); }
+.dd .o > span:last-child { font-size: 12px; color: var(--a-text-3); }
+.dd .o.hv { background: var(--a-hover); }
+@keyframes pop { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; transform: none; } }
+.tog { display: inline-flex; border: 1px solid var(--a-border-subtle); border-radius: 8px; padding: 2px; gap: 2px; }
+.tog span { padding: 5px 12px; border-radius: 6px; font-size: 12.5px; font-weight: 600; color: var(--a-text-2); }
+.tog span.on { background: var(--a-dark); color: #fff; }
+
+/* Stepper primitive */
+.stepper { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.stepper .s { display: inline-flex; align-items: center; gap: 8px; font-weight: 500; color: var(--a-text-2); }
+.stepper .s i { font-style: normal; width: 22px; height: 22px; border-radius: 50%; border: 1px solid var(--a-border); display: grid; place-items: center; font-size: 11px; font-weight: 600; color: var(--a-text-3); background: var(--a-surface); }
+.stepper .s i svg.lucide { width: 13px; height: 13px; stroke-width: 3; }
+.stepper .s.on { color: var(--a-fg); font-weight: 600; }
+.stepper .s.on i { border-color: var(--a-primary); background: var(--a-primary-subtle); color: var(--a-primary-hover); }
+.stepper .s.done i { border-color: var(--a-primary); background: var(--a-primary); color: #fff; }
+.stepper .ln { width: 24px; height: 1px; background: var(--a-border); }
+
+/* RadioGroup card variant */
+.rcard { display: flex; align-items: flex-start; gap: 12px; border: 1px solid var(--a-border); border-radius: 6px; padding: 12px 16px; }
+.rcard .rd { width: 15px; height: 15px; border-radius: 50%; border: 1.5px solid var(--a-border); margin-top: 2px; flex-shrink: 0; }
+.rcard b { display: block; font-size: 13.5px; font-weight: 600; margin-bottom: 2px; }
+.rcard small { font-size: 12.5px; color: var(--a-text-2); line-height: 1.45; }
+.rcard.on { border-color: var(--a-primary); background: var(--a-primary-subtle); }
+.rcard.on .rd { border: 4.5px solid var(--a-primary); background: #fff; }
+
+/* package picker rows (toggle buttons) */
+.pick { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid var(--a-border); border-radius: 6px; }
+.pick > svg.lucide { width: 18px; height: 18px; color: var(--a-text-3); }
+.pick .tx { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.pick .tx b { font-weight: 600; font-size: 13px; }
+.pick .tx b em { font-style: normal; font-weight: 400; color: var(--a-text-3); margin-left: 8px; }
+.pick .tx small { font-size: 12px; color: var(--a-text-2); }
+.pick .w { font-weight: 500; font-variant-numeric: tabular-nums; }
+.pick.on { border-color: var(--a-primary); background: var(--a-primary-subtle); box-shadow: inset 0 0 0 1px var(--a-primary); }
+
+/* Banner, finished good cards, summary box */
+.banner { display: flex; gap: 10px; align-items: flex-start; border: 1px solid hsla(212, 90%, 50%, 0.28); background: hsla(212, 90%, 50%, 0.07); border-radius: 6px; padding: 10px 12px; font-size: 13px; line-height: 1.4; }
+.banner > svg.lucide { color: hsl(212 80% 45%); margin-top: 2px; }
+.banner b { display: block; font-weight: 600; margin-bottom: 2px; }
+.fgc { border: 1px solid var(--a-border); border-radius: 6px; overflow: hidden; }
+.fgc .fh { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: var(--a-muted-solid); }
+.fgc .fh .tg { font-size: 12px; font-weight: 600; color: var(--a-text-2); background: hsla(217, 55%, 16%, 0.08); border-radius: 4px; padding: 2px 8px; }
+.fgc .fh .sm { font-size: 13px; color: var(--a-text-2); font-variant-numeric: tabular-nums; }
+.fgc .fh .tr { margin-left: auto; color: var(--a-error); display: inline-grid; }
+.fgc .fb { padding: 12px; display: flex; flex-direction: column; gap: 12px; }
+.coll { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; color: var(--a-text-2); }
+.coll svg.lucide { width: 14px; height: 14px; }
+.sumbox { border: 1px solid var(--a-border); border-radius: 6px; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
+.sumbox .sh { display: flex; align-items: center; justify-content: space-between; }
+.sumbox .sh > span:first-child { font-size: 12px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--a-text-3); }
+.sumbox .sr { display: flex; justify-content: space-between; font-size: 13px; }
+.sumbox .sr span:first-child { color: var(--a-text-2); }
+.sumbox .sr span:last-child { font-weight: 500; font-variant-numeric: tabular-nums; }
+.sumbox .sr.rule { border-top: 1px solid var(--a-border-subtle); padding-top: 8px; margin-top: 2px; }
+
+/* buttons */
+.rb { font: inherit; font-size: 13px; font-weight: 500; height: 32px; padding-inline: 12px; border-radius: 6px; display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--a-border); background: var(--a-surface); color: var(--a-fg); cursor: default; white-space: nowrap; }
+.rb.out { border-color: hsla(183, 100%, 33%, 0.55); color: var(--a-primary-hover); }
+.rb.pri { background: var(--a-primary); border-color: var(--a-primary); color: #fff; }
+.rb.md { height: 36px; padding-inline: 14px; }
+.rb.dash { border-style: dashed; }
+.rb.danger { color: var(--a-error-strong); border-color: hsla(348, 81%, 48%, 0.4); }
+
+/* detail drawer (DetailSection / DetailField) */
+.dsec { border: 1px solid var(--a-border); border-radius: 8px; padding: 16px 18px; }
+.dsec h4 { margin: 0 0 14px; font-size: 15px; font-weight: 600; }
+.dgrid { display: grid; gap: 14px 24px; }
+.dgrid.c2 { grid-template-columns: 1fr 1fr; }
+.dgrid.c3 { grid-template-columns: 1fr 1fr 1fr; }
+.dgrid .span2 { grid-column: span 2; }
+.df2 { display: flex; flex-direction: column; min-width: 0; }
+.df2 > small { font-size: 11.5px; font-weight: 500; letter-spacing: .04em; text-transform: uppercase; color: var(--a-text-2); }
+.df2 > span { margin-top: 4px; font-size: 13.5px; font-variant-numeric: tabular-nums; }
+.fgl { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 4px; }
+.fgl > div { display: flex; align-items: center; justify-content: space-between; gap: 12px; border: 1px solid var(--a-border); border-radius: 6px; padding: 8px 12px; }
+.fgl .l, .fgl .r { display: flex; flex-direction: column; }
+.fgl .r { align-items: flex-end; }
+.fgl .l b { font-size: 13px; font-weight: 600; color: var(--a-primary-hover); }
+.fgl small { font-size: 12px; color: var(--a-text-2); }
+.fgl .r span { font-size: 13px; font-weight: 500; }
+
+.toast { position: absolute; left: 50%; bottom: 22px; transform: translateX(-50%); background: var(--a-fg); color: #fff; border-radius: 8px; padding: 10px 14px; display: flex; align-items: center; gap: 8px; font-weight: 500; box-shadow: 0 10px 24px rgba(18,35,62,.3); animation: pop2 .3s ease; z-index: 7; }
+.toast svg.lucide { color: hsl(162 73% 55%); }
+@keyframes pop2 { from { opacity: 0; transform: translate(-50%, 8px); } to { opacity: 1; transform: translateX(-50%); } }
+
+/* intro / outro */
+.cover { position: absolute; inset: 0; background: rgba(248, 250, 252, 0.88); backdrop-filter: blur(3px); display: grid; place-items: center; z-index: 10; }
+.cover .card { width: 700px; display: flex; flex-direction: column; gap: 14px; align-items: flex-start; }
+.cover .eyebrow { font-size: 13px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--a-primary-hover); display: flex; align-items: center; gap: 8px; }
+.cover h2 { margin: 0; font-size: 40px; line-height: 1.12; letter-spacing: -0.025em; font-weight: 700; text-wrap: balance; }
+.cover p { margin: 0; font-size: 17px; line-height: 1.55; color: var(--a-text-2); max-width: 620px; }
+.cover .chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.cover .chips code { font-family: var(--mono); font-size: 14px; padding: 5px 10px; border-radius: 6px; background: var(--a-surface); border: 1px solid var(--a-border); }
+.cover .cta { display: flex; gap: 10px; margin-top: 8px; }
+.cover .go { font: inherit; font-size: 15px; font-weight: 600; height: 44px; padding-inline: 20px; border-radius: 8px; border: 0; background: var(--a-primary); color: #fff; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; text-decoration: none; }
+.cover .go.sec { background: var(--a-surface); color: var(--a-fg); border: 1px solid var(--a-border); }
+.cover .go:hover { background: var(--a-primary-hover); }
+.cover .go.sec:hover { background: var(--a-muted-solid); }
+.cover .go svg.lucide { width: 18px; height: 18px; }
+.cover .go:focus-visible { outline: 3px solid var(--a-primary); outline-offset: 2px; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+
+.rowc { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+/* settings chrome (SettingsMenuLayout) */
+.sapp { flex-direction: column; }
+.abar { height: 56px; flex-shrink: 0; display: flex; align-items: center; gap: 14px; padding: 0 22px; border-bottom: 1px solid var(--a-border-subtle); background: var(--a-surface); }
+.abar .x { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 50%; color: var(--a-text-2); }
+.abar .x svg.lucide { width: 20px; height: 20px; }
+.abar .ttl { font-size: 15px; }
+.abar .right { margin-left: auto; display: flex; align-items: center; gap: 4px; }
+.abar .ib2 { width: 36px; height: 36px; display: grid; place-items: center; color: var(--a-text-2); }
+.abar .ib2 svg.lucide { width: 19px; height: 19px; }
+.uchip { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px 0 8px; border: 1px solid var(--a-border); border-radius: 999px; font-size: 13px; margin-left: 6px; }
+.srow { flex: 1; min-height: 0; display: flex; }
+.smenu { width: 252px; flex-shrink: 0; background: var(--a-muted-solid); border-right: 1px solid var(--a-border-subtle); padding: 22px 14px 0 18px; display: flex; flex-direction: column; }
+.smenu .gh { font-size: 11.5px; letter-spacing: 1px; padding-bottom: 4px; color: var(--a-text-3); }
+.smenu .gi { display: flex; align-items: center; gap: 10px; height: 33px; padding: 0 12px; border-radius: 8px; font-size: 14px; color: var(--a-text-2); }
+.smenu .gi.on { background: var(--a-primary-subtle); color: var(--a-fg); font-weight: 600; }
+.smenu .gi svg.lucide { width: 17px; height: 17px; color: var(--a-text-3); }
+.smenu .gap { height: 12px; flex-shrink: 0; }
+.smain { flex: 1; min-width: 0; display: flex; flex-direction: column; position: relative; overflow: hidden; }
+.sph { padding: 18px 24px 0; border-bottom: 1px solid var(--a-border-subtle); display: flex; flex-direction: column; }
+.sph .r1 { display: flex; align-items: center; gap: 12px; }
+.sph h1 { font-size: 20px; font-weight: 600; margin: 0; flex: 1; letter-spacing: -0.01em; }
+.sph .ntabs { padding: 0; border: 0; margin-top: 10px; }
+.scope { display: inline-flex; align-items: center; border: 1px solid var(--a-border-subtle); border-radius: 6px; background: var(--a-surface); }
+.scope span { display: inline-flex; align-items: center; gap: 6px; padding: 5px 9px; border: 1px solid transparent; border-radius: 6px; font-size: 13px; font-weight: 500; color: var(--a-text-2); }
+.scope span.on { border-color: var(--a-primary); background: var(--a-primary-subtle); color: var(--a-primary-hover); }
+.scope span svg.lucide:last-child:not(:first-child) { width: 14px; height: 14px; }
+.sbody { flex: 1; min-height: 0; padding: 18px 24px; display: flex; flex-direction: column; gap: 14px; position: relative; }
+.sbanner { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--a-text-2); background: hsla(210, 90%, 50%, 0.07); border: 1px solid hsla(210, 90%, 50%, 0.18); border-radius: 8px; padding: 9px 12px; }
+.sbanner svg.lucide { color: hsl(210 80% 45%); }
+.sbanner b { color: var(--a-fg); font-weight: 600; }
+.sbanner .cmp { margin-left: auto; display: inline-flex; align-items: center; gap: 8px; font-weight: 500; }
+.sw0 { width: 28px; height: 16px; border-radius: 999px; background: var(--a-border); position: relative; display: inline-block; }
+.sw0::after { content: ""; position: absolute; left: 2px; top: 2px; width: 12px; height: 12px; border-radius: 50%; background: #fff; }
+.okb { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--a-success-strong); background: hsla(162, 73%, 37%, 0.09); border: 1px solid hsla(162, 73%, 37%, 0.28); border-radius: 8px; padding: 9px 12px; animation: pop .25s ease; }
+.okb .x { margin-left: auto; color: var(--a-text-3); display: inline-grid; }
+.okb.still { animation: none; }
+.warnb { display: flex; align-items: center; gap: 8px; font-size: 13px; color: hsl(32 80% 30%); background: hsla(38, 92%, 50%, 0.10); border: 1px solid hsla(38, 92%, 50%, 0.32); border-radius: 8px; padding: 9px 12px; }
+.warnb svg.lucide { color: hsl(32 90% 40%); }
+.warnb .ba { margin-left: auto; font-weight: 600; color: hsl(32 80% 30%); }
+.introw { display: flex; align-items: center; gap: 12px; }
+.introw p { margin: 0; flex: 1; color: var(--a-text-2); font-size: 13.5px; }
+.rb.ghost { border-color: transparent; background: transparent; }
+.rb.ghostp { border-color: transparent; background: transparent; color: var(--a-primary-hover); }
+.mono { font-family: var(--mono); font-size: 12.5px; }
+.racts { display: inline-flex; gap: 2px; color: var(--a-icon-2); }
+.racts span { width: 28px; height: 28px; display: grid; place-items: center; border-radius: 6px; }
+.racts svg.lucide { width: 15px; height: 15px; }
+.legacyi { color: var(--a-icon-2); display: inline-grid; vertical-align: middle; margin-left: 6px; }
+.legacyi svg.lucide { width: 14px; height: 14px; }
+
+/* RDialog (modal) */
+.mscrim { position: absolute; inset: 0; background: rgba(10, 16, 28, 0.45); z-index: 5; animation: fade .2s ease; }
+.mscrim.still, .dlg.still { animation: none; }
+.dlg { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); background: var(--a-surface); border-radius: 12px; box-shadow: 0 24px 60px rgba(15, 23, 42, 0.32); z-index: 6; display: flex; flex-direction: column; animation: dlgIn .22s ease; max-height: 760px; }
+@keyframes dlgIn { from { opacity: 0; transform: translate(-50%, calc(-50% + 10px)); } to { opacity: 1; transform: translate(-50%, -50%); } }
+.dlg .dh2 { padding: 20px 24px 6px; display: flex; gap: 12px; align-items: flex-start; }
+.dlg .dh2 h3 { margin: 0; font-size: 18px; font-weight: 600; }
+.dlg .dh2 p { margin: 4px 0 0; font-size: 13.5px; color: var(--a-text-2); }
+.dlg .dh2 .x { margin-left: auto; color: var(--a-text-2); display: inline-grid; }
+.dlg .dbd { padding: 14px 24px; display: flex; flex-direction: column; gap: 14px; min-height: 0; }
+.dlg .dbd > p { margin: 0; font-size: 13.5px; color: var(--a-text-2); line-height: 1.5; }
+.dlg .dft { display: flex; justify-content: flex-end; gap: 8px; padding: 14px 24px 18px; }
+.htab { border: 1px solid var(--a-border-subtle); border-radius: 8px; overflow: hidden; }
+.htab td { height: 40px; white-space: normal; }
+.htab td.cn { font-weight: 600; width: 90px; }
+.htab td.rq { width: 96px; }
+.b-req { background: var(--a-primary-subtle); color: var(--a-primary-hover); }
+.note { font-size: 12.5px; color: var(--a-text-2); line-height: 1.5; margin: 0; }
+.filerow { display: flex; align-items: center; gap: 10px; }
+.filerow .grow { flex: 1; }
+
+/* import review grid (edit mode) */
+.igrid td { height: 42px; padding: 0 6px; }
+.igrid th { padding: 0 8px; }
+.ecell { height: 30px; border: 1px solid var(--a-border); border-radius: 6px; display: flex; align-items: center; gap: 6px; padding: 0 8px; background: var(--a-surface); font-size: 12.5px; overflow: hidden; }
+.ecell.sel svg.lucide { margin-left: auto; width: 13px; height: 13px; color: var(--a-icon-2); }
+.ecell.bad { border-color: hsla(348, 81%, 48%, 0.7); background: hsla(348, 81%, 48%, 0.06); color: var(--a-error-strong); }
+.ecell.ed { border-color: var(--a-primary); background: hsla(183, 100%, 33%, 0.06); }
+.igrid tr.err td:first-child { box-shadow: inset 3px 0 0 var(--a-error); }
+.igrid tr.err td { background: hsla(348, 81%, 48%, 0.035); }
+.chk { display: inline-flex; align-items: center; gap: 3px; }
+.chk.ok svg.lucide { color: var(--a-success); }
+.chk.no svg.lucide { color: var(--a-error); }
+.rtip { position: absolute; background: hsl(217 45% 14%); color: #fff; font-size: 12px; line-height: 1.4; border-radius: 6px; padding: 7px 10px; width: 250px; z-index: 3; box-shadow: 0 6px 18px rgba(15, 23, 42, .3); }
+
+/* material overview */
+.phd { display: flex; flex-direction: column; gap: 8px; padding: 18px 24px 4px; }
+.phd .crumbs { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--a-text-3); }
+.phd .crumbs svg.lucide { width: 18px; height: 18px; color: var(--a-fg); }
+.phd .crumbs .leaf { color: var(--a-fg); }
+.phd .trow { display: flex; align-items: center; gap: 12px; }
+.phd .trow h1 { font-size: 22px; font-weight: 600; margin: 0; flex: 1; letter-spacing: -0.015em; }
+.mcols { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; padding: 18px 24px; }
+.mcol { display: flex; flex-direction: column; gap: 16px; }
+.sfl h4 { font-size: 17px; font-weight: 500; color: var(--a-text-2); margin: 0 0 8px; }
+.sfl .box { background: hsla(217, 55%, 16%, 0.035); border-radius: 8px; padding: 14px 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px 16px; }
+.sf small { display: block; font-size: 11.5px; color: var(--a-text-3); margin-bottom: 2px; }
+.sf div { font-size: 14px; min-height: 19px; display: flex; align-items: center; gap: 8px; }
+.sf.full, .sfl .box h6 { grid-column: 1 / -1; }
+.sfl .box h6 { margin: 2px 0 -4px; font-size: 12px; font-weight: 600; color: var(--a-text-2); }
+.ybadge { display: inline-flex; align-items: center; gap: 4px; height: 20px; padding: 0 7px; border-radius: 999px; font-size: 11.5px; font-weight: 600; background: hsla(38, 92%, 50%, 0.16); color: hsl(32 90% 32%); }
+.ybadge svg.lucide { width: 12px; height: 12px; }
+.htip { position: absolute; background: hsl(217 45% 14%); color: #fff; font-size: 12px; line-height: 1.45; border-radius: 6px; padding: 8px 10px; z-index: 3; box-shadow: 0 6px 18px rgba(15, 23, 42, .3); white-space: nowrap; }
+.htip b { display: block; font-weight: 600; }
+
+/* material wizard (FormModal + WizardStepper) */
+.wscrim { position: absolute; inset: 0; background: rgba(10, 16, 28, 0.5); z-index: 5; animation: fade .2s ease; }
+.wscrim.still, .wiz.still { animation: none; }
+.wiz { position: absolute; top: 0; right: 0; bottom: 0; width: 1400px; background: var(--a-surface); box-shadow: -12px 0 32px rgba(15, 23, 42, 0.18); display: flex; flex-direction: column; z-index: 6; animation: slide .25s ease; }
+.wh { display: flex; align-items: center; padding: 18px 24px 18px 32px; border-bottom: 1px solid var(--a-border-subtle); }
+.wh h2 { margin: 0; font-size: 24px; font-weight: 400; flex: 1; }
+.wh .x { width: 40px; height: 40px; display: grid; place-items: center; color: var(--a-text-2); }
+.wb { flex: 1; min-height: 0; display: flex; }
+.wsteps { width: 25%; flex-shrink: 0; padding: 32px 0 0 32px; border-right: 1px solid var(--a-border-subtle); }
+.vstep { display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--a-text-2); height: 26px; }
+.vstep i.n { font-style: normal; width: 24px; height: 24px; border-radius: 50%; background: hsla(217, 55%, 16%, 0.38); color: #fff; display: grid; place-items: center; font-size: 12px; }
+.vstep.on { color: var(--a-fg); font-weight: 600; }
+.vstep.on i.n { background: var(--a-primary); }
+.vline { margin-left: 11.5px; border-left: 1px solid hsla(217, 55%, 16%, 0.22); height: 24px; }
+.wcont { flex: 1; min-width: 0; padding: 24px 32px 0; overflow: hidden; position: relative; }
+.wcont h5 { margin: 0 0 16px; font-size: 24px; font-weight: 400; }
+.wcol { width: 50%; display: flex; flex-direction: column; gap: 16px; }
+.wcol .fsec + .fsec { border-top: 1px solid var(--a-border); padding-top: 16px; }
+.wcol .fld .desc { margin-top: 2px; }
+.wfoot { display: flex; justify-content: space-between; padding: 14px 24px; border-top: 1px solid var(--a-border-subtle); }
+.wfoot > div { display: flex; gap: 8px; }
+.rb.err { color: var(--a-error-strong); border-color: hsla(348, 81%, 48%, 0.5); }
+.ckl { display: inline-flex; align-items: center; gap: 9px; font-size: 14px; align-self: flex-start; padding: 4px 6px 4px 2px; }
+.ckl .cb { width: 17px; height: 17px; }
+.cb.on { background: var(--a-primary); border-color: var(--a-primary); position: relative; }
+.cb.on::after { content: ""; position: absolute; left: 4.5px; top: 1.5px; width: 4px; height: 8px; border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(45deg); }
+.dd .gl { font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--a-text-3); padding: 8px 9px 4px; }
+.dd .srch { margin: 4px 4px 2px; height: 32px; border: 1px solid var(--a-border); border-radius: 6px; display: flex; align-items: center; gap: 6px; padding: 0 8px; color: var(--a-text-3); }
+.dd .o.on { font-weight: 600; }
+.dd .o .tk { margin-left: auto; color: var(--a-primary); display: inline-grid; }
+
+/* code mappings */
+.cmg { display: flex; flex-wrap: wrap; gap: 20px 28px; align-items: flex-start; }
+.cmcol { width: 330px; display: flex; flex-direction: column; gap: 12px; }
+.cmcol h3 { margin: 0; font-size: 13px; font-weight: 600; padding-bottom: 6px; border-bottom: 1px solid var(--a-border-subtle); }
+.cmrow { position: relative; }
+.cmrow .rs { position: absolute; right: 0; top: -4px; width: 24px; height: 24px; display: grid; place-items: center; border-radius: 6px; color: var(--a-text-2); border: 1px solid var(--a-border-subtle); background: var(--a-surface); }
+.cmrow .rs svg.lucide { width: 13px; height: 13px; }
+.cmrow .in.ovr { border-color: hsla(38, 92%, 50%, 0.6); }
+</style>
+
+<div class="wrap">
+  <div class="head">
+    <div class="brand" id="brand"></div>
+    <div class="tag">Interactive demo · Web console</div>
+  </div>
+
+  <div class="frame">
+    <div class="bar">
+      <div class="dots"><i></i><i></i><i></i></div>
+      <div class="url"><i data-lucide="lock"></i><span id="url">app.respark.com</span></div>
+      <div style="width:42px"></div>
+      <div class="progress" id="progress"></div>
+    </div>
+    <div class="stage" id="stage">
+      <div class="canvas" id="canvas"></div>
+      <div class="overlay" id="overlay"></div>
+    </div>
+  </div>
+
+  <div class="caption" id="caption" aria-live="polite"></div>
+
+  <div class="controls">
+    <button class="btn" id="back" type="button"><i data-lucide="arrow-left"></i>Back</button>
+    <div class="pips" id="pips" role="tablist" aria-label="Demo steps"></div>
+    <span class="count" id="count"></span>
+    <button class="btn primary" id="next" type="button">Next<i data-lucide="arrow-right"></i></button>
+  </div>
+  <div class="hint">Click the pulsing dot, or use <kbd>←</kbd> <kbd>→</kbd></div>
+</div>
+
+<script>
+(() => {
+  const W = 1440, H = 820;
+  const MARK = '<svg class="mark" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M152.38 13.33C171.29 13.33 186.67 28.71 186.67 47.62V152.38C186.67 171.29 171.29 186.67 152.38 186.67H47.62C28.71 186.67 13.33 171.29 13.33 152.38V47.62C13.33 28.71 28.71 13.33 47.62 13.33H152.38ZM152.38 0H47.62C21.32 0 0 21.32 0 47.62V152.38C0 178.68 21.32 200 47.62 200H152.38C178.68 200 200 178.68 200 152.38V47.62C200 21.32 178.68 0 152.38 0Z" fill="#00C9D4"/><path d="M93.39 62.1C89.98 59.66 84.7 58.7 80.99 58.69L26.11 58.74L44.28 71.71H82.53C83.21 71.71 83.79 71.96 84.24 72.29C85.21 72.98 85.5 74.27 84.5 75.67L72.84 92.1L84.25 100.24L96.2 83.46C101.27 76.35 101.05 67.54 93.42 62.1L93.4 62.08Z" fill="currentColor"/><path d="M49.21 102.91C53.53 102.91 58.53 105.26 61.64 107.48L107.62 140.38H84.65L52.58 117.49C52.03 117.05 51.38 116.94 50.8 116.94C49.57 116.94 48.56 117.84 48.56 119.62L48.53 140.38H34.11V119.16C34.11 110.16 39.55 102.91 49.19 102.91Z" fill="currentColor"/><path d="M166.27 115.45V103.76C166.27 96.91 164.14 91.42 159.86 87.3C155.58 83.18 149.91 81.1 142.82 81.1H133.49C128.74 81.1 124.57 82.06 120.95 83.97C117.32 85.88 114.54 88.56 112.55 92.02C110.56 95.49 109.58 99.5 109.58 104.01V119.65C109.58 123.94 110.56 127.7 112.55 130.98C114.54 134.26 117.3 136.82 120.92 138.62C124.55 140.39 128.72 141.3 133.46 141.3H142.32C149.41 141.3 155.11 139.5 159.47 135.92C163.83 132.34 166.02 127.59 166.02 121.67H152.85C152.85 124.15 151.9 126.15 149.99 127.68C148.08 129.18 145.57 129.95 142.46 129.95H133.49C130.3 129.95 127.76 128.99 125.85 127.14C123.94 125.26 122.99 122.77 122.99 119.66V115.46H166.27ZM122.72 105.4V104.34C122.72 100.76 123.7 97.84 125.69 95.63C127.65 93.42 130.24 92.3 133.43 92.3H142.89C145.94 92.3 148.37 93.36 150.25 95.47C152.13 97.57 153.06 100.36 153.06 103.77V105.41H122.71Z" fill="currentColor"/></svg>';
+  document.getElementById('brand').innerHTML = MARK + '<span>ReSpark</span>';
+
+  const ic = (n, extra = '') => `<i data-lucide="${n}" ${extra}></i>`;
+
+
+  // Sample data (illustrative, fictional yards and codes).
+  // Picker labels follow accountingCodeLabels.ts: "4000 - Scrap Sales".
+  const CODES = [
+    { c: '1100', n: 'Accounts Receivable', t: 'Asset' },
+    { c: '1300', n: 'Inventory - Nonferrous', t: 'Asset' },
+    { c: '1310', n: 'Inventory - Ferrous', t: 'Asset' },
+    { c: '2000', n: 'Accounts Payable', t: 'Liability' },
+    { c: '2200', n: 'Sales Tax Payable', t: 'Liability' },
+    { c: '4000', n: 'Scrap Sales', t: 'Revenue' },
+    { c: '4020', n: 'Nonferrous Sales', t: 'Revenue' },
+    { c: '4025', n: 'Nonferrous Sales - North', t: 'Revenue' },
+    { c: '4100', n: 'Freight Revenue', t: 'Revenue' },
+    { c: '5020', n: 'Nonferrous Purchases', t: 'Expense', legacy: 'NF-PURCH' },
+  ];
+  const L = c => `${c.c} - ${c.n}`;
+  const byC = k => CODES.find(c => c.c === k);
+  const IMPORT = [
+    { c: '4000', n: 'Scrap Sales', t: 'Revenue', s: 'Active' },
+    { c: '4010', n: 'Ferrous Sales', t: 'Revenue', s: 'Active' },
+    { c: '4020', n: 'Nonferrous Sales', t: 'Revenue', s: 'Active' },
+    { c: '4025', n: 'Nonferrous Sales - North', t: 'Revenue', s: 'Active', bad: 'Revnue' },
+    { c: '4100', n: 'Freight Revenue', t: 'Revenue', s: 'Active' },
+    { c: '5000', n: 'Ferrous Purchases', t: 'Expense', s: 'Active' },
+    { c: '5100', n: 'Inbound Freight', t: 'Expense', s: 'Active' },
+    { c: '6900', n: 'Rounding', t: 'Expense', s: '' },
+  ];
+  const N = 24;
+
+  // ---------- steps ----------
+  const GL = '/app/settings/accounting/gl-codes';
+  const CM = '/app/settings/accounting/code-mappings';
+  const MAT = '/app/commodities/copper/2-copper/318/overview';
+  const STEPS = [
+    { view: 'gl', cover: 'intro', url: GL },
+    { view: 'gl', t: '#btn-import', place: 'left', url: GL,
+      tip: 'Under <b>Settings → Accounting</b>, <b>GL Codes</b> keeps one list for the whole organization. Each code has a <b>Code</b>, <b>Name</b>, <b>Type</b> and <b>Status</b>. To bring in your list, click <b>Import</b>.' },
+    { view: 'gl', dlg: 'file', t: '#imp-help', place: 'right', url: GL,
+      tip: 'The file needs <b>Code</b>, <b>Name</b> and <b>Type</b> columns, and <b>Status</b> is optional. Start from <b>Download template</b> if you like, then click <b>Choose CSV file</b>.' },
+    { view: 'gl', dlg: 'review', t: '#bad-row', place: 'bottom', url: GL,
+      tip: 'You review every row before anything is saved. A row with a problem turns red, and the <b>Check</b> column says why: here, “Revnue” isn’t a type. Fix the cell right in the grid, or remove the row.' },
+    { view: 'gl', dlg: 'fixed', t: '#btn-imp', place: 'top', url: GL,
+      tip: 'Once <b>All 24 rows are ready to import</b>, click <b>Import 24 codes</b>. A file can have up to 1,000 rows.' },
+    { view: 'gl', imported: true, t: '#gl-grid', place: 'top', url: GL,
+      tip: 'The codes are on the list. A code that’s in use can’t be deleted, only deactivated, and the info icon marks a code copied from an old free-text code.' },
+    { view: 'mat', t: '#btn-edit', place: 'left', url: MAT,
+      tip: 'Now point a material at the list. Open the material under <b>Commodities</b> and click <b>Edit Properties</b>.' },
+    { view: 'mat', wiz: true, t: '#yard-ovr', place: 'right', url: MAT,
+      tip: 'The new <b>Accounting Set Up</b> step has <b>General</b> and <b>Intercompany</b> codes. At a yard, codes come from the organization until you tick <b>Use different codes at this yard</b>.' },
+    { view: 'mat', wiz: true, dd: true, t: '#gl-menu', place: 'right', url: MAT,
+      tip: 'Each picker offers only active codes of the right type. <b>Income GL Code</b> shows Revenue codes, so a liability can’t end up there by mistake.' },
+    { view: 'mat', saved: true, t: '#yard-badge', place: 'top', url: MAT,
+      tip: 'After <b>Save Changes</b>, the material’s <b>Accounting</b> card marks a yard’s own code with a <b>Yard</b> badge. Hover it to see the organization default.' },
+    { view: 'cm', t: '#cm-groups', place: 'top', url: CM,
+      tip: '<b>Code Mappings</b> sets codes for postings that don’t use a material’s code: <b>Freight</b>, <b>Taxes</b>, <b>AP/AR</b>, and <b>Other</b> for rounding, supplier advances and production burden offset. Then click <b>Save changes</b>.' },
+    { view: 'cm', yard: true, t: '#cm-fr', place: 'right', url: CM,
+      tip: 'Switch to a yard to give it its own code. A row that differs from the organization gets a reset button that puts the organization code back.' },
+    { view: 'cm', yard: true, cover: 'outro', url: CM },
+  ];
+
+  // ---------- chrome ----------
+  function sidebar() {
+    const row = (i, l) => `<div class="nrow">${ic(i)}<span>${l}</span>${ic('chevron-right', 'class="chev"')}</div>`;
+    return `<aside class="side">
+      <div class="top">${MARK}<div class="yard"><span>North Yard</span>${ic('chevrons-up-down')}</div></div>
+      <div class="nav">
+        <div class="nrow">${ic('inbox')}<span>Inbox</span><span class="pill">4</span></div>
+        <div class="nrow">${ic('messages-square')}<span>ScrapChat</span></div>
+        <div class="cmd" style="margin:2px 0">${ic('search')}<span>Search &amp; actions</span><kbd>⌘K</kbd></div>
+        <div class="nsep"></div>
+        ${row('shopping-cart', 'Purchases')}${row('tag', 'Sales')}${row('file-text', 'Contracts')}${row('boxes', 'Inventory')}${row('users', 'Customers')}
+        <div class="nrow active">${ic('layers')}<span>Commodities</span>${ic('chevron-right', 'class="chev"')}</div>
+        ${row('truck', 'Logistics')}${row('clipboard-list', 'Load Board')}${row('warehouse', 'Assets')}${row('chart-column', 'Reports')}${row('landmark', 'Ledger')}
+      </div>
+      <div class="foot"><div class="av">JP</div><div class="who"><span>Jordan Pike</span><small>General Manager</small></div>
+        <div class="ico"><span>${ic('settings')}</span><span>${ic('circle-help')}</span></div></div>
+    </aside>`;
+  }
+
+  const fld = (label, inner, o = {}) => `<div class="fld"${o.id ? ` id="${o.id}"` : ''}><label>${label}${o.req ? '<span class="req">*</span>' : ''}</label>${inner}${o.desc ? `<span class="desc">${o.desc}</span>` : ''}${o.after || ''}</div>`;
+  const box = (v, o = {}) => `<div class="in${o.ph ? ' ph' : ''}${o.dis ? ' dis' : ''}${o.open ? ' open' : ''}${o.cls ? ' ' + o.cls : ''}">${v}${o.icon ? ic(o.icon) : ''}</div>`;
+  const stillFrom = key => { const p = STEPS[step - 1]; return p && p[key] && p.view === STEPS[step].view ? ' still' : ''; };
+
+  // ---------- Settings → Accounting ----------
+  function settingsShell(s, tab, body) {
+    const gi = (i, l, on) => `<div class="gi${on ? ' on' : ''}">${ic(i)}<span>${l}</span></div>`;
+    const menu = `<nav class="smenu">
+      <div class="gh">ADMIN</div>${gi('layout-dashboard', 'Overview')}${gi('users', 'Users')}${gi('user-cog', 'Roles &amp; Permissions')}${gi('network', 'Departments')}${gi('file-text', 'Documents')}${gi('database', 'Data Warehouse')}
+      <div class="gap"></div><div class="gh">NOTIFICATIONS</div>${gi('sliders-horizontal', 'Definitions')}${gi('shield-check', 'Policies')}
+      <div class="gap"></div><div class="gh">PRODUCT</div>
+      ${gi('shopping-cart', 'Purchases')}${gi('tag', 'Sales')}${gi('files', 'Contracts')}${gi('list', 'Inventory')}${gi('circle-user', 'Customers')}${gi('ship', 'Logistics')}${gi('truck', 'Dispatch')}${gi('dollar-sign', 'Accounting', true)}${gi('monitor-smartphone', 'Hardware')}
+    </nav>`;
+    const scope = `<div class="scope"><span${s.yard ? '' : ' class="on"'}>${ic('building-2')}Organization</span><span${s.yard ? ' class="on"' : ''}>${ic('map-pin-house')}${s.yard ? 'North Yard' : 'Yard'}${ic('chevron-down')}</span></div>`;
+    const tabs = ['Ledger Sync', 'GL Codes', 'Code Mappings'].map(t => `<span${t === tab ? ' class="on"' : ''}>${t}</span>`).join('');
+    const banner = s.yard
+      ? `<div class="sbanner">${ic('info')}<span>You’re editing settings for <b>North Yard</b>. Not changed settings are inherited from the <b>Org</b>.</span><span class="cmp"><span class="sw0"></span>Compare with Org</span></div>`
+      : `<div class="sbanner">${ic('info')}<span>You’re editing settings for the <b>Organization</b>.</span></div>`;
+    return `<header class="abar"><span class="x">${ic('x')}</span><span class="ttl">Settings</span>
+        <div class="right"><span class="ib2">${ic('message-square')}</span><span class="ib2">${ic('circle-help')}</span>
+          <span class="uchip">${ic('user')}jordan@northyardmetals.com</span></div></header>
+      <div class="srow">${menu}
+        <main class="smain">
+          <div class="sph"><div class="r1"><h1>Accounting</h1>${scope}</div><div class="ntabs">${tabs}</div></div>
+          <div class="sbody">${banner}${body}</div>
+        </main>
+      </div>`;
+  }
+
+  function glCodes(s) {
+    const rows = s.imported ? CODES.concat([{ c: '4010', n: 'Ferrous Sales', t: 'Revenue' }, { c: '5000', n: 'Ferrous Purchases', t: 'Expense' }]).sort((a, b) => a.c.localeCompare(b.c)) : CODES.filter(c => c.legacy);
+    const tr = c => `<tr><td><span class="mono">${c.c}</span>${c.legacy ? `<span class="legacyi">${ic('info')}</span>` : ''}</td><td>${c.n}</td><td><span class="badge b-neutral">${c.t}</span></td><td><span class="badge b-success">Active</span></td>
+        <td class="c"><span class="racts"><span>${ic('pencil')}</span><span>${ic('circle-off')}</span><span>${ic('trash-2')}</span></span></td></tr>`;
+    const body = `${s.imported ? `<div class="okb${stillFrom('imported')}">${ic('circle-check')}Imported ${N} GL codes.<span class="x">${ic('x')}</span></div>` : ''}
+      <div class="introw"><p>The codes from your accounting system. Materials and other settings use them. Every yard in the organization shares this list.</p>
+        <span class="rb md" id="btn-import">${ic('upload')}Import</span><span class="rb md pri">${ic('plus')}Add code</span></div>
+      <div class="gtb" style="margin:0"><div class="inp" style="width:260px">${ic('search')}Search by code or name</div>
+        <div class="inp sel" style="width:110px">Type${ic('chevron-down')}</div><div class="inp sel" style="width:110px">Status${ic('chevron-down')}</div></div>
+      <div class="tcard" id="gl-grid" style="flex:none"><table><thead><tr><th style="width:300px">Code</th><th style="width:330px">Name</th><th style="width:140px">Type</th><th style="width:120px">Status</th><th></th></tr></thead>
+        <tbody>${rows.slice(0, 7).map(tr).join('')}</tbody></table></div>`;
+    return settingsShell(s, 'GL Codes', body) + importDialog(s);
+  }
+
+  function importDialog(s) {
+    if (!s.dlg) return '';
+    const still = stillFrom('dlg');
+    if (s.dlg === 'file') {
+      const r = (c, req, d) => `<tr><td class="cn">${c}</td><td class="rq"><span class="badge ${req ? 'b-req' : 'b-neutral'}">${req ? 'Required' : 'Optional'}</span></td><td>${d}</td></tr>`;
+      return `<div class="mscrim${still}"></div><div class="dlg${still}" style="width:560px">
+        <div class="dh2"><div><h3>Import GL Codes</h3><p>Add GL codes from a CSV file.</p></div><span class="x">${ic('x')}</span></div>
+        <div class="dbd"><p>Add many GL codes at once from a CSV file. You review every row before anything is saved.</p>
+          <div class="htab" id="imp-help"><table><thead><tr><th style="width:90px">Column</th><th style="width:96px"></th><th>What goes in it</th></tr></thead><tbody>
+            ${r('Code', true, 'Up to 32 letters, numbers, dots, dashes or underscores')}${r('Name', true, 'Up to 32 characters')}
+            ${r('Type', true, 'Asset, Liability, Equity, Revenue or Expense')}${r('Status', false, 'Active or Inactive. Empty means Active')}</tbody></table></div>
+          <p class="note">The first row has the column names. Other columns are ignored. In Excel, save the file as "CSV UTF-8" so the upload is successful.</p>
+          <div class="filerow"><span class="rb md">${ic('upload')}Choose CSV file</span><span class="grow"></span><span class="rb ghostp">${ic('download')}Download template</span></div></div>
+        <div class="dft"><span class="rb md">Cancel</span></div></div>`;
+    }
+    const fixed = s.dlg === 'fixed';
+    const cell = (v, o = {}) => `<div class="ecell${o.sel ? ' sel' : ''}${o.bad ? ' bad' : ''}${o.ed ? ' ed' : ''}">${v}${o.sel ? ic('chevron-down') : ''}</div>`;
+    const tr = r => {
+      const bad = r.bad && !fixed;
+      return `<tr${bad ? ' class="err" id="bad-row"' : ''}><td>${cell(`<span class="mono">${r.c}</span>`)}</td><td>${cell(r.n)}</td>
+        <td>${cell(bad ? r.bad : r.t, { sel: true, bad, ed: r.bad && fixed })}</td><td>${cell(r.s || '<span class="muted">Active</span>', { sel: true })}</td>
+        <td class="c">${bad ? `<span class="chk no">${ic('circle-alert')}</span>` : `<span class="chk ok">${ic('circle-check')}</span>`}</td>
+        <td class="c"><span class="racts"><span>${ic('trash-2')}</span></span></td></tr>`;
+    };
+    const status = fixed
+      ? `<div class="okb still">${ic('circle-check')}All ${N} rows are ready to import.</div>`
+      : `<div class="warnb">${ic('triangle-alert')}<span>1 row has problems. See them in the Check column, then fix the cells or remove the rows.</span></div>`;
+    const rtip = fixed ? '' : `<div class="rtip" style="right:96px;top:236px">Type: "Revnue" is not a type. Choose Asset, Liability, Equity, Revenue or Expense.</div>`;
+    return `<div class="mscrim${still}"></div><div class="dlg${still}" style="width:1040px">
+        <div class="dh2"><div><h3>Import GL Codes</h3><p>Add GL codes from a CSV file.</p></div><span class="x">${ic('x')}</span></div>
+        <div class="dbd" style="position:relative"><div class="rowc"><span>${N} rows from <b>chart-of-accounts.csv</b>.</span><span class="rb ghost">${ic('rotate-ccw')}Choose another file</span></div>
+          ${status}
+          <div class="tcard" style="flex:none"><table class="igrid"><thead><tr><th style="width:170px">Code</th><th>Name</th><th style="width:170px">Type</th><th style="width:150px">Status</th><th class="c" style="width:72px">Check</th><th style="width:48px"></th></tr></thead>
+            <tbody>${IMPORT.map(tr).join('')}</tbody></table></div>${rtip}</div>
+        <div class="dft"><span class="rb md">Cancel</span><span class="rb md pri${fixed ? '' : ' dis'}" id="btn-imp"${fixed ? '' : ' style="opacity:.5"'}>Import ${N} codes</span></div></div>`;
+  }
+
+  function codeMappings(s) {
+    const pk = (label, k, o = {}) => `<div class="fld cmrow"${o.id ? ` id="${o.id}"` : ''}><label>${label}</label>${box(k ? L(byC(k)) : (s.yard ? 'No code' : 'Select GL code'), { ph: !k, icon: 'chevron-down', cls: o.ovr ? 'ovr' : '' })}${o.ovr ? `<span class="rs" title="Use organization code">${ic('rotate-ccw')}</span>` : ''}</div>`;
+    const frK = s.yard ? '4025' : '4100';
+    const col = (h, rows, id) => `<div class="cmcol"${id ? ` id="${id}"` : ''}><h3>${h}</h3>${rows}</div>`;
+    const body = `<div class="introw"><p>GL codes for postings that do not use a material's code, like freight, taxes and rounding.</p><span class="rb md pri">Save changes</span></div>
+      <div class="cmg" id="cm-groups">
+        ${col('Freight', pk('Freight revenue', frK, { id: 'cm-fr', ovr: s.yard }) + pk('Inbound freight expense', '') + pk('Outbound freight expense', ''))}
+        ${col('Taxes', pk('Tax recoverable', '') + pk('Tax payable', '2200') + pk('Secondary tax recoverable', '') + pk('Secondary tax payable', ''))}
+        ${col('AP/AR', pk('Accounts payable', '2000') + pk('Accounts receivable', '1100'))}
+        ${col('Other', pk('Rounding expense', '') + pk('Supplier advances', '') + pk('Production burden offset', ''))}
+      </div>`;
+    return settingsShell(s, 'Code Mappings', body);
+  }
+
+  // ---------- Material overview + Edit Properties wizard ----------
+  function material(s) {
+    const f = (l, v, extra = '', id = '') => `<div class="sf${extra}"${id ? ` id="${id}"` : ''}><small>${l}</small><div>${v}</div></div>`;
+    const props = [f('Material Name', '#2 Copper'), f('Commodity Name', 'Copper'), f('Material Code', 'CU-2'), f('ISRI Code', 'Birch/Cliff'),
+      f('Tare Weight Required?', 'No'), f('Notes', '')].join('');
+    const inc = s.saved ? L(byC('4025')) : L(byC('4020'));
+    const badge = s.saved ? `<span style="position:relative;display:inline-flex"><span class="ybadge" id="yard-badge">${ic('warehouse')}Yard</span><span class="htip" style="left:-8px;top:28px"><b>Yard override</b>Organization default:<br>4020 - Nonferrous Sales</span></span>` : '';
+    const acct = `<h6>General</h6>${f('Income GL Code', inc + badge, ' full')}${f('Expense GL Code', L(byC('5020')))}${f('Inventory GL Code', L(byC('1300')))}${f('AP GL Code', L(byC('2000')))}${f('AR GL Code', L(byC('1100')))}
+      ${f('Income Code (legacy)', 'NF-SALES')}<h6>Intercompany</h6>${f('Income GL Code', '')}${f('Expense GL Code', '')}`;
+    const htip = '';
+    const page = `<main class="main" style="position:relative">
+        <div class="phd"><div class="crumbs">${ic('arrow-left')}<span>Copper</span><span>/</span><span>#2 Copper</span><span>/</span><span class="leaf">Overview</span></div>
+          <div class="trow"><h1>#2 Copper</h1><span class="rb pri" id="btn-edit">${ic('pencil')}Edit Properties</span></div></div>
+        <div class="ntabs"><span class="on">Overview</span></div>
+        <div class="mcols">
+          <div class="mcol"><div class="sfl"><h4>Material Properties</h4><div class="box">${props}</div></div>
+            <div class="sfl"><h4>Compliance</h4><div class="box">${f('Payment Hold Time', 'Is not applied')}${f('Inventory Hold Time', 'Is not applied')}</div></div></div>
+          <div class="mcol"><div class="sfl" id="acct-card"><h4>Accounting</h4><div class="box" style="grid-template-columns:1fr 1fr">${acct}</div></div></div>
+        </div>${htip}
+      </main>`;
+    return `${sidebar()}${page}${s.wiz ? wizard(s) : ''}`;
+  }
+
+  function wizard(s) {
+    const still = stillFrom('wiz');
+    const stepRow = (n, l, on) => `<div class="vstep${on ? ' on' : ''}"><i class="n">${n}</i><span>${l}</span></div>`;
+    const rev = CODES.filter(c => c.t === 'Revenue');
+    const menu = s.dd ? `<div class="dd" id="gl-menu" style="top:62px"><div class="srch">${ic('search')}Search</div><div class="gl">Revenue</div>
+        ${rev.map(c => `<div class="o${c.c === '4025' ? ' hv on' : ''}"><div class="tx"><span>${L(c)}</span></div>${c.c === '4025' ? `<span class="tk">${ic('check')}</span>` : ''}</div>`).join('')}</div>` : '';
+    const desc = c => `Pick ${L(byC(c))} to use the organization default.`;
+    const pick = (label, k, o = {}) => fld(label, box(L(byC(k)), { icon: 'chevron-down', open: o.open }), { desc: o.desc, after: o.after });
+    const empty = label => fld(label, box('Select GL code', { ph: true, icon: 'chevron-down' }));
+    return `<div class="wscrim${still}"></div>
+      <div class="wiz${still}">
+        <div class="wh"><h2>#2 Copper</h2><span class="x">${ic('x')}</span></div>
+        <div class="wb">
+          <div class="wsteps">${stepRow(1, 'General Properties')}<div class="vline"></div>${stepRow(2, 'Inventory')}<div class="vline"></div>${stepRow(3, 'Compliance')}<div class="vline"></div>${stepRow(4, 'Accounting Set Up', true)}</div>
+          <div class="wcont"><h5>Accounting Set Up</h5>
+            <div class="wcol">
+              <span class="ckl" id="yard-ovr"><span class="cb on"></span>Use different codes at this yard</span>
+              <section class="fsec"><h4>General</h4>
+                ${pick('Income GL Code', '4025', { desc: desc('4020'), open: s.dd, after: menu })}
+                ${pick('Expense GL Code', '5020')}${pick('Inventory GL Code', '1300')}
+                <div class="g2">${pick('AP GL Code', '2000')}${pick('AR GL Code', '1100')}</div>
+                <div class="g2">${fld('Income Code (legacy)', box('NF-SALES', { dis: true }))}${fld('Expense Code (legacy)', box('NF-PURCH', { dis: true }))}</div>
+              </section>
+              <section class="fsec"><h4>Intercompany</h4><div class="g2">${empty('Income GL Code')}${empty('Expense GL Code')}</div></section>
+            </div>
+          </div>
+        </div>
+        <div class="wfoot"><div><span class="rb pri md">Save Changes</span><span class="rb md">Cancel</span></div><div><span class="rb err md">Archive</span></div></div>
+      </div>`;
+  }
+
+  function cover(kind) {
+    if (kind === 'intro') {
+      return `<div class="cover"><div class="card">
+        <div class="eyebrow">${ic('book-open-check')}ReSpark Accounting · Rolling out</div>
+        <h2>Expose COA in app (GL codes)</h2>
+        <p>Keep one GL code list for your whole organization, import it from a CSV, and pick from it on materials and settings. Each picker shows only codes of the right type, and any yard can use its own codes.</p>
+        <div class="cta"><button class="go" type="button" data-go="next">Get started${ic('arrow-right')}</button></div>
+      </div></div>`;
+    }
+    return `<div class="cover"><div class="card">
+      <div class="eyebrow">${ic('circle-check')}One code list, checked and shared</div>
+      <h2>Your chart of accounts, inside ReSpark</h2>
+      <p>Import your codes once, check every row before it saves, and pick them by type on materials, fee types, claim and credit memo reasons, payment accounts, adjustments, and fees and promotions. Code Mappings covers freight, taxes, AP/AR and more, with yard overrides. GL codes are stored and shown in ReSpark for now: they aren’t sent to your accounting sync or used in reports yet.</p>
+      <div class="cta"><button class="go sec" type="button" data-go="restart">${ic('rotate-ccw')}Replay</button></div>
+    </div></div>`;
+  }
+
+  function renderApp(s) {
+    if (s.view === 'mat') return `<div class="app">${material(s)}${s.cover ? cover(s.cover) : ''}</div>`;
+    const v = s.view === 'cm' ? codeMappings(s) : glCodes(s);
+    return `<div class="app sapp">${v}${s.cover ? cover(s.cover) : ''}</div>`;
+  }
+  function anchorMenus() {}
+
+
+  // ---------- player ----------
+  const stage = document.getElementById('stage');
+  const canvas = document.getElementById('canvas');
+  const overlay = document.getElementById('overlay');
+  const caption = document.getElementById('caption');
+  const pips = document.getElementById('pips');
+  const backBtn = document.getElementById('back');
+  const nextBtn = document.getElementById('next');
+  let step = 0;
+  const guided = STEPS.map((s, i) => (s.tip ? i : null)).filter(i => i !== null);
+
+  pips.innerHTML = STEPS.map((_, i) => `<button type="button" role="tab" aria-label="Step ${i + 1}" data-i="${i}"></button>`).join('');
+  pips.addEventListener('click', e => { const b = e.target.closest('button'); if (b) go(+b.dataset.i); });
+
+  function scale() {
+    const k = stage.clientWidth / W;
+    canvas.style.transform = `scale(${k})`;
+    document.body.classList.toggle('narrow', stage.clientWidth < 700);
+    return k;
+  }
+
+  function place() {
+    overlay.innerHTML = '';
+    const s = STEPS[step];
+    anchorMenus(s);
+    if (!s.t) return;
+    const el = canvas.querySelector(s.t);
+    if (!el) return;
+    const sr = stage.getBoundingClientRect();
+    const r = el.getBoundingClientRect();
+    const x = r.left - sr.left, y = r.top - sr.top, w = r.width, h = r.height;
+    const n = guided.indexOf(step) + 1;
+    const label = `<span class="n">Step ${n} of ${guided.length}</span>`;
+
+    const ring = document.createElement('div');
+    ring.className = 'ring';
+    Object.assign(ring.style, { left: x - 3 + 'px', top: y - 3 + 'px', width: w + 6 + 'px', height: h + 6 + 'px' });
+    const hot = document.createElement('button');
+    hot.className = 'hot';
+    hot.type = 'button';
+    hot.setAttribute('aria-label', 'Continue to next step');
+    hot.style.left = x + w / 2 + 'px';
+    hot.style.top = y + h / 2 + 'px';
+    hot.addEventListener('click', () => go(step + 1));
+    overlay.append(ring, hot);
+
+    caption.innerHTML = label + s.tip;
+    if (document.body.classList.contains('narrow')) return;
+
+    const tip = document.createElement('div');
+    tip.className = 'tip';
+    tip.innerHTML = label + s.tip;
+    overlay.append(tip);
+    const tw = tip.offsetWidth, th = tip.offsetHeight, gap = 18;
+    const SW = stage.clientWidth, SH = stage.clientHeight;
+    let tx, ty;
+    const side = s.place || 'right';
+    if (side === 'right') { tx = x + w + gap; ty = y + h / 2 - th / 2; }
+    if (side === 'left') { tx = x - tw - gap; ty = y + h / 2 - th / 2; }
+    if (side === 'bottom') { tx = x + w / 2 - tw / 2; ty = y + h + gap; }
+    if (side === 'top') { tx = x + w / 2 - tw / 2; ty = y - th - gap; }
+    if (side === 'right' && tx + tw > SW - 8) { tx = x - tw - gap; }
+    if (side === 'left' && tx < 8) { tx = x + w + gap; }
+    tx = Math.max(10, Math.min(SW - tw - 10, tx));
+    ty = Math.max(10, Math.min(SH - th - 10, ty));
+    tip.style.left = tx + 'px';
+    tip.style.top = ty + 'px';
+  }
+
+  function render() {
+    const s = STEPS[step];
+    canvas.innerHTML = renderApp(s);
+    if (window.lucide) lucide.createIcons({ attrs: { 'aria-hidden': 'true' } });
+    document.getElementById('url').textContent = 'app.respark.com' + s.url;
+    document.getElementById('progress').style.width = (step / (STEPS.length - 1)) * 100 + '%';
+    [...pips.children].forEach((b, i) => { b.className = i === step ? 'on' : i < step ? 'done' : ''; b.setAttribute('aria-selected', i === step); });
+    const n = guided.indexOf(step);
+    document.getElementById('count').textContent = s.cover === 'intro' ? 'Intro' : s.cover === 'outro' ? 'Done' : `${n + 1} / ${guided.length}`;
+    backBtn.disabled = step === 0;
+    nextBtn.disabled = step === STEPS.length - 1;
+    if (s.cover) caption.innerHTML = s.cover === 'intro'
+      ? '<span class="n">Intro</span>GL codes: import one code list for the organization, pick codes by type on a material, and set code mappings with yard overrides.'
+      : '<span class="n">Done</span>From a CSV import to material codes and code mappings. GL codes are stored and shown in ReSpark only for now. Replay any step with the bars above.';
+    scale();
+    // Measure only after entrance animations (panels sliding in, menus
+    // popping, pins dropping) finish, or the ring lands where the element
+    // was mid-animation instead of where it ends up.
+    const token = ++renderToken;
+    settle().then(() => { if (token === renderToken) place(); });
+  }
+
+  let renderToken = 0;
+  function settle() {
+    const finite = (canvas.getAnimations ? canvas.getAnimations({ subtree: true }) : [])
+      .filter(a => a.effect && a.effect.getComputedTiming().iterations !== Infinity);
+    const done = Promise.all(finite.map(a => a.finished.catch(() => {})));
+    const timeout = new Promise(r => setTimeout(r, 1200));
+    // If the timeline is throttled (background tab), snap leftovers to their
+    // end state so the measurement still matches the final layout.
+    return Promise.race([done, timeout]).then(() => {
+      finite.forEach(a => { if (a.playState !== 'finished') try { a.finish(); } catch (e) {} });
+      return new Promise(r => setTimeout(r, 30));
+    });
+  }
+
+  // Self-check used before publishing: walks every step and reports any
+  // highlight that doesn't sit on its target, targets that are missing or
+  // clipped, and tooltips that cover the thing they point at.
+  function checkStep() {
+    const s = STEPS[step];
+    if (!s.t) return { step, ok: true };
+    const el = canvas.querySelector(s.t), ring = overlay.querySelector('.ring'), tip = overlay.querySelector('.tip');
+    if (!el) return { step, ok: false, why: `target ${s.t} not found` };
+    if (!ring) return { step, ok: false, why: 'highlight not drawn' };
+    const a = el.getBoundingClientRect(), b = ring.getBoundingClientRect(), st = stage.getBoundingClientRect();
+    const off = Math.max(Math.abs(a.left - 3 - b.left), Math.abs(a.top - 3 - b.top), Math.abs(a.width + 6 - b.width), Math.abs(a.height + 6 - b.height));
+    const issues = [];
+    if (off > 2) issues.push(`highlight off by ${Math.round(off)}px`);
+    if (a.width < 4 || a.height < 4) issues.push('target has no size');
+    if (a.left < st.left - 1 || a.top < st.top - 1 || a.right > st.right + 1 || a.bottom > st.bottom + 1) issues.push('target clipped by frame');
+    if (tip) {
+      const t = tip.getBoundingClientRect();
+      const ix = Math.max(0, Math.min(a.right, t.right) - Math.max(a.left, t.left)), iy = Math.max(0, Math.min(a.bottom, t.bottom) - Math.max(a.top, t.top));
+      if (ix * iy > 0.25 * a.width * a.height) issues.push('tooltip covers target');
+    }
+    return { step, target: s.t, ok: issues.length === 0, issues };
+  }
+  window.walkthroughAudit = async () => {
+    const results = [];
+    for (let i = 0; i < STEPS.length; i++) {
+      go(i);
+      await settle();
+      await new Promise(r => setTimeout(r, 60));
+      results.push(checkStep());
+    }
+    go(0);
+    return { ok: results.every(r => r.ok), problems: results.filter(r => !r.ok), steps: results.length };
+  };
+
+  function go(i) {
+    step = Math.max(0, Math.min(STEPS.length - 1, i));
+    render();
+  }
+
+  canvas.addEventListener('click', e => {
+    const g = e.target.closest('[data-go]');
+    if (g) { go(g.dataset.go === 'restart' ? 0 : step + 1); return; }
+    const s = STEPS[step];
+    if (s.t && e.target.closest(s.t)) go(step + 1);
+  });
+  backBtn.addEventListener('click', () => go(step - 1));
+  nextBtn.addEventListener('click', () => go(step + 1));
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight') go(step + 1);
+    if (e.key === 'ArrowLeft') go(step - 1);
+  });
+  new ResizeObserver(() => { scale(); settle().then(place); }).observe(stage);
+  if (document.fonts) document.fonts.ready.then(place);
+
+  if (window.lucide) lucide.createIcons({ attrs: { 'aria-hidden': 'true' } });
+  render();
+})();
+</script>

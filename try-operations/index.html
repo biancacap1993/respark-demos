@@ -560,7 +560,8 @@ function reset() {
   if (st) st.gen++;
   if (dlg.open) dlg.close();
   st = fresh(); S.setContext({});
-  showScene('pl', true);
+  // ?scene=anomalies opens on the Anomaly Viewer (linked from respark.com/inner-circle).
+  showScene(S.params.get('scene') === 'anomalies' ? 'av' : 'pl', true);
 }
 reset();
 if (S.DEBUG) window.__demo = { process: k => { newLoadDialog(); return processBol(k); }, state: () => st, showScene };

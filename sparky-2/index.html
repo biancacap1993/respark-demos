@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Sparky</title>
+<script>
+// Ask Sparky split into two pages: #do goes to Sparky can do, anything else to Sparky can answer.
+const page = location.hash === '#do' ? 'sparky-can-do' : 'sparky-can-answer';
+location.replace(location.pathname.replace(/sparky-2\/?(index\.html)?$/, page) + location.search + '#try');
+</script>
+</head>
+<body>
+<p><a href="sparky-can-answer">Try Sparky can answer</a> · <a href="sparky-can-do">Try Sparky can do</a></p>
+</body>
+</html>
